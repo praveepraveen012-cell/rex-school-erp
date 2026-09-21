@@ -11,6 +11,9 @@ const App = {
     ERPStorage.init();
 
     // Initialize all modules
+    if (window.HomeModule) {
+      HomeModule.init();
+    }
     StudentsModule.init();
     AttendanceModule.init();
     FeesModule.init();
@@ -25,9 +28,13 @@ const App = {
 
     this.attachEvents();
     this.applyRole(this.currentRole);
-    this.switchView('dashboard');
+    
+    // Initial view: check URL hash or default to home webapp
+    const hash = window.location.hash ? window.location.hash.replace('#', '') : '';
+    const initialView = hash || 'home';
+    this.switchView(initialView);
 
-    console.log("NeverSkip School ERP initialized successfully.");
+    console.log("Rex Senior Secondary School ERP initialized successfully.");
   },
 
   attachEvents() {
@@ -122,10 +129,12 @@ const App = {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem(ERPStorage.KEYS.THEME, theme);
 
-    const themeIcon = document.getElementById('theme-icon');
-    if (themeIcon) {
-      themeIcon.innerHTML = theme === 'dark' ? '☀️' : '🌙';
-    }
+    document.querySelectorAll('.theme-toggle-btn, #theme-toggle-btn').forEach(btn => {
+      const themeIcon = btn.querySelector('.theme-icon') || btn.querySelector('#theme-icon') || btn;
+      if (themeIcon) {
+        themeIcon.innerHTML = theme === 'dark' ? '☀️' : '🌙';
+      }
+    });
   },
 
   applyRole(role) {
@@ -158,6 +167,24 @@ const App = {
 
   switchView(viewId) {
     this.currentView = viewId;
+
+    const appContainer = document.querySelector('.app-container');
+    const homeView = document.getElementById('home-view');
+    const deviceToggle = document.querySelector('.device-mode-toggle-floating');
+
+    if (viewId === 'home') {
+      if (appContainer) appContainer.style.display = 'none';
+      if (homeView) homeView.style.display = 'block';
+      if (deviceToggle) deviceToggle.style.display = 'flex';
+      window.location.hash = 'home';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    } else {
+      if (appContainer) appContainer.style.display = 'flex';
+      if (homeView) homeView.style.display = 'none';
+      if (deviceToggle) deviceToggle.style.display = 'none';
+      window.location.hash = viewId;
+    }
 
     // Update active nav link
     document.querySelectorAll('.nav-item').forEach(item => {

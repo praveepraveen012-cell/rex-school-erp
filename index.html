@@ -13,9 +13,1095 @@
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/modules.css">
   <link rel="stylesheet" href="css/print.css">
+  <!-- PWA & Mobile Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="assets/logo.png">
+  
+  <!-- Additional Home WebApp & Native Mobile Stylesheets -->
+  <link rel="stylesheet" href="css/home-webapp.css">
+  <link rel="stylesheet" href="css/mobile-app.css">
+
 </head>
 <body>
-  <div class="app-container">
+  
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('Rex SSS Service Worker Registered:', reg.scope))
+          .catch(err => console.log('SW registration note:', err));
+      });
+    }
+  </script>
+
+  <!-- Floating Device Mode Switcher Pill -->
+  <div class="device-mode-toggle-floating" id="device-mode-toggle">
+    <button type="button" class="device-toggle-btn active" id="btn-mode-desktop" title="Switch to Full Desktop WebApp">
+      <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+      <span>Desktop WebApp</span>
+    </button>
+    <button type="button" class="device-toggle-btn" id="btn-mode-mobile" title="Switch to Native Mobile App View">
+      <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+      <span>Mobile App View</span>
+    </button>
+  </div>
+
+  <!-- ==============================================
+       HOME WEBAPP EXPERIENCE (NeverSkip Inspired)
+       ============================================== -->
+  <div id="home-view" style="display: block;">
+    <!-- Top Announcement Strip -->
+    <div class="top-announcement-bar">
+      <div class="announcement-text">
+        <span class="announcement-badge">ADMISSIONS 2026-27</span>
+        <span>CBSE Affiliation #1930000 • Admissions Open for Grades LKG to 12 • Christus Rex, Ootacamund</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <span style="font-size: 0.75rem; opacity: 0.9;">📞 Helpline: +91 423 2442220</span>
+        <button type="button" class="btn btn-sm btn-secondary" data-action="book-tour" style="padding: 0.2rem 0.6rem; font-size: 0.7rem; background: rgba(255,255,255,0.2); border: none; color: #fff;">Book Campus Tour</button>
+      </div>
+    </div>
+
+    <!-- Home Navbar -->
+    <header class="home-navbar">
+      <div class="home-nav-container">
+        <a href="#" class="home-nav-brand" onclick="window.scrollTo({top:0, behavior:'smooth'}); return false;">
+          <img src="assets/logo.png" alt="Rex Senior Secondary School">
+          <div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-primary); line-height: 1.1;">Rex Senior Secondary School</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Christus Rex, Ootacamund • Estd. Nilgiris</div>
+          </div>
+        </a>
+
+        <nav class="home-nav-links">
+          <a href="#solutions" class="home-nav-link">Solutions</a>
+          <a href="#sandbox" class="home-nav-link">Live Sandbox</a>
+          <a href="#why-rex" class="home-nav-link">Why Rex SSS</a>
+          <a href="#testimonials" class="home-nav-link">Testimonials</a>
+          <span class="home-nav-link" onclick="HomeModule.setDeviceMode('mobile')">📱 Mobile App</span>
+        </nav>
+
+        <div class="home-nav-actions">
+          <button type="button" class="icon-action-btn theme-toggle-btn" title="Toggle Light/Dark Theme">
+            <span class="theme-icon">🌙</span>
+          </button>
+          <button type="button" class="btn btn-secondary" data-action="book-tour">Visit Campus</button>
+          <button type="button" class="btn btn-primary" onclick="HomeModule.launchERP('dashboard')">
+            Launch ERP Portal &rarr;
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="home-hero-section">
+      <div class="home-hero-grid">
+        <div>
+          <div class="hero-pill-tag">
+            <span>✨</span> Next-Gen Education Management & Smart Campus
+          </div>
+          <h1 class="hero-headline">
+            Empowering Excellence at <span>Rex Senior Secondary School</span>
+          </h1>
+          <p class="hero-description">
+            The premier Nilgiris institution blending academic heritage with 21st-century digital intelligence. Comprehensive WebApp for CBSE management, automated fee cashiers, smart biometric attendance, and instant parent communication.
+          </p>
+
+          <div class="hero-actions-row">
+            <button type="button" class="btn btn-primary btn-lg" onclick="HomeModule.launchERP('dashboard')" style="font-size: 1rem; padding: 0.85rem 1.75rem;">
+              Launch ERP Management &rarr;
+            </button>
+            <button type="button" class="btn btn-secondary btn-lg" onclick="HomeModule.setDeviceMode('mobile')" style="font-size: 1rem; padding: 0.85rem 1.5rem;">
+              📱 Mobile App View
+            </button>
+            <button type="button" class="btn btn-outline btn-lg" data-action="book-tour" style="font-size: 0.95rem;">
+              Book Campus Tour
+            </button>
+          </div>
+
+          <div class="hero-feature-pills">
+            <div class="hero-feature-item">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              <span>CBSE Affiliated #1930000</span>
+            </div>
+            <div class="hero-feature-item">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              <span>Smart RFID Attendance</span>
+            </div>
+            <div class="hero-feature-item">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              <span>Instant Fee Receipts</span>
+            </div>
+            <div class="hero-feature-item">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              <span>Automated WhatsApp Alerts</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hero Interactive Live Pulse Card -->
+        <div class="hero-preview-wrapper">
+          <div class="hero-interactive-card">
+            <div class="hero-card-header">
+              <div class="hero-card-title">
+                <span style="width: 10px; height: 10px; border-radius: 50%; background: #22c55e; display: inline-block; box-shadow: 0 0 8px #22c55e;"></span>
+                <span>Rex SSS Live Campus Pulse</span>
+              </div>
+              <span class="badge badge-present" style="font-size: 0.7rem;">Active AY 2026-27</span>
+            </div>
+
+            <div class="hero-card-body">
+              <div class="mini-pulse-grid">
+                <div class="mini-pulse-item">
+                  <div class="mini-pulse-label">Attendance Today</div>
+                  <div class="mini-pulse-val" style="color: #16a34a;">96.4%</div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">1,234 Present • 46 Absent</div>
+                </div>
+                <div class="mini-pulse-item">
+                  <div class="mini-pulse-label">Active Enrollment</div>
+                  <div class="mini-pulse-val" style="color: var(--primary);">1,280</div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">LKG to Grade 12</div>
+                </div>
+                <div class="mini-pulse-item">
+                  <div class="mini-pulse-label">Digital Collections</div>
+                  <div class="mini-pulse-val" style="color: #0284c7;">₹ 8.4 L</div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">Term II Settled Online</div>
+                </div>
+                <div class="mini-pulse-item">
+                  <div class="mini-pulse-label">Scheduled Classes</div>
+                  <div class="mini-pulse-val" style="color: #7c3aed;">42 Slots</div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">Period 2 in Session</div>
+                </div>
+              </div>
+
+              <!-- Mini live event ticker -->
+              <div style="background: var(--bg-subtle); border-radius: var(--radius-sm); padding: 0.85rem; border: 1px solid var(--border-subtle);">
+                <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Live Campus Stream</div>
+                <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.75rem;">
+                  <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <span style="color: #16a34a;">●</span>
+                    <span style="font-weight: 600;">Grade 10-A:</span>
+                    <span style="color: var(--text-secondary);">Physics Practical underway with Mrs. Sunita Rao</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <span style="color: #0284c7;">●</span>
+                    <span style="font-weight: 600;">Fee Cashier:</span>
+                    <span style="color: var(--text-secondary);">Digitally signed receipt #REX-2026-089 generated</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <span style="color: #f59e0b;">●</span>
+                    <span style="font-weight: 600;">Transport:</span>
+                    <span style="color: var(--text-secondary);">Bus Route #4 (Charring Cross) arrived on campus</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 0.75rem;">
+                <button type="button" class="btn btn-primary" onclick="HomeModule.launchERP('dashboard')" style="flex: 1; font-size: 0.85rem;">
+                  Open Live Dashboard &rarr;
+                </button>
+                <button type="button" class="btn btn-secondary pwa-install-trigger" style="font-size: 0.85rem;">
+                  📲 Install WebApp
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats Counter Numbers Strip -->
+    <div class="stats-counter-strip">
+      <div class="stats-counter-container">
+        <div class="stat-counter-box">
+          <h3>1,280+</h3>
+          <p>Enrolled Students</p>
+        </div>
+        <div class="stat-counter-box">
+          <h3>100%</h3>
+          <p>CBSE Pass Percentage</p>
+        </div>
+        <div class="stat-counter-box">
+          <h3>98.6%</h3>
+          <p>Attendance Accuracy</p>
+        </div>
+        <div class="stat-counter-box">
+          <h3>₹ 1.2 Cr+</h3>
+          <p>Digital Fees Handled</p>
+        </div>
+        <div class="stat-counter-box">
+          <h3>45+</h3>
+          <p>Expert Faculty Mentors</p>
+        </div>
+        <div class="stat-counter-box">
+          <h3>50+ Yrs</h3>
+          <p>Educational Heritage</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Solutions Showcase Section (NeverSkip 4-Pillars) -->
+    <section class="solutions-showcase-section" id="solutions">
+      <div class="section-title-centered">
+        <div class="section-pill-badge">Connected Ecosystem</div>
+        <h2 class="section-heading-lg">Engineered for Every Stakeholder in Modern Schooling</h2>
+        <p class="section-desc-sub">Inspired by NeverSkip's unified architecture, Rex Senior Secondary School bridges administrators, faculty, parents, and students through seamless real-time coordination.</p>
+      </div>
+
+      <!-- Solution Nav Tabs -->
+      <div class="solutions-nav-tabs">
+        <button type="button" class="sol-tab-pill active" data-sol-tab="admin">
+          🏛️ School Administration & Finance
+        </button>
+        <button type="button" class="sol-tab-pill" data-sol-tab="academic">
+          📚 CBSE Academics & Report Cards
+        </button>
+        <button type="button" class="sol-tab-pill" data-sol-tab="parent">
+          👨‍👩‍👧‍👦 Parent Engagement & Mobile App
+        </button>
+        <button type="button" class="sol-tab-pill" data-sol-tab="safety">
+          🛡️ Campus Safety & Transport
+        </button>
+      </div>
+
+      <!-- Tab 1: Administration & Finance -->
+      <div class="solution-tab-pane active" id="sol-pane-admin">
+        <div>
+          <h3 style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary); margin-bottom: 1rem;">Complete Digital Command Center</h3>
+          <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.5rem;">
+            Eliminate paperwork and streamline complex operations. From online student admission registrations to automated fee reconciliations, Rex Senior Secondary School empowers administration with infallible audit records.
+          </p>
+
+          <div class="solution-feature-list">
+            <div class="sol-feature-item">
+              <div class="sol-feature-icon">💳</div>
+              <div>
+                <h4>Automated Multi-Head Fee Cashier</h4>
+                <p>Tuition, smart-class, lab, bus, and meals billing with auto-generated official receipts bearing Rex SSS digital crest & cashier seals.</p>
+              </div>
+            </div>
+            <div class="sol-feature-item">
+              <div class="sol-feature-icon">👤</div>
+              <div>
+                <h4>Student 360 Information System (SIS)</h4>
+                <p>Complete academic profiles, emergency contacts, medical records, blood groups, and behavioral remarks at a glance.</p>
+              </div>
+            </div>
+            <div class="sol-feature-item">
+              <div class="sol-feature-icon">🔒</div>
+              <div>
+                <h4>Role-Based Access Control</h4>
+                <p>Separate security views and privileges for Principal/Super Admin, Grade Mentors, Cashiers, and Parents.</p>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 2rem;">
+            <button type="button" class="btn btn-primary" onclick="HomeModule.launchERP('fees')">Explore Fee Cashier &rarr;</button>
+          </div>
+        </div>
+
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-medium); border-radius: var(--radius-xl); padding: 1.5rem; box-shadow: var(--shadow-lg);">
+          <div style="font-weight: 800; font-size: 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <span>Rex SSS Fee Cashier Terminal</span>
+            <span class="badge badge-present">Online Mode</span>
+          </div>
+          <div style="padding: 1rem; background: var(--bg-subtle); border-radius: var(--radius-md); margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.4rem;">
+              <span>Student: Aarav Sharma</span>
+              <span style="color: #16a34a;">Status: Cleared</span>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Receipt #REX-2026-089 • Grade 10-A • Term II Fees</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary); margin-top: 0.5rem;">₹ 28,000.00</div>
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5;">
+            Includes Tuition (₹ 18,000), Science Lab (₹ 4,000), Smart Learning (₹ 2,000), Examination Fee (₹ 2,000), Sports & Library (₹ 2,000). Official signed receipt ready for instant print.
+          </div>
+          <button type="button" class="btn btn-sm btn-outline" onclick="HomeModule.launchERP('fees')" style="margin-top: 1rem; width: 100%;">View Ledger & Print Sample Receipt</button>
+        </div>
+      </div>
+
+      <!-- Tab 2: CBSE Academics -->
+      <div class="solution-tab-pane" id="sol-pane-academic">
+        <div>
+          <h3 style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary); margin-bottom: 1rem;">Excellence in CBSE Curriculum & Evaluation</h3>
+          <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.5rem;">
+            Fully configured for CBSE Continuous & Comprehensive Evaluation (CCE). Calculate scholastic grades, generate term report cards with auto-computation of percentiles and CGPA, and dynamically manage master class timetables.
+          </p>
+
+          <div class="solution-feature-list">
+            <div class="sol-feature-item">
+              <div class="sol-feature-icon">📊</div>
+              <div>
+                <h4>Official CBSE Report Cards</h4>
+                <p>Term I, Mid-Term, and Pre-Board report cards featuring theory, practicals, internal assessment, co-scholastic grading, and digital principal seal.</p>
+              </div>
+            </div>
+            <div class="sol-feature-item">
+              <div class="sol-feature-icon">⏰</div>
+              <div>
+                <h4>Intelligent Timetable & Substitution Engine</h4>
+                <p>Drag-and-drop weekly timetable matrix with 1-click substitute teacher assignment when staff take leave.</p>
+              </div>
+            </div>
+            <div class="sol-feature-item">
+              <div class="sol-feature-icon">📈</div>
+              <div>
+                <h4>Class Performance Analytics</h4>
+                <p>Subject-wise averages, topper highlights, and progress tracking across all academic sections.</p>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 2rem;">
+            <button type="button" class="btn btn-primary" onclick="HomeModule.launchERP('exams')">Explore CBSE Exam Engine &rarr;</button>
+          </div>
+        </div>
+
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-medium); border-radius: var(--radius-xl); padding: 1.5rem; box-shadow: var(--shadow-lg);">
+          <div style="font-weight: 800; font-size: 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <span>CBSE Academic Performance</span>
+            <span class="badge badge-info">Grade 10-A</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+            <div style="background: var(--bg-subtle); padding: 0.75rem; border-radius: var(--radius-sm); text-align: center;">
+              <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700;">MATHEMATICS</div>
+              <div style="font-size: 1.2rem; font-weight: 800; color: var(--primary);">94 / 100</div>
+              <div style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Grade A1</div>
+            </div>
+            <div style="background: var(--bg-subtle); padding: 0.75rem; border-radius: var(--radius-sm); text-align: center;">
+              <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700;">SCIENCE</div>
+              <div style="font-size: 1.2rem; font-weight: 800; color: var(--primary);">91 / 100</div>
+              <div style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Grade A1</div>
+            </div>
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5;">
+            Automatic calculation of 8-point grading scale (A1 to E), scholastic remarks, and downloadable PDF report card with school crest and official signatures.
+          </div>
+          <button type="button" class="btn btn-sm btn-outline" onclick="HomeModule.launchERP('exams')" style="margin-top: 1rem; width: 100%;">View Report Card Template</button>
+        </div>
+      </div>
+
+      <!-- Tab 3: Parent Engagement -->
+      <div class="solution-tab-pane" id="sol-pane-parent">
+        <div>
+          <h3 style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary); margin-bottom: 1rem;">Transparent Parent Partnership</h3>
+          <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.5rem;">
+            Keep parents intimately connected with their child's academic journey. Whether via the native PWA mobile app, SMS gateway, or automated WhatsApp broadcasts, notifications arrive in seconds.
+          </p>
+
+          <div class="solution-feature-list">
+            <div class="sol-feature-item">
+              <div class="sol-feature-icon">💬</div>
+              <div>
+                <h4>Official WhatsApp Broadcast Integration</h4>
+                <p>Automated dispatch of daily attendance confirmations, fee payment reminders, exam date sheets, and emergency holiday alerts.</p>
+              </div>
+            </div>
+            <div class="sol-feature-item">
+              <div class="sol-feature-icon">📱</div>
+              <div>
+                <h4>Installable Parent Mobile App (PWA)</h4>
+                <p>Zero friction: Works instantly on any smartphone with native offline caching, bottom navigation, and home screen installation.</p>
+              </div>
+            </div>
+            <div class="sol-feature-item">
+              <div class="sol-feature-icon">📢</div>
+              <div>
+                <h4>Real-Time Circulars & Advisory</h4>
+                <p>Digital notice board categorizing academic, transport, and sports advisories with push notifications.</p>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+            <button type="button" class="btn btn-primary" onclick="HomeModule.setDeviceMode('mobile')">Preview Mobile App &rarr;</button>
+            <button type="button" class="btn btn-secondary" onclick="HomeModule.launchERP('communication')">Open WhatsApp Module</button>
+          </div>
+        </div>
+
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-medium); border-radius: var(--radius-xl); padding: 1.5rem; box-shadow: var(--shadow-lg);">
+          <div style="font-weight: 800; font-size: 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <span>Parent Mobile Experience</span>
+            <span class="badge badge-present">WhatsApp Ready</span>
+          </div>
+          <div style="padding: 1rem; background: #eef2ff; border-radius: var(--radius-md); border-left: 4px solid #2563eb; margin-bottom: 1rem;">
+            <div style="font-weight: 700; font-size: 0.82rem; color: #1e3a8a;">*REX SENIOR SECONDARY SCHOOL*</div>
+            <div style="font-size: 0.75rem; color: #1e293b; margin-top: 0.3rem; line-height: 1.4;">
+              Dear Parent, your ward <strong>Aarav Sharma</strong> (10-A) has safely arrived at campus today at 08:24 AM via Smart RFID Gate 1.
+            </div>
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5;">
+            Over 99.2% of Rex Senior Secondary School parents actively monitor attendance and settle fees through the mobile interface.
+          </div>
+          <button type="button" class="btn btn-sm btn-outline" onclick="HomeModule.setDeviceMode('mobile')" style="margin-top: 1rem; width: 100%;">Test Drive Native Mobile View</button>
+        </div>
+      </div>
+
+      <!-- Tab 4: Campus Safety & Transport -->
+      <div class="solution-tab-pane" id="sol-pane-safety">
+        <div>
+          <h3 style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary); margin-bottom: 1rem;">Uncompromised Student Safety & Nilgiris Transit</h3>
+          <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.5rem;">
+            Navigating the hilly terrain of Ootacamund demands precision safety. Rex Senior Secondary School deploys RFID campus turnstiles and GPS fleet tracking to ensure peace of mind for every family.
+          </p>
+
+          <div class="solution-feature-list">
+            <div class="sol-feature-item">
+              <div class="sol-feature-icon">🛡️</div>
+              <div>
+                <h4>Smart RFID Gate Punch & Biometrics</h4>
+                <p>Instant attendance logging upon campus entry with immediate WhatsApp absentee alerts triggered at 08:45 AM daily.</p>
+              </div>
+            </div>
+            <div class="sol-feature-item">
+              <div class="sol-feature-icon">🚌</div>
+              <div>
+                <h4>Live Nilgiris Fleet GPS Tracking</h4>
+                <p>Real-time vehicle status across Ooty, Coonoor, and Kotagiri routes with estimated arrival times at parent stops.</p>
+              </div>
+            </div>
+            <div class="sol-feature-item">
+              <div class="sol-feature-icon">🚨</div>
+              <div>
+                <h4>Instant Emergency Broadcast</h4>
+                <p>One-touch multi-channel broadcasts for hill weather advisories, sudden rain closures, or special bus rerouting.</p>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 2rem;">
+            <button type="button" class="btn btn-primary" onclick="HomeModule.launchERP('attendance')">Open Attendance Gateway &rarr;</button>
+          </div>
+        </div>
+
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-medium); border-radius: var(--radius-xl); padding: 1.5rem; box-shadow: var(--shadow-lg);">
+          <div style="font-weight: 800; font-size: 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <span>Smart RFID Attendance Pulse</span>
+            <span class="badge badge-present">Gate 1 & 2 Live</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.65rem; margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; padding: 0.5rem; background: var(--bg-subtle); border-radius: 4px;">
+              <span>Total Students Expected:</span>
+              <strong>1,280</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; padding: 0.5rem; background: var(--bg-subtle); border-radius: 4px;">
+              <span>Successfully Punched:</span>
+              <strong style="color: #16a34a;">1,234 (96.4%)</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; padding: 0.5rem; background: var(--bg-subtle); border-radius: 4px;">
+              <span>Absentee Alerts Queued:</span>
+              <strong style="color: #dc2626;">46 WhatsApp Sent</strong>
+            </div>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline" onclick="HomeModule.launchERP('attendance')" style="width: 100%;">Inspect Real-Time Attendance Register</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Live Sandbox / Playground Section -->
+    <section class="sandbox-playground-section" id="sandbox">
+      <div class="sandbox-container">
+        <div class="section-title-centered">
+          <div class="section-pill-badge">Live Interactive Playground</div>
+          <h2 class="section-heading-lg">Try the Rex SSS Digital Modules Live</h2>
+          <p class="section-desc-sub">Experience the speed, accuracy, and elegance of Rex Senior Secondary School's cloud platform directly in your browser.</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 2rem;">
+          
+          <!-- Sandbox 1: Instant Fee Calculator -->
+          <div class="sandbox-card">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+              <h3 style="font-size: 1.2rem; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                <span>💳</span> Instant Fee Calculator
+              </h3>
+              <span class="badge badge-info">Interactive</span>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
+              <div>
+                <label class="form-label" style="font-size: 0.78rem;">Select Academic Grade</label>
+                <select id="calc-grade" class="form-select">
+                  <option value="10" selected>Grade 10 (Secondary CBSE)</option>
+                  <option value="9">Grade 9 (Secondary CBSE)</option>
+                  <option value="12">Grade 12 (Sr Secondary - Science/Comm)</option>
+                  <option value="11">Grade 11 (Sr Secondary - Science/Comm)</option>
+                  <option value="6">Middle School (Grades 6 - 8)</option>
+                  <option value="1">Primary School (Grades 1 - 5)</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="form-label" style="font-size: 0.78rem;">Payment Frequency</label>
+                <select id="calc-term" class="form-select">
+                  <option value="1" selected>Term II (Single Term)</option>
+                  <option value="annual">Full Academic Year (5% Early Discount)</option>
+                </select>
+              </div>
+
+              <div style="display: flex; gap: 1.25rem; font-size: 0.82rem; font-weight: 600;">
+                <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+                  <input type="checkbox" id="calc-transport" checked> Bus Transit
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+                  <input type="checkbox" id="calc-meals" checked> Campus Lunch
+                </label>
+              </div>
+            </div>
+
+            <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1rem;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.35rem; color: var(--text-secondary);">
+                <span>Tuition & Smart-Class:</span>
+                <strong id="calc-res-tuition" style="color: var(--text-primary);">₹ 28,000</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.35rem; color: var(--text-secondary);">
+                <span>Nilgiris Bus Transport:</span>
+                <strong id="calc-res-transport" style="color: var(--text-primary);">₹ 6,500</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.5rem; color: var(--text-secondary);">
+                <span>Lab, Exam & Nutrition:</span>
+                <strong id="calc-res-other" style="color: var(--text-primary);">₹ 7,500</strong>
+              </div>
+              <div style="border-top: 1px solid var(--border-medium); padding-top: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.9rem; font-weight: 800;">Estimated Settlement:</span>
+                <span id="calc-res-total" style="font-size: 1.35rem; font-weight: 800; color: var(--primary);">₹ 42,000</span>
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-primary btn-block" onclick="HomeModule.launchERP('fees')">
+              Open Full Cashier & Generate Receipt &rarr;
+            </button>
+          </div>
+
+          <!-- Sandbox 2: WhatsApp Live Composer -->
+          <div class="sandbox-card">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+              <h3 style="font-size: 1.2rem; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                <span>💬</span> WhatsApp Broadcast Live
+              </h3>
+              <span class="badge badge-present">WhatsApp API</span>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 0.85rem; margin-bottom: 1.25rem;">
+              <div>
+                <label class="form-label" style="font-size: 0.78rem;">Student Ward Name</label>
+                <input type="text" id="wa-sim-student" class="form-control" value="Aarav Sharma" placeholder="Student name...">
+              </div>
+
+              <div>
+                <label class="form-label" style="font-size: 0.78rem;">Broadcast Template</label>
+                <select id="wa-sim-type" class="form-select">
+                  <option value="attendance" selected>Morning RFID Punch Attendance</option>
+                  <option value="fee">Tuition Fee Paid & Receipt Generated</option>
+                  <option value="transport">Bus Transit Departure & Live GPS</option>
+                  <option value="exam">Pre-Board Examination Schedule</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="form-label" style="font-size: 0.78rem;">Bus Route / Transit Stop</label>
+                <input type="text" id="wa-sim-bus" class="form-control" value="Route #4 (Charring Cross)">
+              </div>
+            </div>
+
+            <!-- WhatsApp Message Bubble Preview -->
+            <div style="background: #e2f7cb; border-radius: var(--radius-md); padding: 1rem; border: 1px solid #b2df8a; margin-bottom: 1rem; position: relative;">
+              <div style="font-size: 0.7rem; color: #075e54; font-weight: 800; margin-bottom: 0.35rem; display: flex; justify-content: space-between;">
+                <span>REX SENIOR SECONDARY SCHOOL</span>
+                <span>08:25 AM ✓✓</span>
+              </div>
+              <div id="wa-sim-preview" style="font-size: 0.78rem; color: #111; line-height: 1.45;">
+                <!-- Dynamically populated by home.js -->
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-secondary btn-block" onclick="HomeModule.launchERP('communication')">
+              Open WhatsApp Gateway & Notices &rarr;
+            </button>
+          </div>
+
+          <!-- Sandbox 3: CBSE Grade & CGPA Simulator -->
+          <div class="sandbox-card">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+              <h3 style="font-size: 1.2rem; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                <span>📊</span> CBSE Grade & CGPA
+              </h3>
+              <span class="badge badge-info">CCE Grading</span>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.25rem;">
+              <div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700; margin-bottom: 0.25rem;">
+                  <span>Mathematics (Theory + Practicals)</span>
+                  <span id="grade-val-math" style="color: var(--primary);">92 / 100</span>
+                </div>
+                <input type="range" id="grade-sim-math" min="30" max="100" value="92" style="width: 100%;">
+              </div>
+
+              <div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700; margin-bottom: 0.25rem;">
+                  <span>Science (Physics, Chem, Bio)</span>
+                  <span id="grade-val-science" style="color: var(--primary);">88 / 100</span>
+                </div>
+                <input type="range" id="grade-sim-science" min="30" max="100" value="88" style="width: 100%;">
+              </div>
+
+              <div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700; margin-bottom: 0.25rem;">
+                  <span>English Communicative</span>
+                  <span id="grade-val-english" style="color: var(--primary);">95 / 100</span>
+                </div>
+                <input type="range" id="grade-sim-english" min="30" max="100" value="95" style="width: 100%;">
+              </div>
+            </div>
+
+            <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem; display: flex; align-items: center; justify-content: space-around; margin-bottom: 1rem; text-align: center;">
+              <div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700;">AVERAGE</div>
+                <div id="grade-sim-avg" style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary);">92%</div>
+              </div>
+              <div style="border-left: 1px solid var(--border-subtle); padding-left: 1rem;">
+                <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700;">CBSE GRADE</div>
+                <div id="grade-sim-badge" class="badge badge-present" style="font-size: 0.85rem; font-weight: 800; margin-top: 0.2rem;">Grade A1</div>
+              </div>
+              <div style="border-left: 1px solid var(--border-subtle); padding-left: 1rem;">
+                <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700;">SCORE</div>
+                <div id="grade-sim-gpa" style="font-size: 1.1rem; font-weight: 800; color: var(--primary); margin-top: 0.2rem;">CGPA: 10.0</div>
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-primary btn-block" onclick="HomeModule.launchERP('exams')">
+              Generate Official CBSE Report Card &rarr;
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Why Rex Senior Secondary School Section -->
+    <section class="solutions-showcase-section" id="why-rex" style="padding-top: 2rem;">
+      <div class="section-title-centered">
+        <div class="section-pill-badge">The Rex Advantage</div>
+        <h2 class="section-heading-lg">Why Families Choose Rex Senior Secondary School</h2>
+        <p class="section-desc-sub">Rooted in Christian values, Christus Rex provides an inspiring sanctuary in Ootacamund where students excel intellectually, spiritually, and culturally.</p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.75rem;">
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.75rem;">
+          <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--primary-50); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1.25rem;">
+            ⛰️
+          </div>
+          <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text-primary);">Pristine Nilgiris Campus</h3>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+            Nestled in the serene hills of Ootacamund, our campus offers a calm, pollution-free environment conducive to rigorous academic focus and athletic distinction.
+          </p>
+        </div>
+
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.75rem;">
+          <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--primary-50); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1.25rem;">
+            🔬
+          </div>
+          <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text-primary);">Advanced STEM & CBSE Labs</h3>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+            Modern physics, chemistry, biology, robotics, and computer labs that enable experiential learning and prepare students for competitive national examinations.
+          </p>
+        </div>
+
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.75rem;">
+          <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--primary-50); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1.25rem;">
+            📱
+          </div>
+          <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text-primary);">100% Digital Transparency</h3>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+            Never miss an update. Parents enjoy instant visibility into daily attendance, test performance, homework, and fee receipts through our responsive WebApp and mobile app.
+          </p>
+        </div>
+
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.75rem;">
+          <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--primary-50); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1.25rem;">
+            🕊️
+          </div>
+          <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text-primary);">Holistic Moral Formation</h3>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+            Guided by dedicated educators, we instill discipline, empathy, leadership, and integrity so our students emerge as compassionate citizens of tomorrow.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Nilgiris Community Testimonials -->
+    <section class="solutions-showcase-section" id="testimonials" style="padding-top: 1rem;">
+      <div class="section-title-centered">
+        <div class="section-pill-badge">Community Voices</div>
+        <h2 class="section-heading-lg">Trusted by Generations of Nilgiris Parents</h2>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem;">
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.75rem; box-shadow: var(--shadow-sm);">
+          <div style="display: flex; gap: 0.25rem; color: #f59e0b; margin-bottom: 1rem;">★★★★★</div>
+          <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.25rem;">
+            "The new WebApp and mobile portal for Rex Senior Secondary School has transformed our experience as parents. Getting attendance notifications and paying Term fees with instant digitally signed receipts on WhatsApp is so convenient."
+          </p>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 42px; height: 42px; border-radius: 50%; background: #2563eb; color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 0.9rem;">RS</div>
+            <div>
+              <div style="font-weight: 700; font-size: 0.9rem;">Rajesh Sharma</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Parent of Aarav (Grade 10-A) • Ooty</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.75rem; box-shadow: var(--shadow-sm);">
+          <div style="display: flex; gap: 0.25rem; color: #f59e0b; margin-bottom: 1rem;">★★★★★</div>
+          <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.25rem;">
+            "Teaching at Rex Senior Secondary School is made so much easier with this platform. Smart attendance and automatic CBSE report card generation save our department days of administrative effort every semester."
+          </p>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 42px; height: 42px; border-radius: 50%; background: #059669; color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 0.9rem;">SR</div>
+            <div>
+              <div style="font-weight: 700; font-size: 0.9rem;">Mrs. Sunita Rao</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Senior Science Faculty & Grade 10-A Mentor</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.75rem; box-shadow: var(--shadow-sm);">
+          <div style="display: flex; gap: 0.25rem; color: #f59e0b; margin-bottom: 1rem;">★★★★★</div>
+          <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.25rem;">
+            "Living in Coonoor while our daughter studies at Rex, the live bus transit GPS alerts and real-time exam marksheets give us absolute peace of mind. Christus Rex continues to lead the Nilgiris."
+          </p>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 42px; height: 42px; border-radius: 50%; background: #7c3aed; color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 0.9rem;">PV</div>
+            <div>
+              <div style="font-weight: 700; font-size: 0.9rem;">Priya & Dr. Venkatraman</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Parents of Diya (Grade 12 Science)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Home Footer -->
+    <footer class="home-footer">
+      <div class="footer-container">
+        <div class="footer-col">
+          <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+            <img src="assets/logo.png" alt="Rex Logo" style="height: 48px; object-fit: contain;">
+            <div>
+              <div style="font-size: 1.05rem; font-weight: 800; color: #ffffff;">Rex Senior Secondary School</div>
+              <div style="font-size: 0.75rem; color: #94a3b8;">Christus Rex, Ootacamund</div>
+            </div>
+          </div>
+          <p style="font-size: 0.82rem; line-height: 1.6; margin-bottom: 1rem;">
+            CBSE Affiliated Senior Secondary Institution (#1930000). Dedicated to Christian character formation, intellectual vigor, and community stewardship across The Nilgiris.
+          </p>
+          <div style="font-size: 0.8rem; color: #cbd5e1;">
+            📍 Christus Rex, Church Hill Road, Ootacamund, The Nilgiris - 643001<br>
+            📞 Phone: +91 423 2442220 | ✉️ office@rexschool.edu.in
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>ERP Management</h4>
+          <div class="footer-links-list">
+            <a href="#" onclick="HomeModule.launchERP('dashboard'); return false;">Principal Dashboard</a>
+            <a href="#" onclick="HomeModule.launchERP('students'); return false;">Students Directory (SIS)</a>
+            <a href="#" onclick="HomeModule.launchERP('attendance'); return false;">Smart RFID Attendance</a>
+            <a href="#" onclick="HomeModule.launchERP('fees'); return false;">Fee Cashier & Ledger</a>
+            <a href="#" onclick="HomeModule.launchERP('exams'); return false;">CBSE Report Cards</a>
+            <a href="#" onclick="HomeModule.launchERP('timetable'); return false;">Timetable & Substitution</a>
+            <a href="#" onclick="HomeModule.launchERP('communication'); return false;">WhatsApp Broadcasts</a>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Academics & Admissions</h4>
+          <div class="footer-links-list">
+            <a href="#" data-action="book-tour">Admissions 2026-27</a>
+            <a href="#solutions">CBSE Curriculum Standards</a>
+            <a href="#solutions">Science & Computer Laboratories</a>
+            <a href="#sandbox">Live Fee Structure</a>
+            <a href="#" data-action="book-tour">Nilgiris Transport Routes</a>
+            <a href="#" onclick="HomeModule.setDeviceMode('mobile'); return false;">Parent Mobile App Guide</a>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Digital Portal</h4>
+          <div class="footer-links-list">
+            <a href="#" onclick="HomeModule.launchERP('parent-portal'); return false;">Parent & Student Login</a>
+            <a href="#" onclick="HomeModule.launchERP('dashboard'); return false;">Staff & Mentor Access</a>
+            <a href="#" class="pwa-install-trigger">Install PWA on Device</a>
+            <a href="#" data-action="book-tour">Book Campus Tour</a>
+            <a href="#" onclick="window.scrollTo({top:0, behavior:'smooth'}); return false;">Return to Top ↑</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom-strip">
+        <div>
+          © 2026 Rex Senior Secondary School (Christus Rex, Ootacamund). All rights reserved.
+        </div>
+        <div>
+          Designed & Deployed with NeverSkip EdTech Architecture • CBSE Affiliation No. 1930000
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ==============================================
+       MOBILE DEVICE SIMULATOR OVERLAY (Native App)
+       ============================================== -->
+  <div class="mobile-device-simulator-overlay" id="mobile-device-simulator">
+    <div class="mobile-phone-hardware-shell">
+      <!-- Dynamic Notch Island -->
+      <div class="phone-notch-island">
+        <div class="notch-camera-lens"></div>
+      </div>
+
+      <!-- Native Mobile App Screen Container -->
+      <div class="mobile-app-shell">
+        <!-- Top Mobile App Bar -->
+        <div class="mobile-app-header">
+          <div class="mobile-header-brand">
+            <img src="assets/logo.png" alt="Rex Logo" class="mobile-header-logo">
+            <div>
+              <div class="mobile-header-title">Rex Senior Sec. School</div>
+              <div class="mobile-header-sub">Aarav Sharma • Grade 10-A</div>
+            </div>
+          </div>
+          <div class="mobile-header-actions">
+            <button type="button" class="icon-action-btn" title="Close Mobile Preview" onclick="HomeModule.closeMobileSimulator()" style="width: 32px; height: 32px; border-radius: 50%;">
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <!-- Scrollable Screen Content -->
+        <div class="mobile-app-scroll">
+          <!-- Install PWA Notification Card -->
+          <div class="mobile-pwa-install-card">
+            <div class="pwa-text">
+              <h5>Rex SSS Mobile App</h5>
+              <p>Install on home screen for instant alerts</p>
+            </div>
+            <button type="button" class="btn btn-sm btn-light pwa-install-trigger" style="font-size: 0.72rem; padding: 0.35rem 0.65rem; background: #fff; color: #1e3a8a; border: none; font-weight: 800;">
+              Install
+            </button>
+          </div>
+
+          <!-- Student Digital ID Card Preview -->
+          <div style="background: linear-gradient(135deg, #1e3a8a, #0284c7); color: #fff; border-radius: var(--radius-md); padding: 1rem; box-shadow: var(--shadow-md);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.85;">Student ID Card</span>
+                <div style="font-size: 1.1rem; font-weight: 800; margin-top: 0.15rem;">Aarav Sharma</div>
+                <div style="font-size: 0.75rem; opacity: 0.9;">Roll #10A-01 • Class 10-A</div>
+              </div>
+              <span class="badge badge-present" style="background: #22c55e; color: #000; font-size: 0.65rem; font-weight: 800;">Active 2026</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.2); font-size: 0.72rem;">
+              <span>CBSE Affiliation: #1930000</span>
+              <span>Christus Rex, Ooty</span>
+            </div>
+          </div>
+
+          <!-- Quick Services Grid (8 Icons) -->
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.65rem; letter-spacing: 0.04em;">
+              Quick Services
+            </div>
+            <div class="mobile-services-grid">
+              <div class="mobile-service-item" onclick="HomeModule.openMobileSheet('attendance')">
+                <div class="service-icon-circle" style="color: #16a34a;">📅</div>
+                <span class="service-label">Attendance</span>
+              </div>
+              <div class="mobile-service-item" onclick="HomeModule.openMobileSheet('fees')">
+                <div class="service-icon-circle" style="color: #2563eb;">💳</div>
+                <span class="service-label">Fees Pay</span>
+              </div>
+              <div class="mobile-service-item" onclick="HomeModule.launchERP('exams')">
+                <div class="service-icon-circle" style="color: #7c3aed;">📜</div>
+                <span class="service-label">Report Card</span>
+              </div>
+              <div class="mobile-service-item" onclick="HomeModule.launchERP('timetable')">
+                <div class="service-icon-circle" style="color: #ea580c;">⏰</div>
+                <span class="service-label">Timetable</span>
+              </div>
+              <div class="mobile-service-item" onclick="HomeModule.openMobileSheet('notices')">
+                <div class="service-icon-circle" style="color: #0284c7;">🚌</div>
+                <span class="service-label">Bus GPS</span>
+              </div>
+              <div class="mobile-service-item" onclick="HomeModule.openMobileSheet('notices')">
+                <div class="service-icon-circle" style="color: #25d366;">💬</div>
+                <span class="service-label">WhatsApp</span>
+              </div>
+              <div class="mobile-service-item" onclick="HomeModule.openMobileSheet('notices')">
+                <div class="service-icon-circle" style="color: #ec4899;">📝</div>
+                <span class="service-label">Homework</span>
+              </div>
+              <div class="mobile-service-item" onclick="HomeModule.launchERP('dashboard')">
+                <div class="service-icon-circle" style="color: #1e3a8a;">🏛️</div>
+                <span class="service-label">Full ERP</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Horizontal Card Slider (Daily Highlights) -->
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; letter-spacing: 0.04em;">
+              Today's Live Updates
+            </div>
+            <div class="mobile-slider-wrapper">
+              <div class="mobile-slide-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                  <span style="font-size: 0.68rem; font-weight: 700; color: var(--primary);">SCHEDULED NOW</span>
+                  <span class="badge badge-present" style="font-size: 0.65rem;">Period 2</span>
+                </div>
+                <div style="font-weight: 800; font-size: 0.88rem;">Science & Physics Lab</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">Mrs. Sunita Rao • Science Hall 1</div>
+              </div>
+
+              <div class="mobile-slide-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                  <span style="font-size: 0.68rem; font-weight: 700; color: #16a34a;">FEE CLEARED</span>
+                  <span class="badge badge-present" style="font-size: 0.65rem;">Paid</span>
+                </div>
+                <div style="font-weight: 800; font-size: 0.88rem;">Term II Tuition Settled</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">Receipt #REX-2026-089 verified</div>
+              </div>
+
+              <div class="mobile-slide-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                  <span style="font-size: 0.68rem; font-weight: 700; color: #f59e0b;">CIRCULAR</span>
+                  <span class="badge badge-warning" style="font-size: 0.65rem;">New</span>
+                </div>
+                <div style="font-weight: 800; font-size: 0.88rem;">CBSE Pre-Board Schedule</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">Class 10 datesheet published</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Notices Stream -->
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.65rem; letter-spacing: 0.04em;">
+              School Announcements
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+              <div style="padding: 0.75rem; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); border-left: 3px solid var(--primary);">
+                <div style="font-weight: 700; font-size: 0.82rem;">Annual Sports Meet 2026</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem;">Athletic trials begin this Friday on the upper fields.</div>
+              </div>
+              <div style="padding: 0.75rem; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); border-left: 3px solid #16a34a;">
+                <div style="font-weight: 700; font-size: 0.82rem;">Admissions Open 2026-27</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem;">Prospectus now available for LKG to Grade 11.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Floating WhatsApp FAB -->
+        <div class="mobile-fab-whatsapp" title="WhatsApp Enquiry" onclick="HomeModule.openMobileSheet('notices')">
+          <svg width="26" height="26" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.634.07-1.73-.383-1.228-.507-2.025-1.745-2.087-1.826-.062-.08-1.042-1.385-1.042-2.64 0-1.256.657-1.874.89-2.124.233-.25.508-.313.678-.313.17 0 .34.002.489.01.157.008.368-.06.576.438.214.512.73 1.782.794 1.912.064.13.107.283.021.453-.086.17-.129.276-.255.424-.127.148-.266.331-.38.444-.127.126-.26.262-.112.516.148.255.659 1.087 1.411 1.758.968.863 1.784 1.13 2.038 1.257.255.127.404.106.553-.064.15-.17.638-.743.808-.998.17-.255.34-.212.573-.127.234.085 1.487.701 1.742.828.255.128.425.191.488.297.064.106.064.617-.08 1.022z"/></svg>
+        </div>
+
+        <!-- Native Bottom Navigation Bar -->
+        <nav class="mobile-bottom-nav">
+          <button type="button" class="mobile-nav-tab active" data-tab="home">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            <span>Home</span>
+          </button>
+          <button type="button" class="mobile-nav-tab" data-tab="attendance">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            <span>Attendance</span>
+          </button>
+          <button type="button" class="mobile-nav-tab" data-tab="fees">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <span>Fees</span>
+          </button>
+          <button type="button" class="mobile-nav-tab" data-tab="notices">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+            <span>Notices</span>
+          </button>
+          <button type="button" class="mobile-nav-tab" data-tab="erp" style="color: var(--primary);">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <span>Open ERP</span>
+          </button>
+        </nav>
+
+        <!-- Pull-Up Bottom Sheet Modal -->
+        <div class="bottom-sheet-overlay" id="mobile-bottom-sheet">
+          <div class="bottom-sheet-modal">
+            <div class="bottom-sheet-drag-handle" onclick="HomeModule.closeMobileSheet()"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <h4 id="mobile-sheet-title" style="font-size: 1.1rem; font-weight: 800; margin: 0;">Details</h4>
+              <button type="button" class="btn btn-sm btn-secondary" onclick="HomeModule.closeMobileSheet()">✕</button>
+            </div>
+            <div id="mobile-sheet-content">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Campus Tour Booking Modal -->
+  <div class="modal-overlay" id="home-tour-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Schedule a Campus Visit • Rex SSS</h3>
+        <button type="button" class="modal-close-btn" onclick="HomeModule.closeTourModal()">&times;</button>
+      </div>
+      <form id="home-tour-form">
+        <div class="modal-body">
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+            Experience the scenic campus of Rex Senior Secondary School at Christus Rex, Ootacamund. Meet our faculty mentors and tour our smart laboratories.
+          </p>
+
+          <div class="form-group">
+            <label class="form-label">Parent / Guardian Name *</label>
+            <input type="text" id="tour-parent-name" class="form-control" placeholder="e.g. Dr. Rajesh Sharma" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">WhatsApp Contact *</label>
+              <input type="tel" id="tour-phone" class="form-control" placeholder="+91 98100 12345" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Grade Applying For</label>
+              <select id="tour-grade" class="form-select">
+                <option value="Class 10" selected>Grade 10 (CBSE)</option>
+                <option value="Class 11 Science">Grade 11 (Science Stream)</option>
+                <option value="Class 11 Commerce">Grade 11 (Commerce Stream)</option>
+                <option value="Middle School">Middle School (Grades 6-8)</option>
+                <option value="Primary School">Primary School (Grades 1-5)</option>
+                <option value="LKG / UKG">Kindergarten (LKG/UKG)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Preferred Date of Visit</label>
+            <input type="date" id="tour-date" class="form-control" value="2026-09-28">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="HomeModule.closeTourModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Confirm Visit & Receive Confirmation</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="app-container" style="display: none;">
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
       <div class="sidebar-header">
@@ -28,6 +1114,13 @@
         <!-- Main Section -->
         <div class="nav-section">
           <div class="nav-section-title">Core Modules</div>
+          <div class="nav-item" data-view="home" onclick="HomeModule.returnToHome()" style="border-bottom: 1px solid var(--border-subtle); margin-bottom: 0.5rem; padding-bottom: 0.65rem;">
+            <div class="nav-item-left">
+              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+              <span style="font-weight: 700; color: var(--primary);">Home WebApp</span>
+            </div>
+            <span class="badge badge-primary" style="font-size: 0.65rem;">Portal</span>
+          </div>
           <div class="nav-item active" data-view="dashboard">
             <div class="nav-item-left">
               <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
@@ -132,6 +1225,9 @@
 
         <div class="topbar-right">
           <!-- Academic Year Tag -->
+                    <button class="btn btn-sm btn-secondary" onclick="HomeModule.returnToHome()" style="font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; gap: 0.35rem;" title="Return to Rex SSS Home WebApp">
+            🏠 Home WebApp
+          </button>
           <div class="academic-badge">
             <span>📅 AY 2026-27</span>
           </div>
@@ -949,6 +2045,7 @@
   <script src="js/exams.js"></script>
   <script src="js/timetable.js"></script>
   <script src="js/communication.js"></script>
+  <script src="js/home.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
