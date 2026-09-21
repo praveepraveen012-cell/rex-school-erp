@@ -1,0 +1,13 @@
+{
+  "name": "neverskip-school-erp",
+  "version": "1.0.0",
+  "description": "Enterprise-Grade School ERP Web Application inspired by NeverSkip",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["school-erp", "neverskip", "education-management", "student-information-system"],
+  "author": "Antigravity",
+  "license": "ISC"
+}
