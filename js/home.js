@@ -246,6 +246,59 @@ const HomeModule = {
         </div>
         <button class="btn btn-primary btn-block" onclick="HomeModule.launchERP('communication')">Open WhatsApp & Notices Module &rarr;</button>
       `;
+    } else if (type === 'bus') {
+      if (sheetTitle) sheetTitle.textContent = "🚌 School Bus GPS & 500m Radar";
+      sheetBody.innerHTML = `
+        <div style="background: linear-gradient(135deg, #1e3a8a, #0284c7); color: #fff; padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1rem; text-align: center;">
+          <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.9;">Bus TN-43-A-2104 • Route 02</div>
+          <div style="font-size: 2rem; font-weight: 800; margin: 0.25rem 0;">480 Meters Away</div>
+          <div style="font-size: 0.8rem; background: #22c55e; color: #000; display: inline-block; padding: 2px 10px; border-radius: 12px; font-weight: 800;">
+            🎯 Within 500m Geofence!
+          </div>
+        </div>
+
+        <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0.85rem; margin-bottom: 1rem; font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.4rem;">
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted);">Boarding Stop:</span>
+            <strong>Snowdon Road Crossing</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted);">Driver:</span>
+            <strong>Joseph Selvaraj (+91 94432 10045)</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted);">Current Transit:</span>
+            <span style="color: #16a34a; font-weight: 700;">Morning Pickup (32 km/h)</span>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+          <button class="btn btn-primary btn-block" style="background: #f59e0b; border-color: #f59e0b; color: #000; font-weight: 800;" onclick="if(window.TransportModule) TransportModule.simulate500mAlert()">
+            ⚡ Test 500m Proximity Alarm & Alert
+          </button>
+          <button class="btn btn-secondary btn-block" onclick="HomeModule.launchERP('parent-portal')">
+            Open Interactive Live Bus Map &rarr;
+          </button>
+        </div>
+      `;
+    } else if (type === 'homework') {
+      if (sheetTitle) sheetTitle.textContent = "📖 Daily Homework Diary (Class 10-A)";
+      const hwList = (window.ERPStorage && ERPStorage.getHomework) ? ERPStorage.getHomework() : [];
+      sheetBody.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem;">
+          ${hwList.slice(0, 4).map(h => `
+            <div style="padding: 0.75rem; background: var(--bg-subtle); border-radius: var(--radius-sm); border-left: 3px solid ${h.status === 'Completed' ? '#10b981' : '#2563eb'};">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.2rem;">
+                <strong style="font-size: 0.82rem; color: var(--text-primary); text-decoration: ${h.status === 'Completed' ? 'line-through' : 'none'};">${h.subject}</strong>
+                <span class="badge ${h.status === 'Completed' ? 'badge-present' : 'badge-neutral'}" style="font-size: 0.65rem;">${h.status}</span>
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-secondary); text-decoration: ${h.status === 'Completed' ? 'line-through' : 'none'};">${h.title}</div>
+              <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.3rem;">Due: ${h.dueDate} • ${h.teacher}</div>
+            </div>
+          `).join('')}
+        </div>
+        <button class="btn btn-primary btn-block" onclick="HomeModule.launchERP('parent-portal')">Open Full Homework Hub & Leaves &rarr;</button>
+      `;
     } else {
       if (sheetTitle) sheetTitle.textContent = "Rex SSS Mobile Services";
       sheetBody.innerHTML = `

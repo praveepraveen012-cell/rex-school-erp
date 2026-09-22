@@ -443,6 +443,265 @@ const SEED_WHATSAPP_TEMPLATES = [
   }
 ];
 
+// Seed Data for GPS School Bus Routes (With 500m Geofencing & Morning/Evening Schedules)
+const SEED_BUS_ROUTES = [
+  {
+    id: "route-02",
+    routeNumber: "Route 02",
+    name: "Coonoor Road - Charing Cross - Rex SSS",
+    vehicleNo: "TN-43-A-2104",
+    model: "Tata Starbus Ultra (40-Seater GPS Smart Fleet)",
+    driverName: "Joseph Selvaraj",
+    driverPhone: "+91 94432 10045",
+    driverLicense: "TN43 20140003829",
+    attendantName: "K. Mariyammal",
+    attendantPhone: "+91 94881 22910",
+    speed: 34,
+    status: "In Transit",
+    currentLocationName: "Approaching Charing Cross Junction",
+    distanceToStudentStop: 480, // meters - within 500m geofence!
+    studentStop: "Charring Cross Junction (Nilgiris Library)",
+    studentAssigned: "Aarav Sharma (10A-01)",
+    morning: {
+      title: "Morning Pickup Schedule",
+      departs: "07:15 AM",
+      destination: "Rex Senior Secondary School (08:15 AM)",
+      currentStopIndex: 3,
+      stops: [
+        { name: "Coonoor Bus Stand", time: "07:15 AM", status: "passed", distanceMeters: 5200 },
+        { name: "Wellington Barracks", time: "07:30 AM", status: "passed", distanceMeters: 3800 },
+        { name: "Aruvankadu Junction", time: "07:42 AM", status: "passed", distanceMeters: 2100 },
+        { name: "Charring Cross Junction", time: "07:58 AM", status: "approaching", distanceMeters: 480, isStudentStop: true },
+        { name: "Rex SSS Campus Main Gate", time: "08:15 AM", status: "pending", distanceMeters: 0 }
+      ]
+    },
+    evening: {
+      title: "Evening Drop-off Schedule",
+      departs: "03:45 PM",
+      destination: "Coonoor Stand (04:45 PM)",
+      currentStopIndex: 1,
+      stops: [
+        { name: "Rex SSS Campus Main Gate", time: "03:45 PM", status: "passed", distanceMeters: 0 },
+        { name: "Charring Cross Junction", time: "04:02 PM", status: "approaching", distanceMeters: 480, isStudentStop: true },
+        { name: "Aruvankadu Junction", time: "04:18 PM", status: "pending", distanceMeters: 2100 },
+        { name: "Wellington Barracks", time: "04:30 PM", status: "pending", distanceMeters: 3800 },
+        { name: "Coonoor Bus Stand", time: "04:45 PM", status: "pending", distanceMeters: 5200 }
+      ]
+    }
+  },
+  {
+    id: "route-01",
+    routeNumber: "Route 01",
+    name: "Ooty Town - Botanical Garden - Rex SSS",
+    vehicleNo: "TN-43-A-1980",
+    model: "Ashok Leyland Sunshine (34-Seater)",
+    driverName: "M. Ramanathan",
+    driverPhone: "+91 94420 55102",
+    driverLicense: "TN43 20120008812",
+    attendantName: "S. Vasantha",
+    attendantPhone: "+91 94862 33119",
+    speed: 28,
+    status: "In Transit",
+    currentLocationName: "Near Botanical Garden Main Gate",
+    distanceToStudentStop: 1200,
+    studentStop: "Commercial Road Post Office",
+    morning: {
+      title: "Morning Pickup Schedule",
+      departs: "07:30 AM",
+      destination: "Rex SSS Campus (08:15 AM)",
+      currentStopIndex: 1,
+      stops: [
+        { name: "Kandal Market", time: "07:30 AM", status: "passed", distanceMeters: 4200 },
+        { name: "Botanical Garden Road", time: "07:45 AM", status: "approaching", distanceMeters: 1200 },
+        { name: "Commercial Road Post Office", time: "07:55 AM", status: "pending", distanceMeters: 800, isStudentStop: true },
+        { name: "Rex SSS Campus Main Gate", time: "08:15 AM", status: "pending", distanceMeters: 0 }
+      ]
+    },
+    evening: {
+      title: "Evening Drop-off Schedule",
+      departs: "03:45 PM",
+      destination: "Kandal Market (04:30 PM)",
+      currentStopIndex: 1,
+      stops: [
+        { name: "Rex SSS Campus Main Gate", time: "03:45 PM", status: "passed", distanceMeters: 0 },
+        { name: "Commercial Road Post Office", time: "04:05 PM", status: "pending", distanceMeters: 800, isStudentStop: true },
+        { name: "Botanical Garden Road", time: "04:15 PM", status: "pending", distanceMeters: 1200 },
+        { name: "Kandal Market", time: "04:30 PM", status: "pending", distanceMeters: 4200 }
+      ]
+    }
+  },
+  {
+    id: "route-03",
+    routeNumber: "Route 03",
+    name: "Lovedale - Fernhill - Fingerpost - Rex SSS",
+    vehicleNo: "TN-43-B-3341",
+    model: "Force Traveller 26-Seater Special Hill Cruiser",
+    driverName: "Anthony Das",
+    driverPhone: "+91 98421 77334",
+    driverLicense: "TN43 20150001923",
+    attendantName: "R. Jayanthi",
+    attendantPhone: "+91 94890 11843",
+    speed: 35,
+    status: "In Transit",
+    currentLocationName: "Near Fernhill Palace Gate",
+    distanceToStudentStop: 2400,
+    studentStop: "Fingerpost Circle",
+    morning: {
+      title: "Morning Pickup Schedule",
+      departs: "07:20 AM",
+      destination: "Rex SSS Campus (08:15 AM)",
+      currentStopIndex: 1,
+      stops: [
+        { name: "Lovedale Station", time: "07:20 AM", status: "passed", distanceMeters: 6100 },
+        { name: "Fernhill Junction", time: "07:35 AM", status: "approaching", distanceMeters: 2400 },
+        { name: "Fingerpost Circle", time: "07:52 AM", status: "pending", distanceMeters: 1500, isStudentStop: true },
+        { name: "Rex SSS Campus Main Gate", time: "08:15 AM", status: "pending", distanceMeters: 0 }
+      ]
+    },
+    evening: {
+      title: "Evening Drop-off Schedule",
+      departs: "03:45 PM",
+      destination: "Lovedale Station (04:40 PM)",
+      currentStopIndex: 1,
+      stops: [
+        { name: "Rex SSS Campus Main Gate", time: "03:45 PM", status: "passed", distanceMeters: 0 },
+        { name: "Fingerpost Circle", time: "04:08 PM", status: "pending", distanceMeters: 1500, isStudentStop: true },
+        { name: "Fernhill Junction", time: "04:22 PM", status: "pending", distanceMeters: 2400 },
+        { name: "Lovedale Station", time: "04:40 PM", status: "pending", distanceMeters: 6100 }
+      ]
+    }
+  },
+  {
+    id: "route-04",
+    routeNumber: "Route 04",
+    name: "Kotagiri Ghat Road - Dodabetta - Rex SSS",
+    vehicleNo: "TN-43-A-4490",
+    model: "SML Isuzu Executive 42-Seater",
+    driverName: "C. Subramaniam",
+    driverPhone: "+91 94425 88190",
+    driverLicense: "TN43 20110004512",
+    attendantName: "M. Kavitha",
+    attendantPhone: "+91 94877 66201",
+    speed: 30,
+    status: "In Transit",
+    currentLocationName: "Dodabetta Tea Factory Crossing",
+    distanceToStudentStop: 3100,
+    studentStop: "Snowdon Road Crossing",
+    morning: {
+      title: "Morning Pickup Schedule",
+      departs: "07:10 AM",
+      destination: "Rex SSS Campus (08:15 AM)",
+      currentStopIndex: 1,
+      stops: [
+        { name: "Ketti Valley View", time: "07:10 AM", status: "passed", distanceMeters: 7400 },
+        { name: "Dodabetta Crossing", time: "07:32 AM", status: "approaching", distanceMeters: 3100 },
+        { name: "Snowdon Road Crossing", time: "07:50 AM", status: "pending", distanceMeters: 1200, isStudentStop: true },
+        { name: "Rex SSS Campus Main Gate", time: "08:15 AM", status: "pending", distanceMeters: 0 }
+      ]
+    },
+    evening: {
+      title: "Evening Drop-off Schedule",
+      departs: "03:45 PM",
+      destination: "Ketti Valley View (04:50 PM)",
+      currentStopIndex: 1,
+      stops: [
+        { name: "Rex SSS Campus Main Gate", time: "03:45 PM", status: "passed", distanceMeters: 0 },
+        { name: "Snowdon Road Crossing", time: "04:10 PM", status: "pending", distanceMeters: 1200, isStudentStop: true },
+        { name: "Dodabetta Crossing", time: "04:28 PM", status: "pending", distanceMeters: 3100 },
+        { name: "Ketti Valley View", time: "04:50 PM", status: "pending", distanceMeters: 7400 }
+      ]
+    }
+  }
+];
+
+// Seed Data for Digital Homework & Daily Diary
+const SEED_HOMEWORK = [
+  {
+    id: "hw-101",
+    subject: "Mathematics",
+    grade: "10-A",
+    teacher: "Mr. Amit Sen",
+    title: "Exercise 4.2: Quadratic Equations",
+    description: "Solve Questions 3 to 10 from NCERT Textbook in class workbook. Show factorization and discriminant checks.",
+    assignedDate: "2026-09-22",
+    dueDate: "2026-09-24",
+    status: "Pending",
+    priority: "High"
+  },
+  {
+    id: "hw-102",
+    subject: "Science (Physics)",
+    grade: "10-A",
+    teacher: "Mrs. Sunita Rao",
+    title: "Ray Diagrams: Spherical Mirrors",
+    description: "Draw focal ray paths for concave mirror when object is at C and between F and P. Submit practical worksheet.",
+    assignedDate: "2026-09-22",
+    dueDate: "2026-09-25",
+    status: "Pending",
+    priority: "Normal"
+  },
+  {
+    id: "hw-103",
+    subject: "English Communicative",
+    grade: "10-A",
+    teacher: "Rev. Fr. Principal",
+    title: "Formal Letter: Nilgiris Eco-Conservation",
+    description: "Draft a 150-word letter requesting preservation of native shola forest trees in Ootacamund.",
+    assignedDate: "2026-09-21",
+    dueDate: "2026-09-23",
+    status: "Completed",
+    priority: "Normal"
+  },
+  {
+    id: "hw-104",
+    subject: "Social Science",
+    grade: "10-A",
+    teacher: "Mrs. Lakshmi Menon",
+    title: "Map Marking: Indian Soil Reserves",
+    description: "Mark Black, Alluvial, and Mountain soil belts on the outline map of India.",
+    assignedDate: "2026-09-20",
+    dueDate: "2026-09-22",
+    status: "Completed",
+    priority: "Normal"
+  }
+];
+
+// Seed Data for Online Student Leave Applications & Approvals
+const SEED_LEAVE_REQUESTS = [
+  {
+    id: "lev-301",
+    studentId: "STU-1001",
+    studentName: "Aarav Sharma",
+    grade: "10-A",
+    parentName: "Rajesh Sharma",
+    parentPhone: "+91 98765 43210",
+    category: "Medical / Illness",
+    fromDate: "2026-09-25",
+    toDate: "2026-09-26",
+    days: 2,
+    reason: "Doctor advises bed rest due to seasonal viral flu. Prescription will be presented upon recovery.",
+    status: "Pending",
+    appliedOn: "22 Sep 2026, 09:15 AM",
+    remarks: "Awaiting Class Teacher & Principal approval"
+  },
+  {
+    id: "lev-302",
+    studentId: "STU-1002",
+    studentName: "Ananya Iyer",
+    grade: "10-A",
+    parentName: "Suresh Iyer",
+    parentPhone: "+91 98451 23456",
+    category: "Sports Tournament",
+    fromDate: "2026-09-18",
+    toDate: "2026-09-19",
+    days: 2,
+    reason: "Representing Nilgiris District in State Badminton Trials at Coimbatore.",
+    status: "Approved",
+    appliedOn: "15 Sep 2026, 11:30 AM",
+    remarks: "Duty leave granted by Rev. Fr. Principal"
+  }
+];
+
 // LocalStorage Manager
 const ERPStorage = {
   KEYS: {
@@ -451,15 +710,18 @@ const ERPStorage = {
     EXAMS: 'neverskip_exams',
     TIMETABLE: 'neverskip_timetable',
     CIRCULARS: 'neverskip_circulars',
+    BUS_ROUTES: 'rex_bus_routes_v3',
+    HOMEWORK: 'rex_homework_v3',
+    LEAVE_REQUESTS: 'rex_leave_requests_v3',
     THEME: 'neverskip_theme',
     CURRENT_ROLE: 'neverskip_role',
     ACTIVITY_LOG: 'neverskip_activity'
   },
 
   init() {
-    if (!localStorage.getItem(this.KEYS.STUDENTS) || localStorage.getItem('rex_school_v2') !== 'true') {
+    if (!localStorage.getItem(this.KEYS.STUDENTS) || localStorage.getItem('rex_school_v3') !== 'true') {
       this.resetAll();
-      localStorage.setItem('rex_school_v2', 'true');
+      localStorage.setItem('rex_school_v3', 'true');
     }
   },
 
@@ -473,6 +735,9 @@ const ERPStorage = {
     localStorage.setItem(this.KEYS.EXAMS, JSON.stringify(SEED_EXAM_RESULTS));
     localStorage.setItem(this.KEYS.TIMETABLE, JSON.stringify(SEED_TIMETABLE_10A));
     localStorage.setItem(this.KEYS.CIRCULARS, JSON.stringify(SEED_CIRCULARS));
+    localStorage.setItem(this.KEYS.BUS_ROUTES, JSON.stringify(SEED_BUS_ROUTES));
+    localStorage.setItem(this.KEYS.HOMEWORK, JSON.stringify(SEED_HOMEWORK));
+    localStorage.setItem(this.KEYS.LEAVE_REQUESTS, JSON.stringify(SEED_LEAVE_REQUESTS));
     localStorage.setItem(this.KEYS.CURRENT_ROLE, 'admin');
     localStorage.setItem(this.KEYS.ACTIVITY_LOG, JSON.stringify([
       { time: "08:15 AM", text: "Morning attendance marked for Grade 10-A by Mrs. Sunita Rao" },
@@ -541,5 +806,85 @@ const ERPStorage = {
     logs.unshift({ time: timeStr, text });
     if (logs.length > 20) logs.pop();
     localStorage.setItem(this.KEYS.ACTIVITY_LOG, JSON.stringify(logs));
+  },
+
+  // Bus Routes & Live GPS Accessors
+  getBusRoutes() {
+    const raw = localStorage.getItem(this.KEYS.BUS_ROUTES);
+    return raw ? JSON.parse(raw) : SEED_BUS_ROUTES;
+  },
+
+  saveBusRoutes(routes) {
+    localStorage.setItem(this.KEYS.BUS_ROUTES, JSON.stringify(routes));
+  },
+
+  getBusRouteById(id) {
+    const routes = this.getBusRoutes();
+    return routes.find(r => r.id === id) || routes[0];
+  },
+
+  // Digital Homework Diary Accessors
+  getHomework() {
+    const raw = localStorage.getItem(this.KEYS.HOMEWORK);
+    return raw ? JSON.parse(raw) : SEED_HOMEWORK;
+  },
+
+  saveHomework(hw) {
+    localStorage.setItem(this.KEYS.HOMEWORK, JSON.stringify(hw));
+  },
+
+  addHomework(item) {
+    const hw = this.getHomework();
+    item.id = 'hw-' + Date.now();
+    item.assignedDate = item.assignedDate || new Date().toISOString().split('T')[0];
+    item.status = item.status || 'Pending';
+    hw.unshift(item);
+    this.saveHomework(hw);
+    this.addActivity(`New homework assigned: ${item.subject} (${item.title})`);
+    return item;
+  },
+
+  toggleHomeworkStatus(id) {
+    const hw = this.getHomework();
+    const item = hw.find(h => h.id === id);
+    if (item) {
+      item.status = item.status === 'Completed' ? 'Pending' : 'Completed';
+      this.saveHomework(hw);
+      this.addActivity(`Homework marked ${item.status}: ${item.title}`);
+    }
+    return item;
+  },
+
+  // Online Student Leave Workflow Accessors
+  getLeaveRequests() {
+    const raw = localStorage.getItem(this.KEYS.LEAVE_REQUESTS);
+    return raw ? JSON.parse(raw) : SEED_LEAVE_REQUESTS;
+  },
+
+  saveLeaveRequests(reqs) {
+    localStorage.setItem(this.KEYS.LEAVE_REQUESTS, JSON.stringify(reqs));
+  },
+
+  submitLeaveRequest(req) {
+    const reqs = this.getLeaveRequests();
+    req.id = 'lev-' + Date.now();
+    req.status = 'Pending';
+    req.appliedOn = new Date().toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+    reqs.unshift(req);
+    this.saveLeaveRequests(reqs);
+    this.addActivity(`New leave application submitted for ${req.studentName} (${req.days} days)`);
+    return req;
+  },
+
+  updateLeaveStatus(id, status, remarks) {
+    const reqs = this.getLeaveRequests();
+    const item = reqs.find(l => l.id === id);
+    if (item) {
+      item.status = status;
+      if (remarks) item.remarks = remarks;
+      this.saveLeaveRequests(reqs);
+      this.addActivity(`Leave application for ${item.studentName} marked ${status}`);
+    }
+    return item;
   }
 };

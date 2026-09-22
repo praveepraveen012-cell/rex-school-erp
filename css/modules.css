@@ -780,3 +780,117 @@
   font-size: 1.75rem;
   border: 3px solid rgba(255, 255, 255, 0.8);
 }
+
+/* 8. TRANSPORT & 500m GEOFENCING STYLES */
+@keyframes radarPulse {
+  0% { transform: translate(-50%, -50%) scale(0.85); opacity: 0.8; }
+  50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.25; }
+  100% { transform: translate(-50%, -50%) scale(0.85); opacity: 0.8; }
+}
+
+.proximity-alert-glow {
+  animation: proximityGlow 1.5s infinite alternate;
+}
+
+@keyframes proximityGlow {
+  from { box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
+  to { box-shadow: 0 0 25px rgba(245, 158, 11, 0.9); }
+}
+
+/* 9. DIGITAL HOMEWORK & DIARY STYLES */
+.homework-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  transition: all var(--transition-fast);
+}
+
+.homework-card:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.homework-card.completed {
+  opacity: 0.75;
+  background: var(--bg-subtle);
+}
+
+.homework-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 2px solid var(--border-medium);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: all var(--transition-fast);
+}
+
+.homework-check.checked {
+  background: #10b981;
+  border-color: #10b981;
+  color: #fff;
+}
+
+/* 10. STUDENT ID CARD & PARENT GATE PASS (PRINTABLE) */
+.student-id-card-frame {
+  width: 380px;
+  max-width: 100%;
+  margin: 0 auto;
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 2px solid #1e3a8a;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  font-family: 'Inter', system-ui, sans-serif;
+  position: relative;
+}
+
+.id-card-header {
+  background: linear-gradient(135deg, #1e3a8a, #0284c7);
+  color: #ffffff;
+  padding: 1rem;
+  text-align: center;
+}
+
+.id-card-body {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.id-student-photo-frame {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 4px solid #1e3a8a;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #1e3a8a;
+  margin-top: -45px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.qr-code-box {
+  background: #ffffff;
+  padding: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  display: inline-block;
+  margin: 0.5rem 0;
+}
+

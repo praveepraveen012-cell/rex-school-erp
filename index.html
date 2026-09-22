@@ -934,7 +934,7 @@
                 <div class="service-icon-circle" style="color: #ea580c;">⏰</div>
                 <span class="service-label">Timetable</span>
               </div>
-              <div class="mobile-service-item" onclick="HomeModule.openMobileSheet('notices')">
+              <div class="mobile-service-item" onclick="HomeModule.openMobileSheet('bus')">
                 <div class="service-icon-circle" style="color: #0284c7;">🚌</div>
                 <span class="service-label">Bus GPS</span>
               </div>
@@ -942,7 +942,7 @@
                 <div class="service-icon-circle" style="color: #25d366;">💬</div>
                 <span class="service-label">WhatsApp</span>
               </div>
-              <div class="mobile-service-item" onclick="HomeModule.openMobileSheet('notices')">
+              <div class="mobile-service-item" onclick="HomeModule.openMobileSheet('homework')">
                 <div class="service-icon-circle" style="color: #ec4899;">📝</div>
                 <span class="service-label">Homework</span>
               </div>
@@ -1171,6 +1171,14 @@
               <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
               <span>WhatsApp & Notices</span>
             </div>
+          </div>
+
+          <div class="nav-item" data-view="transport">
+            <div class="nav-item-left">
+              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+              <span>Transport & Fleet GPS</span>
+            </div>
+            <span class="badge badge-present" style="font-size: 0.65rem;">500m Radar</span>
           </div>
         </div>
 
@@ -1770,6 +1778,13 @@
             <!-- Injected by app.js renderParentPortal() -->
           </div>
         </section>
+
+        <!-- 9. TRANSPORT & FLEET GPS VIEW -->
+        <section id="transport-view" class="page-view">
+          <div id="transport-view-content">
+            <!-- Injected by transport.js TransportModule.renderAdminFleet() -->
+          </div>
+        </section>
       </main>
     </div>
   </div>
@@ -2033,19 +2048,121 @@
     </div>
   </div>
 
+  <!-- Student Leave Application Modal -->
+  <div class="modal-overlay" id="apply-leave-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">📝 Student Leave Application</h3>
+        <button class="modal-close-btn" onclick="App.closeLeaveModal()">&times;</button>
+      </div>
+      <form id="apply-leave-form" onsubmit="App.submitLeave(event)">
+        <div class="modal-body">
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+            Submit official leave application for Aarav Sharma (Grade 10-A). Applications are digitally routed to Class Teacher and Rev. Fr. Principal.
+          </p>
+
+          <div class="form-group">
+            <label class="form-label">Leave Category *</label>
+            <select id="leave-category" class="form-select">
+              <option value="Medical / Illness" selected>Medical / Illness</option>
+              <option value="Family Function">Family Function / Event</option>
+              <option value="Sports Tournament">Sports / Inter-School Tournament</option>
+              <option value="Out of Town Travel">Out of Station / Travel</option>
+              <option value="Personal Emergency">Personal Emergency</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">From Date *</label>
+              <input type="date" id="leave-from" class="form-control" value="2026-09-25" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">To Date *</label>
+              <input type="date" id="leave-to" class="form-control" value="2026-09-26" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Reason for Absence *</label>
+            <textarea id="leave-reason" class="form-control" rows="3" placeholder="State the reason clearly..." required>Doctor advises bed rest due to seasonal viral fever. Medical prescription will be presented upon return.</textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="App.closeLeaveModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Submit Application</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- New Homework Assignment Modal -->
+  <div class="modal-overlay" id="new-homework-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">📖 Assign Digital Homework</h3>
+        <button class="modal-close-btn" onclick="App.closeHomeworkModal()">&times;</button>
+      </div>
+      <form id="new-homework-form" onsubmit="App.submitHomework(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Subject *</label>
+            <select id="hw-subject" class="form-select">
+              <option value="Mathematics" selected>Mathematics</option>
+              <option value="Science (Physics)">Science (Physics)</option>
+              <option value="Science (Chemistry)">Science (Chemistry)</option>
+              <option value="English Communicative">English Communicative</option>
+              <option value="Social Science">Social Science</option>
+              <option value="Computer Applications">Computer Applications</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Homework Title *</label>
+            <input type="text" id="hw-title" class="form-control" placeholder="e.g. Chapter 5: Trigonometric Identities" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Submission Due Date *</label>
+              <input type="date" id="hw-due" class="form-control" value="2026-09-25" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Priority</label>
+              <select id="hw-priority" class="form-select">
+                <option value="Normal" selected>Normal</option>
+                <option value="High">High Priority</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Assignment Instructions & Description *</label>
+            <textarea id="hw-desc" class="form-control" rows="3" placeholder="Details of questions, textbook pages, or worksheet instructions..." required>Solve Exercise 5.1 Q1 to Q8 in class notebook. Show all intermediate steps.</textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="App.closeHomeworkModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Assign to Class 10-A</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Toast Alerts Container -->
   <div class="toast-container" id="toast-container"></div>
 
   <!-- Scripts -->
-  <script src="js/data.js"></script>
-  <script src="js/dashboard.js"></script>
-  <script src="js/students.js"></script>
-  <script src="js/attendance.js"></script>
-  <script src="js/fees.js"></script>
-  <script src="js/exams.js"></script>
-  <script src="js/timetable.js"></script>
-  <script src="js/communication.js"></script>
-  <script src="js/home.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/data.js?v=3"></script>
+  <script src="js/dashboard.js?v=3"></script>
+  <script src="js/students.js?v=3"></script>
+  <script src="js/attendance.js?v=3"></script>
+  <script src="js/fees.js?v=3"></script>
+  <script src="js/exams.js?v=3"></script>
+  <script src="js/timetable.js?v=3"></script>
+  <script src="js/communication.js?v=3"></script>
+  <script src="js/transport.js?v=3"></script>
+  <script src="js/home.js?v=3"></script>
+  <script src="js/app.js?v=3"></script>
 </body>
 </html>
