@@ -16,18 +16,50 @@ const HomeModule = {
     this.setupPwaPrompt();
     this.detectScreenDevice();
 
+    window.addEventListener('resize', () => {
+      if (!document.body.classList.contains('erp-active') && !document.body.classList.contains('desktop-view-forced')) {
+        this.detectScreenDevice();
+      }
+    });
+
     console.log("Rex Senior Secondary School - Home WebApp initialized.");
   },
 
   detectScreenDevice() {
-    // If user is on an actual mobile device viewport (< 768px), default to mobile mode
     if (window.innerWidth <= 768) {
-      document.body.classList.add('mobile-viewport-active');
       this.deviceMode = 'mobile';
+      document.body.classList.add('mobile-viewport-active');
+      document.body.classList.remove('desktop-view-forced');
+
+      const sim = document.getElementById('mobile-device-simulator');
+      if (sim) {
+        sim.style.display = 'flex';
+        sim.classList.add('active');
+      }
+      const home = document.getElementById('home-view');
+      if (home) home.style.display = 'none';
+
       const toggleMobile = document.getElementById('btn-mode-mobile');
       const toggleDesk = document.getElementById('btn-mode-desktop');
       if (toggleMobile) toggleMobile.classList.add('active');
       if (toggleDesk) toggleDesk.classList.remove('active');
+    } else {
+      this.deviceMode = 'desktop';
+      document.body.classList.remove('mobile-viewport-active');
+      document.body.classList.remove('desktop-view-forced');
+
+      const sim = document.getElementById('mobile-device-simulator');
+      if (sim) {
+        sim.style.display = 'none';
+        sim.classList.remove('active');
+      }
+      const home = document.getElementById('home-view');
+      if (home) home.style.display = 'block';
+
+      const toggleMobile = document.getElementById('btn-mode-mobile');
+      const toggleDesk = document.getElementById('btn-mode-desktop');
+      if (toggleDesk) toggleDesk.classList.add('active');
+      if (toggleMobile) toggleMobile.classList.remove('active');
     }
   },
 
@@ -99,29 +131,39 @@ const HomeModule = {
     const btnDesktop = document.getElementById('btn-mode-desktop');
     const btnMobile = document.getElementById('btn-mode-mobile');
     const simulatorOverlay = document.getElementById('mobile-device-simulator');
+    const homeView = document.getElementById('home-view');
 
     if (mode === 'mobile') {
       if (btnDesktop) btnDesktop.classList.remove('active');
       if (btnMobile) btnMobile.classList.add('active');
 
-      if (window.innerWidth <= 768) {
-        document.body.classList.add('mobile-viewport-active');
-      } else {
-        if (simulatorOverlay) simulatorOverlay.classList.add('active');
+      document.body.classList.add('mobile-viewport-active');
+      document.body.classList.remove('desktop-view-forced');
+
+      if (homeView) homeView.style.display = 'none';
+      if (simulatorOverlay) {
+        simulatorOverlay.style.display = 'flex';
+        simulatorOverlay.classList.add('active');
       }
 
       if (window.App && App.showToast) {
-        App.showToast("Switched to Rex SSS Native Mobile App View 📱", "info");
+        App.showToast("Rex SSS Native Mobile App Mode Active 📱", "info");
       }
     } else {
       if (btnDesktop) btnDesktop.classList.add('active');
       if (btnMobile) btnMobile.classList.remove('active');
 
       document.body.classList.remove('mobile-viewport-active');
-      if (simulatorOverlay) simulatorOverlay.classList.remove('active');
+      document.body.classList.add('desktop-view-forced');
+
+      if (homeView) homeView.style.display = 'block';
+      if (simulatorOverlay) {
+        simulatorOverlay.style.display = 'none';
+        simulatorOverlay.classList.remove('active');
+      }
 
       if (window.App && App.showToast) {
-        App.showToast("Switched to Rex SSS Desktop WebApp View 💻", "info");
+        App.showToast("Rex SSS Desktop WebApp View Active 💻", "info");
       }
     }
   },
@@ -403,13 +445,15 @@ const HomeModule = {
   },
 
   launchERP(targetView) {
-    // Switch to ERP container
-    const homeView = document.getElementById('home-view');
-    const appContainer = document.querySelector('.app-container');
+    document.body.classList.add('erp-active');
     const simulatorOverlay = document.getElementById('mobile-device-simulator');
-
-    if (simulatorOverlay) simulatorOverlay.classList.remove('active');
+    if (simulatorOverlay) {
+      simulatorOverlay.style.display = 'none';
+      simulatorOverlay.classList.remove('active');
+    }
+    const homeView = document.getElementById('home-view');
     if (homeView) homeView.style.display = 'none';
+    const appContainer = document.querySelector('.app-container');
     if (appContainer) appContainer.style.display = 'flex';
 
     if (window.App && App.switchView) {
@@ -419,14 +463,9 @@ const HomeModule = {
   },
 
   returnToHome() {
-    const homeView = document.getElementById('home-view');
-    const appContainer = document.querySelector('.app-container');
-    if (appContainer) appContainer.style.display = 'none';
-    if (homeView) homeView.style.display = 'block';
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    if (window.App && App.showToast) {
-      App.showToast("Returned to Rex Senior Secondary School Home Portal", "info");
+    document.body.classList.remove('erp-active');
+    if (window.App && App.switchView) {
+      App.switchView('home');
     }
   }
 };

@@ -328,13 +328,32 @@
   transform: scale(0.9);
 }
 
-/* Automatic Screen Adaptation for Actual Mobile Devices */
+/* Automatic Screen Adaptation for Actual Mobile Devices (<= 768px) */
 @media (max-width: 768px) {
-  /* On actual mobile phones, render the mobile-app-shell naturally across the full screen */
-  body.mobile-viewport-active .app-container {
+  /* Hide desktop webapp by default on mobile unless forced */
+  body:not(.desktop-view-forced):not(.erp-active) #home-view {
     display: none !important;
   }
-  body.mobile-viewport-active .mobile-phone-hardware-shell {
+
+  /* Display mobile app shell full-screen natively on mobile */
+  body:not(.desktop-view-forced):not(.erp-active) .mobile-device-simulator-overlay {
+    display: flex !important;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: 100% !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    background: var(--bg-app) !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    z-index: 10 !important;
+  }
+
+  body:not(.desktop-view-forced):not(.erp-active) .mobile-phone-hardware-shell {
     width: 100% !important;
     height: 100vh !important;
     max-height: 100vh !important;
@@ -342,11 +361,51 @@
     padding: 0 !important;
     border: none !important;
     box-shadow: none !important;
+    background: transparent !important;
   }
-  body.mobile-viewport-active .phone-notch-island {
+
+  body:not(.desktop-view-forced):not(.erp-active) .phone-notch-island {
     display: none !important;
   }
-  body.mobile-viewport-active .mobile-app-shell {
+
+  body:not(.desktop-view-forced):not(.erp-active) .mobile-app-shell {
     border-radius: 0 !important;
+    height: 100vh !important;
+    box-shadow: none !important;
+  }
+
+  /* When ERP management portal is active on mobile */
+  body.erp-active .mobile-device-simulator-overlay {
+    display: none !important;
+  }
+  body.erp-active #home-view {
+    display: none !important;
+  }
+  body.erp-active .app-container {
+    display: flex !important;
+  }
+
+  /* When mobile user taps Desktop WebApp view */
+  body.desktop-view-forced #home-view {
+    display: block !important;
+  }
+  body.desktop-view-forced .mobile-device-simulator-overlay {
+    display: none !important;
+  }
+
+  /* Prevent close simulator button on real phones */
+  .mobile-header-actions button[title*="Close"] {
+    display: none !important;
+  }
+
+  /* Floating device switcher positioned above bottom navigation on phones */
+  .device-mode-toggle-floating {
+    bottom: 70px !important;
+    padding: 0.25rem 0.4rem !important;
+    z-index: 100 !important;
+  }
+  .device-toggle-btn {
+    padding: 0.35rem 0.65rem !important;
+    font-size: 0.72rem !important;
   }
 }

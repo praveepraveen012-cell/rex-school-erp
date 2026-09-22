@@ -26,12 +26,12 @@ const App = {
     const savedTheme = localStorage.getItem(ERPStorage.KEYS.THEME) || 'light';
     this.setTheme(savedTheme);
 
-    this.attachEvents();
-    this.applyRole(this.currentRole);
-    
     // Initial view: check URL hash or default to home webapp
     const hash = window.location.hash ? window.location.hash.replace('#', '') : '';
     const initialView = hash || 'home';
+
+    this.attachEvents();
+    this.applyRole(this.currentRole, false);
     this.switchView(initialView);
 
     console.log("Rex Senior Secondary School ERP initialized successfully.");
@@ -60,7 +60,7 @@ const App = {
     if (roleSelect) {
       roleSelect.value = this.currentRole;
       roleSelect.addEventListener('change', (e) => {
-        this.applyRole(e.target.value);
+        this.applyRole(e.target.value, true);
       });
     }
 
@@ -137,7 +137,7 @@ const App = {
     });
   },
 
-  applyRole(role) {
+  applyRole(role, isUserAction = false) {
     this.currentRole = role;
     ERPStorage.setRole(role);
 
@@ -149,20 +149,22 @@ const App = {
       if (userNameEl) userNameEl.textContent = "Rev. Fr. Principal";
       if (userRoleEl) userRoleEl.textContent = "Principal / Super Admin";
       if (userAvatarEl) userAvatarEl.textContent = "RP";
-      this.switchView('dashboard');
+      if (isUserAction) this.switchView('dashboard');
     } else if (role === 'teacher') {
       if (userNameEl) userNameEl.textContent = "Mrs. Sunita Rao";
       if (userRoleEl) userRoleEl.textContent = "Grade 10-A Mentor";
       if (userAvatarEl) userAvatarEl.textContent = "SR";
-      this.switchView('attendance');
+      if (isUserAction) this.switchView('attendance');
     } else if (role === 'parent') {
       if (userNameEl) userNameEl.textContent = "Rajesh Sharma";
       if (userRoleEl) userRoleEl.textContent = "Parent of Aarav (10-A)";
       if (userAvatarEl) userAvatarEl.textContent = "RS";
-      this.switchView('parent-portal');
+      if (isUserAction) this.switchView('parent-portal');
     }
 
-    this.showToast(`Switched perspective to ${role.toUpperCase()} Mode`, "info");
+    if (isUserAction) {
+      this.showToast(`Switched perspective to ${role.toUpperCase()} Mode`, "info");
+    }
   },
 
   switchView(viewId) {
@@ -170,18 +172,42 @@ const App = {
 
     const appContainer = document.querySelector('.app-container');
     const homeView = document.getElementById('home-view');
+    const simulatorOverlay = document.getElementById('mobile-device-simulator');
     const deviceToggle = document.querySelector('.device-mode-toggle-floating');
 
     if (viewId === 'home') {
+      document.body.classList.remove('erp-active');
       if (appContainer) appContainer.style.display = 'none';
-      if (homeView) homeView.style.display = 'block';
+
+      // Check if on a mobile phone screen
+      const isMobileScreen = window.innerWidth <= 768;
+      const isForcedDesktop = document.body.classList.contains('desktop-view-forced');
+
+      if (isMobileScreen && !isForcedDesktop) {
+        if (homeView) homeView.style.display = 'none';
+        if (simulatorOverlay) {
+          simulatorOverlay.style.display = 'flex';
+          simulatorOverlay.classList.add('active');
+        }
+      } else {
+        if (homeView) homeView.style.display = 'block';
+        if (simulatorOverlay && !simulatorOverlay.classList.contains('active')) {
+          simulatorOverlay.style.display = 'none';
+        }
+      }
+
       if (deviceToggle) deviceToggle.style.display = 'flex';
       window.location.hash = 'home';
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     } else {
-      if (appContainer) appContainer.style.display = 'flex';
+      document.body.classList.add('erp-active');
       if (homeView) homeView.style.display = 'none';
+      if (simulatorOverlay) {
+        simulatorOverlay.style.display = 'none';
+        simulatorOverlay.classList.remove('active');
+      }
+      if (appContainer) appContainer.style.display = 'flex';
       if (deviceToggle) deviceToggle.style.display = 'none';
       window.location.hash = viewId;
     }
