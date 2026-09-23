@@ -37,7 +37,19 @@ jobs:
 
       - name: Build Android Release APK
         working-directory: ./flutter_app
-        run: flutter build apk --release --no-tree-shake-icons
+        run: |
+          set +e
+          flutter build apk --release --no-tree-shake-icons > ../build.log 2>&1
+          BUILD_EXIT_CODE=$?
+          tail -n 80 ../build.log
+          exit $BUILD_EXIT_CODE
+
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-build-log
+          path: build.log
 
       - name: Upload Single APK Artifact
         uses: actions/upload-artifact@v4
