@@ -37,7 +37,7 @@ jobs:
 
       - name: Build Android Release APK
         working-directory: ./flutter_app
-        run: flutter build apk --release
+        run: flutter build apk --release --no-tree-shake-icons
 
       - name: Upload Single APK Artifact
         uses: actions/upload-artifact@v4

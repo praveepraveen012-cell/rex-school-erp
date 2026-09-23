@@ -28,7 +28,6 @@ class RexSchoolERPApp extends StatelessWidget {
             primary: const Color(0xFF1E3A8A),
             secondary: const Color(0xFF0D9488),
             surface: Colors.white,
-            background: const Color(0xFFF8FAFC),
           ),
           scaffoldBackgroundColor: const Color(0xFFF8FAFC),
           textTheme: GoogleFonts.interTextTheme(
