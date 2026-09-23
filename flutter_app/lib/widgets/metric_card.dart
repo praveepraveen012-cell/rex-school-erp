@@ -4,7 +4,7 @@ class MetricCard extends StatelessWidget {
   final String title;
   final String value;
   final String subtitle;
-  final IconData? icon;
+  final dynamic icon; // Can be IconData, Icon, or any Widget
   final Widget? iconWidget;
   final Color iconBgColor;
   final Color? iconColor;
@@ -26,10 +26,20 @@ class MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveIcon = iconWidget ??
-        (icon != null
-            ? Icon(icon, color: iconColor ?? const Color(0xFF1E3A8A), size: 22)
-            : const SizedBox.shrink());
+    Widget effectiveIcon;
+    if (iconWidget != null) {
+      effectiveIcon = iconWidget!;
+    } else if (icon is IconData) {
+      effectiveIcon = Icon(
+        icon as IconData,
+        color: iconColor ?? const Color(0xFF1E3A8A),
+        size: 22,
+      );
+    } else if (icon is Widget) {
+      effectiveIcon = icon as Widget;
+    } else {
+      effectiveIcon = const SizedBox.shrink();
+    }
 
     return Card(
       elevation: 0,
