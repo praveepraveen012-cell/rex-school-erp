@@ -84,7 +84,7 @@ class StudentIdCardDialog extends StatelessWidget {
                                 color: Colors.white,
                                 shape: BoxShape.circle,
                               ),
-                              child: Image.asset("assets/logo.png", errorBuilder: (_, __, ___) => const Icon(Icons.school, color: Color(0xFF1E3A8A))),
+                              child: Image.asset("assets/rex_emblem.png", errorBuilder: (_, __, ___) => Image.asset("assets/logo.png", errorBuilder: (_, __, ___) => const Icon(Icons.school, color: Color(0xFF1E3A8A)))),
                             ),
                             const SizedBox(width: 10),
                             const Expanded(

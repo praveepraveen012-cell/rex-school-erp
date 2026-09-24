@@ -28,3 +28,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logo.png
+    - assets/rex_emblem.png
+    - assets/rex_banner_white.png

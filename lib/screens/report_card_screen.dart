@@ -112,12 +112,16 @@ class ReportCardScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     Image.asset(
-                      'assets/logo.png',
+                      'assets/rex_emblem.png',
                       height: 54,
-                      errorBuilder: (ctx, err, stack) => const Icon(
-                        Icons.school,
-                        size: 48,
-                        color: Color(0xFF1E3A8A),
+                      errorBuilder: (ctx, err, stack) => Image.asset(
+                        'assets/logo.png',
+                        height: 54,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.school,
+                          size: 48,
+                          color: Color(0xFF1E3A8A),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),

@@ -96,24 +96,37 @@ class HomeScreen extends StatelessWidget {
             ),
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.asset(
-                      'assets/logo.png',
-                      width: 100,
-                      height: 90,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Container(
-                        width: 100,
-                        height: 90,
-                        color: Colors.white24,
-                        child: const Icon(Icons.school, color: Colors.white, size: 50),
+                  Container(
+                    width: 76,
+                    height: 76,
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.18),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        'assets/rex_emblem.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Image.asset(
+                          'assets/logo.png',
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
                   ),
@@ -122,8 +135,29 @@ class HomeScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF26D0CE),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'MANAGEMENT',
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFF1A2980),
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
                         Text(
-                          'Christus Rex',
+                          'Rex Management App',
                           style: GoogleFonts.poppins(
                             color: Colors.white,
                             fontSize: 16,
@@ -131,14 +165,14 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'Senior Secondary School',
+                          'Christus Rex Senior Secondary School',
                           style: GoogleFonts.poppins(
                             color: Colors.white70,
                             fontSize: 11,
                           ),
                         ),
                         Text(
-                          'Ootacamund, Nilgiris',
+                          'Ootacamund, Nilgiris • Diocese of Ooty',
                           style: GoogleFonts.poppins(
                             color: Colors.white54,
                             fontSize: 10,

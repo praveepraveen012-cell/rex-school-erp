@@ -21,7 +21,7 @@ class RexSchoolApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Rex Senior Secondary School',
+      title: 'Rex Management App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(

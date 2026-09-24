@@ -34,45 +34,61 @@ jobs:
       - name: Show Flutter version
         run: flutter --version
 
-      - name: Create Flutter scaffold for missing platform files
+      - name: Ensure Android scaffold & Rex branding
         run: |
+          # Backup custom mipmap icons
+          mkdir -p /tmp/rex_icons
+          if [ -d "android/app/src/main/res" ]; then
+            cp -r android/app/src/main/res/mipmap* /tmp/rex_icons/ 2>/dev/null || true
+          fi
+
+          # Regenerate fresh android platform files to ensure gradlew wrapper is intact
           flutter create --project-name rex_school_erp_flutter \
             --org com.rex.school \
             --platforms android \
-            . \
-            2>&1 || true
-          echo "Scaffold done"
+            .
+
+          # Restore custom Rex school launcher icons
+          if [ -d "/tmp/rex_icons" ]; then
+            cp -r /tmp/rex_icons/* android/app/src/main/res/ 2>/dev/null || true
+          fi
+
+          # Make gradlew executable
+          chmod +x android/gradlew || true
+
+          # Set app label to Rex Management App and set launcher icons
+          sed -i 's/android:label="[^"]*"/android:label="Rex Management App"/' android/app/src/main/AndroidManifest.xml
+          sed -i 's/android:icon="@mipmap\/ic_launcher"/android:icon="@mipmap\/ic_launcher" android:roundIcon="@mipmap\/ic_launcher_round"/' android/app/src/main/AndroidManifest.xml
+
+          # Ensure network and location permissions exist
+          if ! grep -q "ACCESS_FINE_LOCATION" android/app/src/main/AndroidManifest.xml; then
+            sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>\n    <uses-permission android:name="android.permission.VIBRATE"/>' android/app/src/main/AndroidManifest.xml
+          fi
 
       - name: Install dependencies
         run: flutter pub get
 
       - name: Check for compile errors
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 || true
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Build Release APK
         run: |
-          flutter build apk \
-            --release \
-            --no-tree-shake-icons \
-            --target-platform android-arm,android-arm64,android-x64 \
-            --split-per-abi \
-            2>&1
+          flutter build apk --release --no-tree-shake-icons
           echo "=== APK files built ==="
-          find build/app/outputs -name "*.apk" -exec ls -lh {} \;
+          ls -lh build/app/outputs/flutter-apk/
 
-      - name: Rename APK for easy download
+      - name: Prepare APK for Release
         run: |
-          mkdir -p apk-output
-          # Copy all APKs
-          find build/app/outputs/flutter-apk -name "*.apk" -exec cp {} apk-output/ \;
-          # Also create a universal copy if split ones exist
-          ls -lh apk-output/
-          
+          mkdir -p release-apk
+          cp build/app/outputs/flutter-apk/app-release.apk release-apk/RexManagementApp-v2.0.apk
+          echo "=== Prepared APK for release ==="
+          ls -lh release-apk/
+
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rex-school-erp-v2-APK
-          path: apk-output/*.apk
+          name: RexManagementApp-v2.0-APK
+          path: release-apk/RexManagementApp-v2.0.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -80,23 +96,53 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v2.0.${{ github.run_number }}
-          name: "📱 Rex School ERP v2.0 - Complete App (Build ${{ github.run_number }})"
+          name: "📱 Rex Management App v2.0 (Build ${{ github.run_number }})"
           body: |
-            ## 📱 Rex Senior Secondary School ERP v2.0
+            ## 📱 Rex Management App v2.0
             
-            ### ⬇️ Download the APK below (under Assets section)
+            **Christus Rex Senior Secondary School, Ootacamund, Nilgiris**
+            *(Catholic Diocese of Ootacamund • CBSE Affiliation)*
             
-            > **Install:** Download the APK → Allow unknown sources on phone → Install
+            ---
             
-            ### ✅ 22 Screens in this release:
-            🏠 Home | 📋 Notice Board | 👥 Staff Room | 📅 Timetable
-            🎓 Admission | 📹 Live Class | 📝 Assignments | 📖 Class Diary
-            📚 Content Library | 📊 Evaluation | 🏛️ Virtual Office
-            👨‍👩‍👧‍👦 School Strength (1010) | 🖼️ Lounge Gallery | 🗓️ Calendar
-            📞 Contact Directory | 💬 Feedback | 💬 Messages
-            🚌 Bus GPS Tracker (500m alert) | 📄 CBSE Report Card
-            💰 Fee Management | ✅ Attendance | 🏖️ Leave Desk
-          files: apk-output/*.apk
+            ### ⬇️ Download the App:
+            Tap **`RexManagementApp-v2.0.apk`** below under the **Assets** section.
+            
+            > 💡 **Quick Installation Guide:**
+            > 1. Download `RexManagementApp-v2.0.apk` onto your phone.
+            > 2. Open the downloaded file from notifications or your Downloads folder.
+            > 3. When asked, choose **"Allow from this source"** or enable unknown apps for your browser.
+            > 4. Tap **Install** and launch **Rex Management App**!
+            
+            ---
+            
+            ### ✨ What's New in this Release:
+            - 🏷️ **App Name Updated**: Officially titled **Rex Management App**
+            - 🏫 **Official School App Icon**: Rex School gold emblem launcher icon on pure white
+            - 🎨 **White Background Header**: Crisp, high-contrast white logo container on home dashboard
+            - 🏠 **Split-Screen Dashboard**: Feature Grid + Live Message Center Feed
+            - 📋 **Notice Board**: Categorized announcements with search & pin
+            - 👥 **Staff Room**: Directory of 72 teachers with one-tap Call/Email
+            - 📅 **Day-wise Timetable**: Interactive periods Monday to Friday
+            - 🎓 **Admission Portal**: Enquiries, applications, and admitted students
+            - 📹 **Live Class Center**: Live, upcoming, and recorded study sessions
+            - 📝 **Assignment Desk**: Subject tasks and submission statuses
+            - 📖 **Class Diary**: Daily homework logs by date
+            - 📚 **Content Library**: Study material PDFs and curated videos
+            - 📊 **Evaluation & Results**: CBSE marks, grades, and report cards
+            - 🏛️ **Virtual Office**: Online requests for TC, Bonafide, Certificates
+            - 👨‍👩‍👧‍👦 **School Strength**: 1,010 students statistical overview
+            - 🖼️ **Lounge**: Campus life and event photo gallery
+            - 🗓️ **Academic Calendar**: Month-by-month school calendar
+            - 📞 **Contact Directory**: Complete staff and department contacts
+            - 💬 **Feedback Desk**: Star ratings and suggestions
+            - 🔔 **Message Center**: Official school announcements & notices
+            - 🚌 **Bus GPS Tracker**: Real-time school bus tracking with 500m alert
+            - 📄 **CBSE Digital Report Card**: Term exams, scholastic & co-scholastic grades
+            - 💰 **Fee Management**: Detailed term breakdown & online payment records
+            - ✅ **Digital Attendance**: Daily attendance percentage & leave logs
+            - 🏖️ **Leave Desk**: Easy online leave applications
+          files: release-apk/RexManagementApp-v2.0.apk
           draft: false
           prerelease: false
         env:
