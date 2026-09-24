@@ -52,7 +52,18 @@ jobs:
             --platforms android \
             .
 
-          # 3. Restore all custom res (styles.xml, launch_background.xml, mipmap launcher icons)
+          # 3. Upgrade Kotlin version to 1.9.24 to match modern AndroidX dependencies
+          if [ -f "android/settings.gradle" ]; then
+            sed -i 's/org\.jetbrains\.kotlin\.android" version "[^"]*"/org.jetbrains.kotlin.android" version "1.9.24"/g' android/settings.gradle || true
+            sed -i 's/version "1.7.10"/version "1.9.24"/g' android/settings.gradle || true
+            sed -i 's/version "1.7.20"/version "1.9.24"/g' android/settings.gradle || true
+          fi
+          if [ -f "android/build.gradle" ]; then
+            sed -i 's/ext\.kotlin_version = .*/ext.kotlin_version = "1.9.24"/g' android/build.gradle || true
+            sed -i 's/kotlin_version = .*/kotlin_version = "1.9.24"/g' android/build.gradle || true
+          fi
+
+          # 4. Restore all custom res (styles.xml, launch_background.xml, mipmap launcher icons)
           if [ -d "/tmp/rex_backup/res" ]; then
             cp -r /tmp/rex_backup/res/* android/app/src/main/res/ 2>/dev/null || true
           fi
