@@ -67,7 +67,9 @@ jobs:
 
           # 6. Ensure app label is Rex Management App and launcher icons are linked
           sed -i 's/android:label="[^"]*"/android:label="Rex Management App"/' android/app/src/main/AndroidManifest.xml
-          sed -i 's/android:icon="@mipmap\/ic_launcher"/android:icon="@mipmap\/ic_launcher" android:roundIcon="@mipmap\/ic_launcher_round"/' android/app/src/main/AndroidManifest.xml
+          if ! grep -q "android:roundIcon" android/app/src/main/AndroidManifest.xml; then
+            sed -i 's/android:icon="@mipmap\/ic_launcher"/android:icon="@mipmap\/ic_launcher" android:roundIcon="@mipmap\/ic_launcher_round"/' android/app/src/main/AndroidManifest.xml
+          fi
 
           # 7. Ensure network, location, and vibration permissions exist in AndroidManifest
           if ! grep -q "ACCESS_FINE_LOCATION" android/app/src/main/AndroidManifest.xml; then
