@@ -12,7 +12,7 @@ permissions:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
 
     steps:
       - name: Checkout repository
@@ -31,79 +31,73 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Create Flutter scaffold (fill in missing generated files)
+      - name: Show Flutter version
+        run: flutter --version
+
+      - name: Create Flutter scaffold for missing platform files
         run: |
-          flutter create --project-name rex_school_erp_flutter --org com.rex.school --platforms android . --no-overwrite || true
+          flutter create --project-name rex_school_erp_flutter \
+            --org com.rex.school \
+            --platforms android \
+            . \
+            2>&1 || true
+          echo "Scaffold done"
 
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Analyze code (non-fatal)
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings || true
+      - name: Check for compile errors
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 || true
 
-      - name: Build APK (release)
+      - name: Build Release APK
         run: |
-          flutter build apk --release --no-tree-shake-icons \
-            --dart-define=FLUTTER_WEB_AUTO_DETECT=true \
-            2>&1 | tee build_log.txt || true
+          flutter build apk \
+            --release \
+            --no-tree-shake-icons \
+            --target-platform android-arm,android-arm64,android-x64 \
+            --split-per-abi \
+            2>&1
+          echo "=== APK files built ==="
+          find build/app/outputs -name "*.apk" -exec ls -lh {} \;
+
+      - name: Rename APK for easy download
+        run: |
+          mkdir -p apk-output
+          # Copy all APKs
+          find build/app/outputs/flutter-apk -name "*.apk" -exec cp {} apk-output/ \;
+          # Also create a universal copy if split ones exist
+          ls -lh apk-output/
           
-          # Also try debug if release fails
-          if [ ! -f "build/app/outputs/flutter-apk/app-release.apk" ]; then
-            echo "Release build failed, trying debug..."
-            flutter build apk --debug --no-tree-shake-icons 2>&1 | tee build_log_debug.txt
-          fi
-
-      - name: Check APK output
-        run: |
-          echo "=== Build outputs ==="
-          find build/app/outputs -name "*.apk" 2>/dev/null || echo "No APK found in standard location"
-          ls -lh build/app/outputs/flutter-apk/ 2>/dev/null || true
-
-      - name: Upload Release APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: rex-school-erp-v2-apk
-          path: |
-            build/app/outputs/flutter-apk/app-release.apk
-            build/app/outputs/flutter-apk/app-debug.apk
-            build_log.txt
-            build_log_debug.txt
+          name: rex-school-erp-v2-APK
+          path: apk-output/*.apk
+          if-no-files-found: error
           retention-days: 30
 
-      - name: Create GitHub Release
-        if: success()
+      - name: Create GitHub Release with APK
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.0-${{ github.run_number }}
-          name: "Rex School ERP v2.0 - Complete Feature Release"
+          tag_name: v2.0.${{ github.run_number }}
+          name: "📱 Rex School ERP v2.0 - Complete App (Build ${{ github.run_number }})"
           body: |
-            ## Rex Senior Secondary School ERP v2.0
+            ## 📱 Rex Senior Secondary School ERP v2.0
             
-            ### ✅ New Features (22 Screens)
-            - 🏠 Redesigned Home with Feature Grid + Message Feed
-            - 📋 Notice Board with categories & pinned notices
-            - 👥 Staff Room (72 staff) with contact directory  
-            - 📅 Full Timetable with day-wise color-coded view
-            - 🎓 Admission Management (Enquiry → Application → Admitted)
-            - 📹 Live Class (Live/Upcoming/Recorded sessions)
-            - 📝 Assignments with submission tracking
-            - 📖 Class Diary with daily homework entries
-            - 📚 Content Library (PDF & Video resources)
-            - 📊 Evaluation with exam schedules & results
-            - 🏛️ Virtual Office (TC, Bonafide, Certificates, Complaints)
-            - 👨‍👩‍👧‍👦 School Strength (1010 students, gender ratio)
-            - 🖼️ Lounge Media Gallery
-            - 🗓️ School Calendar with events
-            - 📞 Contact Directory with availability
-            - 💬 Feedback with star rating
-            - 💬 Message Center (Birthday/Absent/Greeting alerts)
-            - 🚌 Bus GPS Tracker with 500m proximity alert
-            - 📄 CBSE Report Card
-            - 💰 Fee Management & Analysis
-            - ✅ Attendance Register
-            - 🏖️ Leave Desk
-          files: |
-            build/app/outputs/flutter-apk/app-release.apk
+            ### ⬇️ Download the APK below (under Assets section)
+            
+            > **Install:** Download the APK → Allow unknown sources on phone → Install
+            
+            ### ✅ 22 Screens in this release:
+            🏠 Home | 📋 Notice Board | 👥 Staff Room | 📅 Timetable
+            🎓 Admission | 📹 Live Class | 📝 Assignments | 📖 Class Diary
+            📚 Content Library | 📊 Evaluation | 🏛️ Virtual Office
+            👨‍👩‍👧‍👦 School Strength (1010) | 🖼️ Lounge Gallery | 🗓️ Calendar
+            📞 Contact Directory | 💬 Feedback | 💬 Messages
+            🚌 Bus GPS Tracker (500m alert) | 📄 CBSE Report Card
+            💰 Fee Management | ✅ Attendance | 🏖️ Leave Desk
+          files: apk-output/*.apk
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
