@@ -32,6 +32,7 @@ class _ContactDirectoryScreenState extends State<ContactDirectoryScreen> {
       final matchSearch = _search.isEmpty ||
           nameStr.toLowerCase().contains(_search.toLowerCase()) ||
           roleStr.toLowerCase().contains(_search.toLowerCase());
+      final matchFilter = _filter == 'All' || c['type'] == _filter;
       return matchFilter && matchSearch;
     }).toList();
 
