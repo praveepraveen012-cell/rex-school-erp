@@ -34,47 +34,67 @@ jobs:
       - name: Show Flutter version
         run: flutter --version
 
-      - name: Ensure Android scaffold & Rex branding
+      - name: Generate complete Android scaffold with Rex branding
         run: |
-          # Backup custom mipmap icons
-          mkdir -p /tmp/rex_icons
+          # 1. Backup custom AndroidManifest and Rex school launcher icons
+          mkdir -p /tmp/rex_backup
+          if [ -f "android/app/src/main/AndroidManifest.xml" ]; then
+            cp android/app/src/main/AndroidManifest.xml /tmp/rex_backup/
+          fi
           if [ -d "android/app/src/main/res" ]; then
-            cp -r android/app/src/main/res/mipmap* /tmp/rex_icons/ 2>/dev/null || true
+            mkdir -p /tmp/rex_backup/res
+            cp -r android/app/src/main/res/mipmap* /tmp/rex_backup/res/ 2>/dev/null || true
           fi
 
-          # Regenerate fresh android platform files to ensure gradlew wrapper is intact
+          # 2. Re-create android platform cleanly so gradlew, wrapper jar, and Gradle 8 files are generated
+          rm -rf android
           flutter create --project-name rex_school_erp_flutter \
             --org com.rex.school \
             --platforms android \
             .
 
-          # Restore custom Rex school launcher icons
-          if [ -d "/tmp/rex_icons" ]; then
-            cp -r /tmp/rex_icons/* android/app/src/main/res/ 2>/dev/null || true
+          # 3. Restore custom Rex launcher icons
+          if [ -d "/tmp/rex_backup/res" ]; then
+            cp -r /tmp/rex_backup/res/mipmap* android/app/src/main/res/ 2>/dev/null || true
           fi
 
-          # Make gradlew executable
-          chmod +x android/gradlew || true
+          # 4. Make gradlew executable
+          chmod +x android/gradlew
 
-          # Set app label to Rex Management App and set launcher icons
+          # 5. Restore custom AndroidManifest if available or configure it
+          if [ -f "/tmp/rex_backup/AndroidManifest.xml" ]; then
+            cp /tmp/rex_backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          fi
+
+          # 6. Ensure app label is Rex Management App and launcher icons are linked
           sed -i 's/android:label="[^"]*"/android:label="Rex Management App"/' android/app/src/main/AndroidManifest.xml
           sed -i 's/android:icon="@mipmap\/ic_launcher"/android:icon="@mipmap\/ic_launcher" android:roundIcon="@mipmap\/ic_launcher_round"/' android/app/src/main/AndroidManifest.xml
 
-          # Ensure network and location permissions exist
+          # 7. Ensure network, location, and vibration permissions exist in AndroidManifest
           if ! grep -q "ACCESS_FINE_LOCATION" android/app/src/main/AndroidManifest.xml; then
             sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>\n    <uses-permission android:name="android.permission.VIBRATE"/>' android/app/src/main/AndroidManifest.xml
           fi
 
+          # 8. Configure release build to use debug signing key so APK can be installed immediately
+          sed -i 's/signingConfig = signingConfigs.release/signingConfig = signingConfigs.debug/g' android/app/build.gradle || true
+          sed -i 's/signingConfig signingConfigs.release/signingConfig signingConfigs.debug/g' android/app/build.gradle || true
+
+          # 9. Verify generated wrapper files exist
+          echo "=== Android files verified ==="
+          ls -la android/gradlew
+          ls -la android/gradle/wrapper/
+
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Check for compile errors
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 || true
+      - name: Check code
+        run: flutter analyze 2>&1 || true
 
       - name: Build Release APK
         run: |
-          flutter build apk --release --no-tree-shake-icons
-          echo "=== APK files built ==="
+          echo "Starting Flutter release APK build..."
+          flutter build apk --release --no-tree-shake-icons --verbose > build.log 2>&1 || (tail -n 120 build.log && exit 1)
+          echo "=== APK files built successfully ==="
           ls -lh build/app/outputs/flutter-apk/
 
       - name: Prepare APK for Release
