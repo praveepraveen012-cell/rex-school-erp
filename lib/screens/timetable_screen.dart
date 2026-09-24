@@ -106,7 +106,7 @@ class _TimetableScreenState extends State<TimetableScreen> with SingleTickerProv
                               Container(
                                 width: 60,
                                 child: Text(
-                                  period['time']!.replaceAll('-', '\n'),
+                                  period['time'].toString().replaceAll('-', '\n'),
                                   style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w500),
                                   textAlign: TextAlign.center,
                                 ),
@@ -127,8 +127,8 @@ class _TimetableScreenState extends State<TimetableScreen> with SingleTickerProv
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text(period['subject']!, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A2E))),
-                                    Text(period['teacher']!, style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey)),
+                                    Text(period['subject']?.toString() ?? '', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A2E))),
+                                    Text(period['teacher']?.toString() ?? '', style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey)),
                                   ],
                                 ),
                               ),

@@ -30,7 +30,7 @@ class RexSchoolApp extends StatelessWidget {
         ),
         useMaterial3: true,
         textTheme: GoogleFonts.poppinsTextTheme(),
-        cardTheme: CardThemeData(
+        cardTheme: CardTheme(
           elevation: 2,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),

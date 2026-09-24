@@ -114,7 +114,7 @@ class _AdmissionScreenState extends State<AdmissionScreen> with SingleTickerProv
   }
 
   Widget _buildApplicationList() {
-    final apps = [
+    final List<Map<String, String>> apps = [
       {'name': 'Arun Kumar S', 'class': 'XI', 'stream': 'Science', 'date': '20 Sep 2026', 'status': 'Under Review'},
       {'name': 'Deepika Rajan', 'class': 'X', 'stream': 'SSLC', 'date': '18 Sep 2026', 'status': 'Interview Scheduled'},
       {'name': 'Mohammed Rizwan', 'class': 'XII', 'stream': 'Commerce', 'date': '15 Sep 2026', 'status': 'Documents Pending'},
@@ -152,7 +152,7 @@ class _AdmissionScreenState extends State<AdmissionScreen> with SingleTickerProv
   }
 
   Widget _buildAdmittedList() {
-    final admitted = [
+    final List<Map<String, String>> admitted = [
       {'name': 'Aarav Sharma', 'class': 'XII-A', 'rollNo': 'REX/2026/001', 'date': '1 Jun 2026'},
       {'name': 'Priya Nair', 'class': 'XII-A', 'rollNo': 'REX/2026/002', 'date': '1 Jun 2026'},
       {'name': 'Rohit Verma', 'class': 'XI-B', 'rollNo': 'REX/2026/003', 'date': '3 Jun 2026'},

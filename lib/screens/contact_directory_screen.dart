@@ -27,10 +27,11 @@ class _ContactDirectoryScreenState extends State<ContactDirectoryScreen> {
     ];
 
     final filtered = contacts.where((c) {
-      final matchFilter = _filter == 'All' || c['type'] == _filter;
+      final nameStr = c['name']?.toString() ?? '';
+      final roleStr = c['role']?.toString() ?? '';
       final matchSearch = _search.isEmpty ||
-          c['name']!.toLowerCase().contains(_search.toLowerCase()) ||
-          c['role']!.toLowerCase().contains(_search.toLowerCase());
+          nameStr.toLowerCase().contains(_search.toLowerCase()) ||
+          roleStr.toLowerCase().contains(_search.toLowerCase());
       return matchFilter && matchSearch;
     }).toList();
 
@@ -105,7 +106,7 @@ class _ContactDirectoryScreenState extends State<ContactDirectoryScreen> {
                             CircleAvatar(
                               radius: 24,
                               backgroundColor: color,
-                              child: Text(c['name']![0], style: GoogleFonts.poppins(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                              child: Text((c['name']?.toString() ?? 'R')[0], style: GoogleFonts.poppins(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                             ),
                             Positioned(
                               bottom: 0,
