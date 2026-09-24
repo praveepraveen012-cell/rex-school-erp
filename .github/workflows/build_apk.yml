@@ -36,14 +36,13 @@ jobs:
 
       - name: Generate complete Android scaffold with Rex branding
         run: |
-          # 1. Backup custom AndroidManifest and Rex school launcher icons
+          # 1. Backup AndroidManifest and complete res/ (styles, drawable, mipmaps)
           mkdir -p /tmp/rex_backup
           if [ -f "android/app/src/main/AndroidManifest.xml" ]; then
             cp android/app/src/main/AndroidManifest.xml /tmp/rex_backup/
           fi
           if [ -d "android/app/src/main/res" ]; then
-            mkdir -p /tmp/rex_backup/res
-            cp -r android/app/src/main/res/mipmap* /tmp/rex_backup/res/ 2>/dev/null || true
+            cp -r android/app/src/main/res /tmp/rex_backup/
           fi
 
           # 2. Re-create android platform cleanly so gradlew, wrapper jar, and Gradle 8 files are generated
@@ -53,15 +52,15 @@ jobs:
             --platforms android \
             .
 
-          # 3. Restore custom Rex launcher icons
+          # 3. Restore all custom res (styles.xml, launch_background.xml, mipmap launcher icons)
           if [ -d "/tmp/rex_backup/res" ]; then
-            cp -r /tmp/rex_backup/res/mipmap* android/app/src/main/res/ 2>/dev/null || true
+            cp -r /tmp/rex_backup/res/* android/app/src/main/res/ 2>/dev/null || true
           fi
 
           # 4. Make gradlew executable
           chmod +x android/gradlew
 
-          # 5. Restore custom AndroidManifest if available or configure it
+          # 5. Restore custom AndroidManifest
           if [ -f "/tmp/rex_backup/AndroidManifest.xml" ]; then
             cp /tmp/rex_backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           fi
@@ -79,10 +78,12 @@ jobs:
           sed -i 's/signingConfig = signingConfigs.release/signingConfig = signingConfigs.debug/g' android/app/build.gradle || true
           sed -i 's/signingConfig signingConfigs.release/signingConfig signingConfigs.debug/g' android/app/build.gradle || true
 
-          # 9. Verify generated wrapper files exist
+          # 9. Verify generated wrapper files and styles exist
           echo "=== Android files verified ==="
           ls -la android/gradlew
           ls -la android/gradle/wrapper/
+          ls -la android/app/src/main/res/values/
+          ls -la android/app/src/main/res/mipmap-hdpi/
 
       - name: Install dependencies
         run: flutter pub get
@@ -93,9 +94,17 @@ jobs:
       - name: Build Release APK
         run: |
           echo "Starting Flutter release APK build..."
-          flutter build apk --release --no-tree-shake-icons --verbose > build.log 2>&1 || (tail -n 120 build.log && exit 1)
+          flutter build apk --release --no-tree-shake-icons --verbose > build.log 2>&1 || (cat build.log | grep -A 10 -B 3 -i "error\|exception" | head -n 80 && tail -n 80 build.log && exit 1)
           echo "=== APK files built successfully ==="
           ls -lh build/app/outputs/flutter-apk/
+
+      - name: Upload Build Log on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-build-log
+          path: build.log
+          retention-days: 7
 
       - name: Prepare APK for Release
         run: |
