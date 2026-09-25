@@ -2,9 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/erp_provider.dart';
 import '../widgets/metric_card.dart';
+import '../widgets/student_id_card.dart';
+
+// Screens
 import 'bus_tracker_screen.dart';
 import 'attendance_screen.dart';
 import 'fees_screen.dart';
+import 'notice_board_screen.dart';
+import 'timetable_screen.dart';
+import 'class_diary_screen.dart';
+import 'staff_room_screen.dart';
+import 'classroom_screen.dart';
+import 'assignment_screen.dart';
+import 'report_card_screen.dart';
+import 'leave_screen.dart';
+import 'homework_screen.dart';
+import 'contact_directory_screen.dart';
+import 'virtual_office_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -80,22 +94,57 @@ class DashboardScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    "Rex Senior Secondary School",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    "Christus Rex, Catholic Diocese of Ootacamund • Nilgiris, Tamil Nadu",
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 13,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: Image.asset(
+                          'assets/rex_emblem.png',
+                          height: 46,
+                          errorBuilder: (ctx, err, stack) => const Icon(
+                            Icons.school,
+                            size: 40,
+                            color: Color(0xFF1E3A8A),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Rex Management App",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              "Christus Rex, Diocese of Ootacamund • Nilgiris",
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   Wrap(
@@ -181,6 +230,175 @@ class DashboardScreen extends StatelessWidget {
 
             const SizedBox(height: 28),
 
+            // Quick Services & Modules
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.apps_rounded, color: Color(0xFF1E3A8A), size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        "Quick Services & Modules",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  GridView.count(
+                    crossAxisCount: 4,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 0.85,
+                    children: [
+                      _buildQuickActionItem(
+                        context: context,
+                        icon: Icons.calendar_view_week_rounded,
+                        label: "Timetable",
+                        color: const Color(0xFF7C3AED),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const TimetableScreen()),
+                        ),
+                      ),
+                      _buildQuickActionItem(
+                        context: context,
+                        icon: Icons.campaign_rounded,
+                        label: "Notices",
+                        color: const Color(0xFFDC2626),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const NoticeBoardScreen()),
+                        ),
+                      ),
+                      _buildQuickActionItem(
+                        context: context,
+                        icon: Icons.auto_stories_rounded,
+                        label: "Diary",
+                        color: const Color(0xFFD97706),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ClassDiaryScreen()),
+                        ),
+                      ),
+                      _buildQuickActionItem(
+                        context: context,
+                        icon: Icons.meeting_room_rounded,
+                        label: "Staff Room",
+                        color: const Color(0xFF0D9488),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const StaffRoomScreen()),
+                        ),
+                      ),
+                      _buildQuickActionItem(
+                        context: context,
+                        icon: Icons.menu_book_rounded,
+                        label: "Homework",
+                        color: const Color(0xFF2563EB),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const HomeworkScreen()),
+                        ),
+                      ),
+                      _buildQuickActionItem(
+                        context: context,
+                        icon: Icons.grade_rounded,
+                        label: "Marksheet",
+                        color: const Color(0xFF059669),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ReportCardScreen()),
+                        ),
+                      ),
+                      _buildQuickActionItem(
+                        context: context,
+                        icon: Icons.class_rounded,
+                        label: "Classroom",
+                        color: const Color(0xFF0284C7),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ClassroomScreen()),
+                        ),
+                      ),
+                      _buildQuickActionItem(
+                        context: context,
+                        icon: Icons.assignment_rounded,
+                        label: "Tasks",
+                        color: const Color(0xFFEA580C),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AssignmentScreen()),
+                        ),
+                      ),
+                      _buildQuickActionItem(
+                        context: context,
+                        icon: Icons.event_note_rounded,
+                        label: "Leave Desk",
+                        color: const Color(0xFFE11D48),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const LeaveScreen()),
+                        ),
+                      ),
+                      _buildQuickActionItem(
+                        context: context,
+                        icon: Icons.quick_contacts_dialer_rounded,
+                        label: "Directory",
+                        color: const Color(0xFF475569),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ContactDirectoryScreen()),
+                        ),
+                      ),
+                      _buildQuickActionItem(
+                        context: context,
+                        icon: Icons.apartment_rounded,
+                        label: "Office",
+                        color: const Color(0xFF9333EA),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const VirtualOfficeScreen()),
+                        ),
+                      ),
+                      _buildQuickActionItem(
+                        context: context,
+                        icon: Icons.badge_rounded,
+                        label: "Gate Pass",
+                        color: const Color(0xFF10B981),
+                        onTap: () => showDialog(
+                          context: context,
+                          builder: (_) => StudentIdCardDialog(student: erp.currentStudent),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 28),
+
             // Live Bus GPS Fleet Overview Card
             Container(
               padding: const EdgeInsets.all(20),
@@ -214,10 +432,10 @@ class DashboardScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
+                      const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
+                          children: [
                             Text(
                               "Live GPS Transit Fleet (Nilgiris)",
                               style: TextStyle(
@@ -227,7 +445,7 @@ class DashboardScreen extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              "Real-time telematics with automated 500m parent proximity SMS",
+                              "Real-time telematics with automated 500m proximity alarm",
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Color(0xFF64748B),
@@ -474,6 +692,45 @@ class DashboardScreen extends StatelessWidget {
             const SizedBox(height: 32),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionItem({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1E293B),
+            ),
+          ),
+        ],
       ),
     );
   }
