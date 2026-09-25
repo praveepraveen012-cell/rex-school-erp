@@ -557,7 +557,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       Navigator.pop(context);
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const CalendarScreen()),
+                        MaterialPageRoute(builder: (_) => const SchoolCalendarScreen()),
                       );
                     },
                   ),
