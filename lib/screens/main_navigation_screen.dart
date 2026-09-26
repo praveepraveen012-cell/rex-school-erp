@@ -3,10 +3,14 @@ import 'package:provider/provider.dart';
 import '../services/erp_provider.dart';
 import '../services/app_state.dart';
 import '../services/api_service.dart';
-import '../widgets/student_id_card.dart';
 import 'login_screen.dart';
 
-// Primary Screens
+// Role Dashboards
+import 'dashboards/super_admin_dashboard_view.dart';
+import 'dashboards/teacher_dashboard_view.dart';
+import 'dashboards/parent_dashboard_view.dart';
+
+// Primary Module Screens
 import 'dashboard_screen.dart';
 import 'attendance_screen.dart';
 import 'fees_screen.dart';
@@ -32,7 +36,6 @@ import 'school_strength_screen.dart';
 import 'admission_screen.dart';
 import 'virtual_office_screen.dart';
 import 'fee_analysis_screen.dart';
-import 'lounge_screen.dart';
 import 'calendar_screen.dart';
 import 'message_center_screen.dart';
 import 'feedback_screen.dart';
@@ -46,14 +49,134 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
+  String? _lastRole;
 
-  final List<Widget> _pages = const [
-    DashboardScreen(),
-    AttendanceScreen(),
-    FeesScreen(),
-    BusTrackerScreen(),
-    ParentPortalScreen(),
-  ];
+  String _resolveRole(ERPProvider erp) {
+    final apiRole = ApiService.activeRole.toUpperCase();
+    if (apiRole == 'SUPER_ADMIN' || erp.currentRole.toLowerCase() == 'admin') {
+      return 'SUPER_ADMIN';
+    } else if (apiRole == 'TEACHER' || erp.currentRole.toLowerCase() == 'teacher') {
+      return 'TEACHER';
+    } else {
+      return 'PARENT';
+    }
+  }
+
+  List<Widget> _getPagesForRole(String role) {
+    if (role == 'SUPER_ADMIN') {
+      return const [
+        SuperAdminDashboardView(),
+        SchoolStrengthScreen(),
+        StaffRoomScreen(),
+        FeeAnalysisScreen(),
+        VirtualOfficeScreen(),
+      ];
+    } else if (role == 'TEACHER') {
+      return const [
+        TeacherDashboardView(),
+        AttendanceScreen(),
+        HomeworkScreen(),
+        NoticeBoardScreen(),
+        StaffRoomScreen(),
+      ];
+    } else {
+      return const [
+        ParentDashboardView(),
+        HomeworkScreen(),
+        BusTrackerScreen(),
+        FeesScreen(),
+        ParentPortalScreen(),
+      ];
+    }
+  }
+
+  List<BottomNavigationBarItem> _getNavItemsForRole(String role) {
+    if (role == 'SUPER_ADMIN') {
+      return const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.dashboard_outlined),
+          activeIcon: Icon(Icons.dashboard_rounded),
+          label: "Home",
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.groups_outlined),
+          activeIcon: Icon(Icons.groups_rounded),
+          label: "Students",
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.badge_outlined),
+          activeIcon: Icon(Icons.badge_rounded),
+          label: "Teachers",
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.insert_chart_outlined_rounded),
+          activeIcon: Icon(Icons.insert_chart_rounded),
+          label: "Reports",
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.more_horiz_rounded),
+          activeIcon: Icon(Icons.more_horiz_rounded),
+          label: "More",
+        ),
+      ];
+    } else if (role == 'TEACHER') {
+      return const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.dashboard_outlined),
+          activeIcon: Icon(Icons.dashboard_rounded),
+          label: "Home",
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.how_to_reg_outlined),
+          activeIcon: Icon(Icons.how_to_reg_rounded),
+          label: "Attendance",
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.menu_book_outlined),
+          activeIcon: Icon(Icons.menu_book_rounded),
+          label: "Homework",
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.campaign_outlined),
+          activeIcon: Icon(Icons.campaign_rounded),
+          label: "Events",
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline),
+          activeIcon: Icon(Icons.person_rounded),
+          label: "Profile",
+        ),
+      ];
+    } else {
+      return const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home_outlined),
+          activeIcon: Icon(Icons.home_rounded),
+          label: "Home",
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.menu_book_outlined),
+          activeIcon: Icon(Icons.menu_book_rounded),
+          label: "Homework",
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.directions_bus_outlined),
+          activeIcon: Icon(Icons.directions_bus_filled_rounded),
+          label: "Bus",
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.account_balance_wallet_outlined),
+          activeIcon: Icon(Icons.account_balance_wallet_rounded),
+          label: "Fees",
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.more_horiz_rounded),
+          activeIcon: Icon(Icons.more_horiz_rounded),
+          label: "More",
+        ),
+      ];
+    }
+  }
 
   void _handleSignOut() {
     showDialog(
@@ -173,6 +296,20 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     final erp = Provider.of<ERPProvider>(context);
+    final role = _resolveRole(erp);
+
+    // Reset current index if role switched
+    if (_lastRole != role) {
+      _lastRole = role;
+      _currentIndex = 0;
+    }
+
+    final pages = _getPagesForRole(role);
+    final navItems = _getNavItemsForRole(role);
+
+    if (_currentIndex >= pages.length) {
+      _currentIndex = 0;
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -217,20 +354,24 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               ),
             ),
             const SizedBox(width: 10),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Rex Management App",
-                    style: TextStyle(
+                    role == 'SUPER_ADMIN'
+                        ? "Rex Admin Desk"
+                        : role == 'TEACHER'
+                            ? "Rex Faculty App"
+                            : "Rex Parent Portal",
+                    style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
                       letterSpacing: -0.2,
                       color: Colors.white,
                     ),
                   ),
-                  Text(
+                  const Text(
                     "CBSE Affiliation #1930000 • Nilgiris",
                     style: TextStyle(
                       fontSize: 10,
@@ -255,17 +396,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
 
           // Multi-child switcher chip for parents
-          if (erp.currentRole == 'parent')
+          if (role == 'PARENT')
             InkWell(
               onTap: () => _showChildSwitcher(erp),
               borderRadius: BorderRadius.circular(16),
               child: Container(
                 margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2563EB).withOpacity(0.2),
+                  color: const Color(0xFF1E3A8A),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFF60A5FA).withOpacity(0.5)),
+                  border: Border.all(color: const Color(0xFF3B82F6).withOpacity(0.5)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -294,9 +435,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  erp.currentRole == 'admin'
+                  role == 'SUPER_ADMIN'
                       ? Icons.admin_panel_settings
-                      : erp.currentRole == 'teacher'
+                      : role == 'TEACHER'
                           ? Icons.school
                           : Icons.family_restroom,
                   color: const Color(0xFFFCD34D),
@@ -304,10 +445,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  erp.currentRole == 'admin'
+                  role == 'SUPER_ADMIN'
                       ? "Admin"
-                      : erp.currentRole == 'teacher'
-                          ? "Staff"
+                      : role == 'TEACHER'
+                          ? "Faculty"
                           : "Parent",
                   style: const TextStyle(
                     color: Colors.white,
@@ -411,10 +552,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       color: Colors.white.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Text(
-                      "CBSE Affiliation #1930000 • Ootacamund",
+                    child: Text(
+                      role == 'SUPER_ADMIN'
+                          ? "Super Admin • Full Authority"
+                          : role == 'TEACHER'
+                              ? "Teaching Faculty • Science Dept"
+                              : "Parent Portal • Registered Guardian",
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Color(0xFFFCD34D),
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
@@ -425,329 +570,235 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               ),
             ),
 
-            // Navigation List Items
+            // Navigation List Items strictly tailored by role
             Expanded(
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
-                  _buildDrawerSectionHeader("PRIMARY MODULES"),
-                  _buildDrawerItem(
-                    icon: Icons.dashboard_outlined,
-                    title: "Principal Pulse Dashboard",
-                    isSelected: _currentIndex == 0,
-                    onTap: () {
-                      Navigator.pop(context);
-                      setState(() => _currentIndex = 0);
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.how_to_reg_outlined,
-                    title: "Smart Attendance Register",
-                    isSelected: _currentIndex == 1,
-                    onTap: () {
-                      Navigator.pop(context);
-                      setState(() => _currentIndex = 1);
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.account_balance_wallet_outlined,
-                    title: "Fee Cashier & Ledger",
-                    isSelected: _currentIndex == 2,
-                    onTap: () {
-                      Navigator.pop(context);
-                      setState(() => _currentIndex = 2);
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.directions_bus_outlined,
-                    title: "Live GPS Bus Fleet",
-                    isSelected: _currentIndex == 3,
-                    onTap: () {
-                      Navigator.pop(context);
-                      setState(() => _currentIndex = 3);
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.family_restroom_outlined,
-                    title: "Parent Portal & 500m Radar",
-                    isSelected: _currentIndex == 4,
-                    onTap: () {
-                      Navigator.pop(context);
-                      setState(() => _currentIndex = 4);
-                    },
-                  ),
-
-                  _buildDrawerSectionHeader("ACADEMICS & CLASSROOM"),
-                  _buildDrawerItem(
-                    icon: Icons.calendar_view_week_outlined,
-                    title: "Timetable & Bell Schedule",
-                    badge: "Class 10-A",
-                    badgeColor: const Color(0xFF7C3AED),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const TimetableScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.campaign_outlined,
-                    title: "Notice Board & Circulars",
-                    badge: "New",
-                    badgeColor: const Color(0xFFDC2626),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const NoticeBoardScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.auto_stories_outlined,
-                    title: "Class Diary & Observations",
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ClassDiaryScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.meeting_room_outlined,
-                    title: "Staff Room & Faculty",
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const StaffRoomScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.menu_book_outlined,
-                    title: "Digital Homework Diary",
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const HomeworkScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.grade_outlined,
-                    title: "Official CBSE Marksheet",
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ReportCardScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.class_outlined,
-                    title: "Classroom & Student Roster",
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ClassroomScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.assignment_outlined,
-                    title: "Assignments & Projects",
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const AssignmentScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.local_library_outlined,
-                    title: "Digital Content Library",
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ContentLibraryScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.analytics_outlined,
-                    title: "Evaluation & Exams",
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const EvaluationScreen()),
-                      );
-                    },
-                  ),
-
-                  _buildDrawerSectionHeader("CAMPUS & ADMINISTRATION"),
-                  _buildDrawerItem(
-                    icon: Icons.quick_contacts_dialer_outlined,
-                    title: "Contact Directory",
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ContactDirectoryScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.event_note_outlined,
-                    title: "Student Leave Desk",
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LeaveScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.groups_outlined,
-                    title: "School Strength & Stats",
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SchoolStrengthScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.app_registration_outlined,
-                    title: "Admissions Desk",
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const AdmissionScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.apartment_outlined,
-                    title: "Virtual Office",
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const VirtualOfficeScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.pie_chart_outline,
-                    title: "Fee Collection Analysis",
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const FeeAnalysisScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.weekend_outlined,
-                    title: "Student Lounge & Events",
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoungeScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.calendar_month_outlined,
-                    title: "School Calendar",
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SchoolCalendarScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.chat_bubble_outline,
-                    title: "Message Center",
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const MessageCenterScreen()),
-                      );
-                    },
-                  ),
-
-                  _buildDrawerSectionHeader("TELEMATICS & SAFETY"),
-                  ListTile(
-                    leading: const Icon(Icons.radar, color: Color(0xFF2563EB)),
-                    title: const Text(
-                      "Test 500m Geofence Alarm",
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF2563EB),
-                      ),
+                  if (role == 'SUPER_ADMIN') ...[
+                    _buildDrawerSectionHeader("PRIMARY MODULES"),
+                    _buildDrawerItem(
+                      icon: Icons.dashboard_outlined,
+                      title: "Principal Command Center",
+                      isSelected: _currentIndex == 0,
+                      onTap: () {
+                        Navigator.pop(context);
+                        setState(() => _currentIndex = 0);
+                      },
                     ),
-                    subtitle: const Text(
-                      "Plays chime & opens proximity modal",
-                      style: TextStyle(fontSize: 11),
+                    _buildDrawerItem(
+                      icon: Icons.groups_outlined,
+                      title: "School Strength & Students",
+                      isSelected: _currentIndex == 1,
+                      onTap: () {
+                        Navigator.pop(context);
+                        setState(() => _currentIndex = 1);
+                      },
                     ),
-                    onTap: () {
-                      Navigator.pop(context);
-                      setState(() => _currentIndex = 4); // Go to parent portal
-                      erp.trigger500mProximity();
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.badge_outlined, color: Color(0xFF059669)),
-                    title: const Text(
-                      "Official Student ID & Gate Pass",
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF059669),
-                      ),
+                    _buildDrawerItem(
+                      icon: Icons.badge_outlined,
+                      title: "Faculty & Staff Room",
+                      isSelected: _currentIndex == 2,
+                      onTap: () {
+                        Navigator.pop(context);
+                        setState(() => _currentIndex = 2);
+                      },
                     ),
-                    subtitle: const Text(
-                      "Scannable RFID & QR Code Gate Pass",
-                      style: TextStyle(fontSize: 11),
+                    _buildDrawerItem(
+                      icon: Icons.insert_chart_outlined_rounded,
+                      title: "Audit Reports & Analytics",
+                      isSelected: _currentIndex == 3,
+                      onTap: () {
+                        Navigator.pop(context);
+                        setState(() => _currentIndex = 3);
+                      },
                     ),
-                    onTap: () {
-                      Navigator.pop(context);
-                      showDialog(
-                        context: context,
-                        builder: (_) => StudentIdCardDialog(student: erp.currentStudent),
-                      );
-                    },
-                  ),
+                    _buildDrawerSectionHeader("ADMINISTRATIVE DESKS"),
+                    _buildDrawerItem(
+                      icon: Icons.account_balance_wallet_outlined,
+                      title: "Fee Cashier & Ledger",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const FeesScreen()));
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.how_to_reg_outlined,
+                      title: "Smart Attendance Register",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceScreen()));
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.directions_bus_outlined,
+                      title: "Live GPS Bus Fleet",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const BusTrackerScreen()));
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.campaign_outlined,
+                      title: "Automated SMS & Notices",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const MessageCenterScreen()));
+                      },
+                    ),
+                  ] else if (role == 'TEACHER') ...[
+                    _buildDrawerSectionHeader("FACULTY MODULES"),
+                    _buildDrawerItem(
+                      icon: Icons.dashboard_outlined,
+                      title: "Teacher Dashboard",
+                      isSelected: _currentIndex == 0,
+                      onTap: () {
+                        Navigator.pop(context);
+                        setState(() => _currentIndex = 0);
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.how_to_reg_outlined,
+                      title: "Mark Class Attendance",
+                      isSelected: _currentIndex == 1,
+                      onTap: () {
+                        Navigator.pop(context);
+                        setState(() => _currentIndex = 1);
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.menu_book_outlined,
+                      title: "Digital Homework Desk",
+                      isSelected: _currentIndex == 2,
+                      onTap: () {
+                        Navigator.pop(context);
+                        setState(() => _currentIndex = 2);
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.campaign_outlined,
+                      title: "Events & Announcements",
+                      isSelected: _currentIndex == 3,
+                      onTap: () {
+                        Navigator.pop(context);
+                        setState(() => _currentIndex = 3);
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.person_outline,
+                      title: "Faculty Profile",
+                      isSelected: _currentIndex == 4,
+                      onTap: () {
+                        Navigator.pop(context);
+                        setState(() => _currentIndex = 4);
+                      },
+                    ),
+                    _buildDrawerSectionHeader("CLASSROOM MANAGEMENT"),
+                    _buildDrawerItem(
+                      icon: Icons.auto_stories_outlined,
+                      title: "Class Diary & Lesson Logs",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const ClassDiaryScreen()));
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.calendar_view_week_outlined,
+                      title: "My Timetable Schedule",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const TimetableScreen()));
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.assignment_outlined,
+                      title: "Student Projects & Assignments",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const AssignmentScreen()));
+                      },
+                    ),
+                  ] else ...[
+                    _buildDrawerSectionHeader("PARENT PORTAL"),
+                    _buildDrawerItem(
+                      icon: Icons.home_outlined,
+                      title: "Child Dashboard",
+                      isSelected: _currentIndex == 0,
+                      onTap: () {
+                        Navigator.pop(context);
+                        setState(() => _currentIndex = 0);
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.menu_book_outlined,
+                      title: "Child's Homework",
+                      isSelected: _currentIndex == 1,
+                      onTap: () {
+                        Navigator.pop(context);
+                        setState(() => _currentIndex = 1);
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.directions_bus_outlined,
+                      title: "Live GPS Bus Tracking",
+                      isSelected: _currentIndex == 2,
+                      onTap: () {
+                        Navigator.pop(context);
+                        setState(() => _currentIndex = 2);
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.account_balance_wallet_outlined,
+                      title: "Tuition Fees & Payments",
+                      isSelected: _currentIndex == 3,
+                      onTap: () {
+                        Navigator.pop(context);
+                        setState(() => _currentIndex = 3);
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.person_outline,
+                      title: "Child's Profile & Details",
+                      isSelected: _currentIndex == 4,
+                      onTap: () {
+                        Navigator.pop(context);
+                        setState(() => _currentIndex = 4);
+                      },
+                    ),
+                    _buildDrawerSectionHeader("ACADEMIC RECORDS"),
+                    _buildDrawerItem(
+                      icon: Icons.grade_outlined,
+                      title: "CBSE Marksheet / Report Card",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportCardScreen()));
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.calendar_view_week_outlined,
+                      title: "Class Timetable",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const TimetableScreen()));
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.event_note_outlined,
+                      title: "School Calendar & Events",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const CalendarScreen()));
+                      },
+                    ),
+                  ],
 
-                  _buildDrawerSectionHeader("SUPPORT & SESSION"),
+                  _buildDrawerSectionHeader("SESSION & SUPPORT"),
                   _buildDrawerItem(
-                    icon: Icons.rate_review_outlined,
-                    title: "Feedback & Suggestions",
+                    icon: Icons.help_outline,
+                    title: "Helpdesk & Feedback",
                     onTap: () {
                       Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const FeedbackScreen()),
-                      );
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedbackScreen()));
                     },
                   ),
                   ListTile(
@@ -761,7 +812,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       ),
                     ),
                     subtitle: const Text(
-                      "Return to role selection & login",
+                      "Return to login",
                       style: TextStyle(fontSize: 11),
                     ),
                     onTap: () {
@@ -779,12 +830,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               color: const Color(0xFFF8FAFC),
               child: const Row(
                 children: [
-                  Icon(Icons.shield_outlined,
-                      color: Color(0xFF16A34A), size: 18),
+                  Icon(Icons.shield_outlined, color: Color(0xFF16A34A), size: 18),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      "Rex Management App • Safe Campus ERP",
+                      "Rex Management App • Role Verified",
                       style: TextStyle(
                         fontSize: 11,
                         color: Color(0xFF64748B),
@@ -801,7 +851,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
       body: IndexedStack(
         index: _currentIndex,
-        children: _pages,
+        children: pages,
       ),
 
       bottomNavigationBar: Container(
@@ -822,37 +872,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           backgroundColor: Colors.white,
           selectedItemColor: const Color(0xFF1E3A8A),
           unselectedItemColor: const Color(0xFF94A3B8),
-          selectedLabelStyle:
-              const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
           unselectedLabelStyle: const TextStyle(fontSize: 11),
           elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard_outlined),
-              activeIcon: Icon(Icons.dashboard_rounded),
-              label: "Pulse",
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.how_to_reg_outlined),
-              activeIcon: Icon(Icons.how_to_reg_rounded),
-              label: "Attendance",
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.account_balance_wallet_outlined),
-              activeIcon: Icon(Icons.account_balance_wallet_rounded),
-              label: "Fees",
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.directions_bus_outlined),
-              activeIcon: Icon(Icons.directions_bus_filled_rounded),
-              label: "Bus GPS",
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.family_restroom_outlined),
-              activeIcon: Icon(Icons.family_restroom_rounded),
-              label: "Parent",
-            ),
-          ],
+          items: navItems,
         ),
       ),
     );
