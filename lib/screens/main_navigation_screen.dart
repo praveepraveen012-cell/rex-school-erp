@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/erp_provider.dart';
 import '../services/app_state.dart';
+import '../services/api_service.dart';
 import '../widgets/student_id_card.dart';
+import 'login_screen.dart';
 
 // Primary Screens
 import 'dashboard_screen.dart';
@@ -52,6 +54,121 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     BusTrackerScreen(),
     ParentPortalScreen(),
   ];
+
+  void _handleSignOut() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Sign Out"),
+        content: const Text("Are you sure you want to sign out of Rex Management App?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
+            onPressed: () {
+              Navigator.pop(ctx);
+              ApiService.logout();
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                (route) => false,
+              );
+            },
+            child: const Text("Sign Out", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showChildSwitcher(ERPProvider erp) {
+    final students = ApiService.linkedStudents.isNotEmpty
+        ? ApiService.linkedStudents
+        : [
+            {'id': 1, 'first_name': 'Aarav', 'last_name': 'Sharma', 'class_name': 'Grade 10', 'section_name': 'A', 'admission_no': 'REX-2024-001'},
+            {'id': 7, 'first_name': 'Ananya', 'last_name': 'Sharma', 'class_name': 'Grade 8', 'section_name': 'B', 'admission_no': 'REX-2024-007'},
+          ];
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.family_restroom, color: Color(0xFF1E3A8A)),
+                  SizedBox(width: 8),
+                  Text(
+                    "Switch Student Ward",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                "Select which child's academic, bus, and attendance records to view:",
+                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 16),
+              ...students.map((s) {
+                final fullName = "${s['first_name']} ${s['last_name']}".trim();
+                final classInfo = "${s['class_name'] ?? 'Grade 10'}-${s['section_name'] ?? 'A'}";
+                final isActive = (ApiService.activeStudent?['id'] == s['id']) ||
+                    (ApiService.activeStudent == null && fullName.contains('Aarav'));
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: isActive ? const Color(0xFFEFF6FF) : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isActive ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
+                      width: isActive ? 2 : 1,
+                    ),
+                  ),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: isActive ? const Color(0xFF1E3A8A) : const Color(0xFFE2E8F0),
+                      child: Text(
+                        s['first_name']?[0] ?? 'S',
+                        style: TextStyle(
+                          color: isActive ? Colors.white : const Color(0xFF0F172A),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    title: Text(fullName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    subtitle: Text("Class: $classInfo • Admission: ${s['admission_no'] ?? 'REX-2024'}"),
+                    trailing: isActive ? const Icon(Icons.check_circle, color: Color(0xFF2563EB)) : null,
+                    onTap: () {
+                      ApiService.switchChild(s);
+                      Navigator.pop(ctx);
+                      setState(() {});
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("Switched active ward to $fullName ($classInfo)"),
+                          backgroundColor: const Color(0xFF1E3A8A),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -130,89 +247,76 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             onPressed: () => erp.toggleSound(),
           ),
 
-          // Role Switcher Popup Menu
-          PopupMenuButton<String>(
-            tooltip: "Switch Role Perspective",
-            initialValue: erp.currentRole,
-            onSelected: (role) {
-              erp.switchRole(role);
-              if (role == 'parent') {
-                setState(() => _currentIndex = 4); // Go to parent portal
-              }
-            },
-            itemBuilder: (ctx) => [
-              const PopupMenuItem(
-                value: 'admin',
-                child: Row(
-                  children: [
-                    Icon(Icons.admin_panel_settings,
-                        color: Color(0xFF1E3A8A), size: 18),
-                    SizedBox(width: 8),
-                    Text("Principal (Admin)"),
-                  ],
+          // Multi-child switcher chip for parents
+          if (erp.currentRole == 'parent')
+            InkWell(
+              onTap: () => _showChildSwitcher(erp),
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2563EB).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFF60A5FA).withOpacity(0.5)),
                 ),
-              ),
-              const PopupMenuItem(
-                value: 'teacher',
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.edit_note, color: Color(0xFF059669), size: 18),
-                    SizedBox(width: 8),
-                    Text("Teacher (10-A)"),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'parent',
-                child: Row(
-                  children: [
-                    Icon(Icons.family_restroom,
-                        color: Color(0xFF7C3AED), size: 18),
-                    SizedBox(width: 8),
-                    Text("Parent (Aarav Sharma)"),
-                  ],
-                ),
-              ),
-            ],
-            child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.2)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    erp.currentRole == 'admin'
-                        ? Icons.admin_panel_settings
-                        : erp.currentRole == 'teacher'
-                            ? Icons.edit_note
-                            : Icons.family_restroom,
-                    color: const Color(0xFFFCD34D),
-                    size: 14,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    erp.currentRole == 'admin'
-                        ? "Principal"
-                        : erp.currentRole == 'teacher'
-                            ? "Teacher"
-                            : "Parent",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                    const Icon(Icons.swap_horiz, color: Color(0xFF93C5FD), size: 14),
+                    const SizedBox(width: 4),
+                    Text(
+                      ApiService.activeStudent?['first_name'] ?? "Aarav",
+                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.arrow_drop_down,
-                      color: Colors.white70, size: 16),
-                ],
+                  ],
+                ),
               ),
             ),
+
+          // Role Badge
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  erp.currentRole == 'admin'
+                      ? Icons.admin_panel_settings
+                      : erp.currentRole == 'teacher'
+                          ? Icons.school
+                          : Icons.family_restroom,
+                  color: const Color(0xFFFCD34D),
+                  size: 13,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  erp.currentRole == 'admin'
+                      ? "Admin"
+                      : erp.currentRole == 'teacher'
+                          ? "Staff"
+                          : "Parent",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Sign Out Button
+          IconButton(
+            tooltip: "Sign Out",
+            icon: const Icon(Icons.logout_rounded, color: Colors.white70, size: 20),
+            onPressed: _handleSignOut,
           ),
           const SizedBox(width: 4),
         ],
@@ -617,7 +721,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     },
                   ),
 
-                  _buildDrawerSectionHeader("SUPPORT"),
+                  _buildDrawerSectionHeader("SUPPORT & SESSION"),
                   _buildDrawerItem(
                     icon: Icons.rate_review_outlined,
                     title: "Feedback & Suggestions",
@@ -627,6 +731,25 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                         context,
                         MaterialPageRoute(builder: (_) => const FeedbackScreen()),
                       );
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.logout_rounded, color: Color(0xFFDC2626)),
+                    title: const Text(
+                      "Sign Out",
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFDC2626),
+                      ),
+                    ),
+                    subtitle: const Text(
+                      "Return to role selection & login",
+                      style: TextStyle(fontSize: 11),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _handleSignOut();
                     },
                   ),
                 ],

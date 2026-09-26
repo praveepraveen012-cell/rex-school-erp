@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'services/erp_provider.dart';
 import 'services/app_state.dart';
+import 'services/api_service.dart';
+import 'screens/login_screen.dart';
 import 'screens/main_navigation_screen.dart';
 
 void main() {
@@ -62,7 +64,8 @@ class RexSchoolERPApp extends StatelessWidget {
             ),
           ),
         ),
-        home: const MainNavigationScreen(),
+        // Authentication Gate: Always prompt for login unless already authenticated
+        home: ApiService.isAuthenticated ? const MainNavigationScreen() : const LoginScreen(),
       ),
     );
   }
