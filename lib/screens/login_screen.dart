@@ -50,9 +50,30 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     super.dispose();
   }
 
-  void _onLoginSuccess(String role) {
+  void _onLoginSuccess(String role, {bool isOffline = false}) {
     final erp = Provider.of<ERPProvider>(context, listen: false);
     erp.switchRole(role.toLowerCase());
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(isOffline ? Icons.offline_bolt : Icons.cloud_done, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                isOffline
+                    ? "Welcome to Rex Management (Safe Standalone Engine active)"
+                    : "Connected to Rex Management Server (${role.toUpperCase()})",
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF0F766E),
+        duration: const Duration(seconds: 3),
+      ),
+    );
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
@@ -80,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     setState(() => _isLoading = false);
 
     if (res['success'] == true) {
-      _onLoginSuccess('parent');
+      _onLoginSuccess('parent', isOffline: res['isOffline'] == true);
     } else {
       setState(() => _errorMessage = res['error'] ?? "Parent login failed.");
     }
@@ -114,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Automated SMS OTP sent to +91 $mobile"),
+          content: Text("Automated SMS verification code sent to +91 $mobile"),
           backgroundColor: const Color(0xFF059669),
         ),
       );
@@ -141,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     setState(() => _isLoading = false);
 
     if (res['success'] == true) {
-      _onLoginSuccess('teacher');
+      _onLoginSuccess('teacher', isOffline: res['isOffline'] == true);
     } else {
       setState(() => _errorMessage = res['error'] ?? "Invalid or expired OTP.");
     }
@@ -168,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     setState(() => _isLoading = false);
 
     if (res['success'] == true) {
-      _onLoginSuccess('admin');
+      _onLoginSuccess('admin', isOffline: res['isOffline'] == true);
     } else {
       setState(() => _errorMessage = res['error'] ?? "Invalid admin credentials.");
     }
@@ -197,7 +218,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                "Configure your backend API URL (IP address of your PC running node server.js):",
+                "Backend API URL (Ensure phone and PC are on the same Wi-Fi, or test with built-in resilient engine):",
                 style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
               ),
               const SizedBox(height: 12),
@@ -207,7 +228,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   labelText: "API Base URL",
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.link),
-                  hintText: "http://192.168.1.34:3000/api",
+                  hintText: "http://192.168.1.33:3000/api",
                 ),
               ),
               const SizedBox(height: 10),
@@ -215,6 +236,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 spacing: 8,
                 runSpacing: 6,
                 children: [
+                  ActionChip(
+                    label: const Text("PC Wi-Fi (192.168.1.33)", style: TextStyle(fontSize: 11)),
+                    onPressed: () {
+                      setDialogState(() {
+                        serverCtrl.text = "http://192.168.1.33:3000/api";
+                      });
+                    },
+                  ),
                   ActionChip(
                     label: const Text("Emulator (10.0.2.2)", style: TextStyle(fontSize: 11)),
                     onPressed: () {
@@ -271,11 +300,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         if (res['ok'] == true) {
                           pingStatus = "Connected! Latency: ${res['latencyMs']}ms (${res['service']})";
                         } else {
-                          pingStatus = "Failed: ${res['error']}";
+                          pingStatus = "Cannot reach server. Resilient offline engine will automatically handle logins.";
                         }
                       });
                     },
-              child: isPinging ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Text("Test Ping"),
+              child: isPinging
+                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Text("Test Ping"),
             ),
             ElevatedButton(
               onPressed: () {
@@ -301,47 +332,23 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // Top Bar with School Crest and Settings
+              // Top Bar with App Name and Settings Button
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4),
-                            ],
-                          ),
-                          child: Image.asset(
-                            'assets/rex_emblem.png',
-                            height: 28,
-                            errorBuilder: (ctx, err, stack) => const Icon(
-                              Icons.school,
-                              color: Color(0xFF1E3A8A),
-                              size: 24,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        const Text(
-                          "Rex Management",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                      ],
+                    const Text(
+                      "Rex Management App",
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white70,
+                        letterSpacing: -0.2,
+                      ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.settings, color: Colors.white70),
+                      icon: const Icon(Icons.settings, color: Colors.white70, size: 22),
                       tooltip: "Server Configuration",
                       onPressed: _showServerSettings,
                     ),
@@ -349,83 +356,117 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 ),
               ),
 
-              // Hero School Banner Card
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1E3A8A), Color(0xFF172554)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.12)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 8,
-                          ),
-                        ],
+              // ================================================================
+              // MAGNIFICENT CENTERED REX SCHOOL CREST & PRESENTATION
+              // ================================================================
+              Center(
+                child: Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1E3A8A), Color(0xFF0F172A)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: Colors.white.withOpacity(0.14), width: 1.2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.35),
+                        blurRadius: 18,
+                        offset: const Offset(0, 6),
                       ),
-                      child: Image.asset(
-                        'assets/rex_emblem.png',
-                        height: 52,
-                        errorBuilder: (ctx, err, stack) => const Icon(
-                          Icons.account_balance,
-                          color: Color(0xFF1E3A8A),
-                          size: 40,
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Centered Pure White Emblem Badge with Golden Halo
+                      Container(
+                        width: 86,
+                        height: 86,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.25),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                            BoxShadow(
+                              color: const Color(0xFFF59E0B).withOpacity(0.38),
+                              blurRadius: 20,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Image.asset(
+                            'assets/rex_emblem.png',
+                            height: 62,
+                            width: 62,
+                            fit: BoxFit.contain,
+                            alignment: Alignment.center,
+                            errorBuilder: (ctx, err, stack) => const Icon(
+                              Icons.school,
+                              size: 48,
+                              color: Color(0xFF1E3A8A),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 14),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "CHRISTUS REX",
-                            style: TextStyle(
-                              color: Color(0xFFF59E0B),
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          Text(
-                            "Senior Secondary School, Ooty",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            "Catholic Diocese of Ootacamund • CBSE #1930000",
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ],
+                      const SizedBox(height: 14),
+                      const Text(
+                        "CHRISTUS REX",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Color(0xFFF59E0B),
+                          fontSize: 21,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2.2,
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      const Text(
+                        "Senior Secondary School, Ootacamund",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          "Catholic Diocese of Ootacamund • CBSE #1930000",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFFE2E8F0),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
 
               // Main Auth Card
               Container(
-                margin: const EdgeInsets.all(16),
+                margin: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
@@ -472,7 +513,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       ),
                     ),
 
-                    // Error Alert Banner
+                    // Error Alert Banner (if any)
                     if (_errorMessage != null)
                       Container(
                         margin: const EdgeInsets.all(16),
@@ -514,7 +555,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
               // Direct Demo Quick Login Pill Footer
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: Column(
                   children: [
                     const Text(
@@ -538,7 +579,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           label: const Text("Parent (Aarav & Ananya)"),
                           onPressed: () {
                             ApiService.loginDemo('PARENT');
-                            _onLoginSuccess('parent');
+                            _onLoginSuccess('parent', isOffline: true);
                           },
                         ),
                         ElevatedButton.icon(
@@ -552,7 +593,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           label: const Text("Teacher (Sarah - 10-A)"),
                           onPressed: () {
                             ApiService.loginDemo('TEACHER');
-                            _onLoginSuccess('teacher');
+                            _onLoginSuccess('teacher', isOffline: true);
                           },
                         ),
                         ElevatedButton.icon(
@@ -566,7 +607,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           label: const Text("Super Admin"),
                           onPressed: () {
                             ApiService.loginDemo('SUPER_ADMIN');
-                            _onLoginSuccess('admin');
+                            _onLoginSuccess('admin', isOffline: true);
                           },
                         ),
                       ],

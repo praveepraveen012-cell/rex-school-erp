@@ -188,24 +188,31 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(4),
+              width: 32,
+              height: 32,
+              padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
+                shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
+                    color: Colors.black.withOpacity(0.2),
                     blurRadius: 4,
                   ),
                 ],
               ),
-              child: Image.asset(
-                'assets/rex_emblem.png',
-                height: 24,
-                errorBuilder: (ctx, err, stack) => const Icon(
-                  Icons.school,
-                  color: Color(0xFF1E3A8A),
-                  size: 20,
+              child: Center(
+                child: Image.asset(
+                  'assets/rex_emblem.png',
+                  height: 24,
+                  width: 24,
+                  fit: BoxFit.contain,
+                  alignment: Alignment.center,
+                  errorBuilder: (ctx, err, stack) => const Icon(
+                    Icons.school,
+                    color: Color(0xFF1E3A8A),
+                    size: 20,
+                  ),
                 ),
               ),
             ),
@@ -325,78 +332,88 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       drawer: Drawer(
         child: Column(
           children: [
-            // Drawer Header
+            // Drawer Header - Center Aligned Regal Presentation
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 50, 20, 24),
+              padding: const EdgeInsets.fromLTRB(20, 48, 20, 20),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Color(0xFF0F172A), Color(0xFF1E3A8A)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                 ),
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 8,
-                            ),
-                          ],
-                        ),
+                  Center(
+                    child: Container(
+                      width: 68,
+                      height: 68,
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.25),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                          BoxShadow(
+                            color: const Color(0xFFF59E0B).withOpacity(0.35),
+                            blurRadius: 14,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: Center(
                         child: Image.asset(
                           'assets/rex_emblem.png',
-                          height: 38,
+                          height: 50,
+                          width: 50,
+                          fit: BoxFit.contain,
+                          alignment: Alignment.center,
                           errorBuilder: (ctx, err, stack) => const Icon(
                             Icons.school,
-                            size: 32,
+                            size: 38,
                             color: Color(0xFF1E3A8A),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 14),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Rex Management App",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            Text(
-                              "Christus Rex • Ootacamund",
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+                  const Text(
+                    "Rex Management App",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    "Christus Rex Senior Secondary School",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFFF59E0B),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Text(
-                      "CBSE Affiliation #1930000 • Code 55120",
+                      "CBSE Affiliation #1930000 • Ootacamund",
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Color(0xFFFCD34D),
                         fontSize: 10,
