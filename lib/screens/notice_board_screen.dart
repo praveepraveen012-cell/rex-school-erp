@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../services/app_state.dart';
+import '../services/app_permissions.dart';
+import '../services/api_service.dart';
 
 class NoticeBoardScreen extends StatefulWidget {
   const NoticeBoardScreen({super.key});
@@ -15,6 +17,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final permissions = AppPermissions.of(ApiService.activeRole);
     final categories = ['All', 'Event', 'Finance', 'Holiday', 'Academic'];
     final filtered = _selectedCategory == 'All'
         ? appState.notices
@@ -23,14 +26,16 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4FF),
       appBar: AppBar(
-        title: const Text('Notice Board'),
+        title: const Text('Notice Board & Circulars'),
         backgroundColor: const Color(0xFF1A2980),
         foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _showAddNotice(context, appState),
-          ),
+          if (permissions.canPublishNotices)
+            IconButton(
+              icon: const Icon(Icons.add),
+              tooltip: 'Post Circular',
+              onPressed: () => _showAddNotice(context, appState),
+            ),
         ],
       ),
       body: Column(

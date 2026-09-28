@@ -1,23 +1,315 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/erp_provider.dart';
+import '../services/api_service.dart';
+import '../services/app_permissions.dart';
+import '../models/student.dart';
+import 'leave_screen.dart';
 
-class AttendanceScreen extends StatelessWidget {
+class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
+
+  @override
+  State<AttendanceScreen> createState() => _AttendanceScreenState();
+}
+
+class _AttendanceScreenState extends State<AttendanceScreen> {
+  DateTime _selectedDate = DateTime.now();
 
   @override
   Widget build(BuildContext context) {
     final erp = Provider.of<ERPProvider>(context);
+    final role = ApiService.activeRole;
+    final permissions = AppPermissions.of(role);
+
+    // 1. Parent Access: Strictly isolated to linked child attendance
+    if (permissions.isParent) {
+      return _buildParentAttendanceView(context, erp);
+    }
+
+    // 2. Teacher & Super Admin Access: Class Attendance Register
+    return _buildTeacherAttendanceView(context, erp);
+  }
+
+  // ==========================================================================
+  // PARENT ATTENDANCE VIEW (Child Only)
+  // ==========================================================================
+  Widget _buildParentAttendanceView(BuildContext context, ERPProvider erp) {
+    final children = erp.linkedParentStudents.isNotEmpty
+        ? erp.linkedParentStudents
+        : [erp.currentStudent];
+    final selectedStudent = erp.currentStudent;
+
+    final rate = selectedStudent.attendanceRate;
+    final totalDays = 84;
+    final presentDays = (totalDays * (rate / 100)).round();
+    final absentDays = totalDays - presentDays;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        title: const Text(
+          "Ward Attendance Record",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        backgroundColor: const Color(0xFF0F172A),
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Multi-Child Selector
+            if (children.length > 1) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.family_restroom, color: Color(0xFF1E3A8A), size: 20),
+                    const SizedBox(width: 8),
+                    const Text("Select Child:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: children.map((c) {
+                            final isSel = c.id == selectedStudent.id;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: ChoiceChip(
+                                label: Text("${c.name} (${c.grade}-${c.section})"),
+                                selected: isSel,
+                                selectedColor: const Color(0xFF1E3A8A),
+                                labelStyle: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                                  color: isSel ? Colors.white : const Color(0xFF1E293B),
+                                ),
+                                onSelected: (_) {
+                                  erp.selectStudent(c);
+                                  setState(() {});
+                                },
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+            ],
+
+            // Child Attendance Summary Banner
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1E3A8A), Color(0xFF0284C7)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF1E3A8A).withOpacity(0.25),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          "WARD: ${selectedStudent.name.toUpperCase()}",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          "CBSE Safe (${rate}%)",
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    "$rate%",
+                    style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    "Cumulative Attendance Rate for Academic Year 2026-27",
+                    style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildAttStat("Working Days", "$totalDays"),
+                        Container(width: 1, height: 26, color: Colors.white24),
+                        _buildAttStat("Days Present", "$presentDays"),
+                        Container(width: 1, height: 26, color: Colors.white24),
+                        _buildAttStat("Days Absent", "$absentDays"),
+                        Container(width: 1, height: 26, color: Colors.white24),
+                        _buildAttStat("Today's Status", selectedStudent.todayStatus),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Leave Desk Action
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaveScreen()));
+                    },
+                    icon: const Icon(Icons.event_busy, size: 18),
+                    label: const Text("Apply Online Leave for Ward"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E3A8A),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 22),
+
+            // Recent Daily Logs for this child
+            const Text(
+              "Recent RFID Scan & Attendance Logs",
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+            ),
+            const SizedBox(height: 10),
+
+            _buildDayLog("26 September 2026", selectedStudent.todayStatus, selectedStudent.checkInTime, true),
+            _buildDayLog("25 September 2026", "Present", "08:04 AM (RFID Gate A)", true),
+            _buildDayLog("24 September 2026", "Present", "08:10 AM (RFID Gate A)", true),
+            _buildDayLog("23 September 2026", "Present", "08:02 AM (RFID Gate A)", true),
+            _buildDayLog("22 September 2026", "Present", "08:08 AM (RFID Gate A)", true),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAttStat(String label, String value) {
+    return Column(
+      children: [
+        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+        const SizedBox(height: 2),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
+  Widget _buildDayLog(String date, String status, String time, bool isPresent) {
+    final isAbs = status == 'Absent';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(
+                isAbs ? Icons.cancel : Icons.check_circle,
+                color: isAbs ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(date, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A))),
+                  Text(time, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                ],
+              ),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: isAbs ? const Color(0xFFFEE2E2) : const Color(0xFFDCFCE7),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              status,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: isAbs ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================================================
+  // TEACHER / SUPER ADMIN ATTENDANCE REGISTER
+  // ==========================================================================
+  Widget _buildTeacherAttendanceView(BuildContext context, ERPProvider erp) {
     final students = erp.students;
 
-    final presentCount =
-        students.where((s) => s.todayStatus == 'Present').length;
-    final absentCount =
-        students.where((s) => s.todayStatus == 'Absent').length;
+    final presentCount = students.where((s) => s.todayStatus == 'Present').length;
+    final absentCount = students.where((s) => s.todayStatus == 'Absent').length;
     final lateCount = students.where((s) => s.todayStatus == 'Late').length;
     final total = students.length;
-    final attendancePct =
-        total > 0 ? ((presentCount + lateCount) / total * 100).toStringAsFixed(1) : "0.0";
+    final attendancePct = total > 0 ? ((presentCount + lateCount) / total * 100).toStringAsFixed(1) : "0.0";
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -26,13 +318,13 @@ class AttendanceScreen extends StatelessWidget {
           "Smart Attendance Register",
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF0F172A),
+        backgroundColor: const Color(0xFF0F172A),
+        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
             tooltip: "Mark All Present",
-            icon: const Icon(Icons.done_all, color: Color(0xFF16A34A)),
+            icon: const Icon(Icons.done_all, color: Color(0xFF10B981)),
             onPressed: () {
               for (final s in students) {
                 erp.updateStudentAttendance(s.id, 'Present');
@@ -48,11 +340,11 @@ class AttendanceScreen extends StatelessWidget {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Class Selector & Date Banner
+            // Class & Date Header
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -68,393 +360,117 @@ class AttendanceScreen extends StatelessWidget {
                       color: const Color(0xFFEFF6FF),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(
-                      Icons.calendar_today_outlined,
-                      color: Color(0xFF2563EB),
-                      size: 20,
-                    ),
+                    child: const Icon(Icons.calendar_today_outlined, color: Color(0xFF2563EB), size: 20),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          "Grade 10 - Section A (CBSE)",
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF0F172A),
-                          ),
-                        ),
-                        Text(
-                          "Academic Year 2026-2027 • Today's Roll Call",
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
+                      children: [
+                        Text("Grade 10 - Section A (CBSE)", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                        Text("Faculty Attendance Roll Call", style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
                       ],
                     ),
                   ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      "RFID Sync: Active",
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF334155),
-                      ),
-                    ),
-                  ),
+                  Text("$attendancePct%", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF16A34A))),
                 ],
               ),
             ),
 
             const SizedBox(height: 16),
 
-            // Statistics Summary Cards
+            // Metric Counters
             Row(
               children: [
-                Expanded(
-                  child: _buildStatChip(
-                    "Total",
-                    total.toString(),
-                    const Color(0xFF0F172A),
-                    const Color(0xFFF1F5F9),
-                  ),
-                ),
+                _buildCountChip("Present", presentCount, const Color(0xFF10B981), const Color(0xFFDCFCE7)),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: _buildStatChip(
-                    "Present",
-                    presentCount.toString(),
-                    const Color(0xFF16A34A),
-                    const Color(0xFFDCFCE7),
-                  ),
-                ),
+                _buildCountChip("Absent", absentCount, const Color(0xFFDC2626), const Color(0xFFFEE2E2)),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: _buildStatChip(
-                    "Late",
-                    lateCount.toString(),
-                    const Color(0xFFD97706),
-                    const Color(0xFFFEF3C7),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildStatChip(
-                    "Absent",
-                    absentCount.toString(),
-                    const Color(0xFFDC2626),
-                    const Color(0xFFFEE2E2),
-                  ),
-                ),
+                _buildCountChip("Late", lateCount, const Color(0xFFF59E0B), const Color(0xFFFEF3C7)),
               ],
             ),
 
-            const SizedBox(height: 20),
-
-            // Students Register List
-            const Text(
-              "Student Roll Register",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF0F172A),
-              ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              "Tap status chips below to update student attendance status in real time",
-              style: TextStyle(
-                fontSize: 12,
-                color: Color(0xFF64748B),
-              ),
-            ),
-
             const SizedBox(height: 16),
+
+            const Text("Student Roll Call", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+            const SizedBox(height: 10),
 
             ...students.map((student) {
-              final isPresent = student.todayStatus == 'Present';
-              final isLate = student.todayStatus == 'Late';
-              final isAbsent = student.todayStatus == 'Absent';
-
               return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: isAbsent
-                        ? const Color(0xFFFCA5A5)
-                        : const Color(0xFFE2E8F0),
-                    width: isAbsent ? 1.5 : 1.0,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundColor: const Color(0xFF1E3A8A),
-                          child: Text(
-                            student.rollNo.split('-').last,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                student.name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                  color: Color(0xFF0F172A),
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                "Roll: ${student.rollNo} • Parent: ${student.parentName} (${student.parentPhone})",
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF64748B),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
-                          ),
-                          child: Text(
-                            "${student.attendanceRate}% avg",
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF2563EB),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 12),
-                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                    const SizedBox(height: 12),
-
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.access_time_rounded,
-                          size: 14,
-                          color: isAbsent
-                              ? const Color(0xFFDC2626)
-                              : const Color(0xFF64748B),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          student.checkInTime,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isAbsent
-                                ? const Color(0xFFDC2626)
-                                : const Color(0xFF64748B),
-                            fontWeight: isAbsent ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        ),
-                        const Spacer(),
-                        // Status action buttons
-                        _buildStatusButton(
-                          label: "Present",
-                          isSelected: isPresent,
-                          color: const Color(0xFF16A34A),
-                          bgColor: const Color(0xFFDCFCE7),
-                          onTap: () =>
-                              erp.updateStudentAttendance(student.id, 'Present'),
-                        ),
-                        const SizedBox(width: 6),
-                        _buildStatusButton(
-                          label: "Late",
-                          isSelected: isLate,
-                          color: const Color(0xFFD97706),
-                          bgColor: const Color(0xFFFEF3C7),
-                          onTap: () =>
-                              erp.updateStudentAttendance(student.id, 'Late'),
-                        ),
-                        const SizedBox(width: 6),
-                        _buildStatusButton(
-                          label: "Absent",
-                          isSelected: isAbsent,
-                          color: const Color(0xFFDC2626),
-                          bgColor: const Color(0xFFFEE2E2),
-                          onTap: () =>
-                              erp.updateStudentAttendance(student.id, 'Absent'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            }),
-
-            const SizedBox(height: 16),
-
-            // Absent Parent SMS Trigger Card
-            if (absentCount > 0)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFEF2F2),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFFECACA)),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.warning_amber_rounded,
-                      color: Color(0xFFDC2626),
-                      size: 24,
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: const Color(0xFF1E3A8A).withOpacity(0.08),
+                      child: Text(student.rollNo.split('-').last, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            "$absentCount Student(s) Unaccounted For",
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: Color(0xFF991B1B),
-                            ),
-                          ),
-                          const Text(
-                            "Tap to dispatch instant SMS & WhatsApp notification to parent phones.",
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Color(0xFFB91C1C),
-                            ),
-                          ),
+                          Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          Text(student.checkInTime, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
                         ],
                       ),
                     ),
-                    ElevatedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              "Automated SMS dispatched to guardians of $absentCount absent student(s).",
+                    Row(
+                      children: ['Present', 'Absent', 'Late'].map((status) {
+                        final isSel = student.todayStatus == status;
+                        final color = status == 'Present'
+                            ? const Color(0xFF16A34A)
+                            : (status == 'Absent' ? const Color(0xFFDC2626) : const Color(0xFFD97706));
+                        return Padding(
+                          padding: const EdgeInsets.only(left: 4),
+                          child: InkWell(
+                            onTap: () => erp.updateStudentAttendance(student.id, status),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isSel ? color : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                status[0],
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                  color: isSel ? Colors.white : Colors.grey.shade600,
+                                ),
+                              ),
                             ),
-                            backgroundColor: const Color(0xFFDC2626),
                           ),
                         );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFDC2626),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                      ),
-                      child: const Text("Dispatch SMS", style: TextStyle(fontSize: 11)),
+                      }).toList(),
                     ),
                   ],
                 ),
-              ),
-
-            const SizedBox(height: 32),
+              );
+            }),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatChip(
-      String label, String value, Color textColor, Color bgColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: textColor.withOpacity(0.8),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusButton({
-    required String label,
-    required bool isSelected,
-    required Color color,
-    required Color bgColor,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
+  Widget _buildCountChip(String label, int count, Color color, Color bg) {
+    return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? color : bgColor,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            color: isSelected ? Colors.white : color,
-          ),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
+        child: Column(
+          children: [
+            Text("$count", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
+            Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600)),
+          ],
         ),
       ),
     );

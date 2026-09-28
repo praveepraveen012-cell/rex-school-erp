@@ -167,7 +167,7 @@ class ParentPortalScreen extends StatelessWidget {
                 childAspectRatio: isWide ? 1.6 : 1.3,
                 children: [
                   MetricCard(
-                    title: "Aarav's Attendance",
+                    title: "${aarav.name.split(' ').first}'s Attendance",
                     value: "${aarav.attendanceRate}%",
                     subtitle: "Present Today (07:48 AM)",
                     icon: const Icon(Icons.check_circle, color: Color(0xFF10B981)),

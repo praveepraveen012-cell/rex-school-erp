@@ -111,6 +111,10 @@ class _ParentDashboardViewState extends State<ParentDashboardView> {
                     trailing: isActive ? const Icon(Icons.check_circle, color: Color(0xFF2563EB)) : null,
                     onTap: () {
                       ApiService.switchChild(s);
+                      try {
+                        final erp = Provider.of<ERPProvider>(context, listen: false);
+                        erp.selectStudentById(s['id'] as int);
+                      } catch (_) {}
                       Navigator.pop(ctx);
                       _loadParentData();
                       ScaffoldMessenger.of(context).showSnackBar(

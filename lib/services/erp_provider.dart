@@ -71,11 +71,27 @@ class ERPProvider extends ChangeNotifier {
       address: "24, Church Hill Road, Ootacamund",
       attendanceRate: 96,
       feesTotal: 54000,
-      feesPaid: 54000,
+      feesPaid: 36000,
     );
 
     _students = [
       _currentStudent,
+      Student(
+        id: "STU-1007",
+        name: "Ananya Sharma",
+        rollNo: "8B-07",
+        grade: "8",
+        section: "B",
+        dob: "2013-11-12",
+        gender: "Female",
+        bloodGroup: "O+",
+        parentName: "Rajesh Sharma",
+        parentPhone: "+91 98765 43210",
+        address: "24, Church Hill Road, Ootacamund",
+        attendanceRate: 98,
+        feesTotal: 48000,
+        feesPaid: 48000,
+      ),
       Student(
         id: "STU-1002",
         name: "Ananya Iyer",
@@ -374,6 +390,22 @@ class ERPProvider extends ChangeNotifier {
   // Role Switcher
   void switchRole(String role) {
     _currentRole = role;
+    notifyListeners();
+  }
+
+  // Multi-Child Linked Students for Parents
+  List<Student> get linkedParentStudents => _students
+      .where((s) => s.parentName == _currentStudent.parentName || s.parentPhone == _currentStudent.parentPhone)
+      .toList();
+
+  void selectStudent(Student student) {
+    _currentStudent = student;
+    notifyListeners();
+  }
+
+  void selectStudentById(String id) {
+    final s = _students.firstWhere((st) => st.id == id, orElse: () => _currentStudent);
+    _currentStudent = s;
     notifyListeners();
   }
 
