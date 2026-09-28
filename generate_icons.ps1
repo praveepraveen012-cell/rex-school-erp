@@ -11,13 +11,13 @@ if (-not (Test-Path $logoPath)) {
 $src = [System.Drawing.Image]::FromFile($logoPath)
 Write-Host "Loaded logo: $($src.Width) x $($src.Height)"
 
-# Sizes for Android launcher icons:
-# mdpi: 48x48
-# hdpi: 72x72
-# xhdpi: 96x96
-# xxhdpi: 144x144
-# xxxhdpi: 192x192
-# 512x512 for high-res store icon
+# Exact bounding box of the Christus Rex emblem in assets/logo.png:
+# X: 12 to 122 (W = 111), Y: 5 to 71 (H = 67)
+$srcX = 12
+$srcY = 5
+$emblemW = 111
+$emblemH = 67
+
 $sizes = @{
     "mipmap-mdpi" = 48
     "mipmap-hdpi" = 72
@@ -26,11 +26,6 @@ $sizes = @{
     "mipmap-xxxhdpi" = 192
     "store" = 512
 }
-
-# The emblem is on the left: x=0 to 100, y=0 to 76
-# Let's crop emblem with nice white circular or rounded background
-$emblemW = 100
-$emblemH = 76
 
 foreach ($name in $sizes.Keys) {
     $dim = $sizes[$name]
@@ -41,23 +36,22 @@ foreach ($name in $sizes.Keys) {
     $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
     $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
 
-    # Draw a gold circular ring
-    $borderW = [float][Math]::Max(1.0, [double]$dim / 32.0)
+    # Draw an elegant gold circular ring with safety margin
+    $borderW = [float][Math]::Max(1.5, [double]$dim / 28.0)
     $pen = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(218, 165, 32)), $borderW
-    $g.DrawEllipse($pen, [float]2.0, [float]2.0, [float]($dim - 4), [float]($dim - 4))
+    $inset = [float]($borderW / 2.0 + 1.0)
+    $g.DrawEllipse($pen, $inset, $inset, [float]($dim - ($inset * 2)), [float]($dim - ($inset * 2)))
     $pen.Dispose()
 
-    # Padding inside the circle
-    $pad = [int]($dim * 0.12)
-    $drawW = $dim - ($pad * 2)
+    # Scale emblem to 62% of the icon diameter so it stays safely within circular/squircle masks
+    $drawW = [int]($dim * 0.62)
     $drawH = [int]($drawW * ($emblemH / $emblemW))
-    $drawX = $pad
+    $drawX = [int](($dim - $drawW) / 2)
     $drawY = [int](($dim - $drawH) / 2)
 
-    $srcRect = New-Object System.Drawing.Rectangle 0, 0, $emblemW, $emblemH
+    $srcRect = New-Object System.Drawing.Rectangle $srcX, $srcY, $emblemW, $emblemH
     $destRect = New-Object System.Drawing.Rectangle $drawX, $drawY, $drawW, $drawH
     $g.DrawImage($src, $destRect, $srcRect, [System.Drawing.GraphicsUnit]::Pixel)
-
     $g.Dispose()
 
     if ($name -eq "store") {
@@ -77,32 +71,30 @@ foreach ($name in $sizes.Keys) {
     Write-Host "Created: $outPath ($dim x $dim)"
 }
 
-# Also create a cropped rex_emblem.png with white background for use in app
-$embBmp = New-Object System.Drawing.Bitmap 200, 200
+# Also generate a crisp, centered assets/rex_emblem.png (256x256) for in-app crests
+$embDim = 256
+$embBmp = New-Object System.Drawing.Bitmap $embDim, $embDim
 $gEmb = [System.Drawing.Graphics]::FromImage($embBmp)
-$gEmb.Clear([System.Drawing.Color]::White)
+$gEmb.Clear([System.Drawing.Color]::Transparent)
 $gEmb.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
 $gEmb.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
-$pad = 15
-$drawW = 200 - ($pad * 2)
+$gEmb.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+
+# Size emblem to 75% of canvas with equal padding on all sides
+$drawW = [int]($embDim * 0.75)
 $drawH = [int]($drawW * ($emblemH / $emblemW))
-$drawY = [int]((200 - $drawH) / 2)
-$srcRect = New-Object System.Drawing.Rectangle 0, 0, $emblemW, $emblemH
-$destRect = New-Object System.Drawing.Rectangle $pad, $drawY, $drawW, $drawH
+$drawX = [int](($embDim - $drawW) / 2)
+$drawY = [int](($embDim - $drawH) / 2)
+
+$srcRect = New-Object System.Drawing.Rectangle $srcX, $srcY, $emblemW, $emblemH
+$destRect = New-Object System.Drawing.Rectangle $drawX, $drawY, $drawW, $drawH
 $gEmb.DrawImage($src, $destRect, $srcRect, [System.Drawing.GraphicsUnit]::Pixel)
 $gEmb.Dispose()
-$embBmp.Save((Join-Path $baseDir "assets\rex_emblem.png"), [System.Drawing.Imaging.ImageFormat]::Png)
-$embBmp.Dispose()
 
-# Also create a high-contrast white-background banner: assets/rex_banner_white.png
-$bannerBmp = New-Object System.Drawing.Bitmap ($src.Width + 24), ($src.Height + 16)
-$gBan = [System.Drawing.Graphics]::FromImage($bannerBmp)
-$gBan.Clear([System.Drawing.Color]::White)
-$gBan.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-$gBan.DrawImage($src, 12, 8, $src.Width, $src.Height)
-$gBan.Dispose()
-$bannerBmp.Save((Join-Path $baseDir "assets\rex_banner_white.png"), [System.Drawing.Imaging.ImageFormat]::Png)
-$bannerBmp.Dispose()
+$emblemOut = Join-Path $baseDir "assets\rex_emblem.png"
+$embBmp.Save($emblemOut, [System.Drawing.Imaging.ImageFormat]::Png)
+$embBmp.Dispose()
+Write-Host "Created centered: $emblemOut"
 
 $src.Dispose()
-Write-Host "All icons generated successfully!"
+Write-Host "All icons & emblem generated with full visibility and zero clipping!"

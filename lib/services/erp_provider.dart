@@ -6,7 +6,7 @@ import '../models/leave_request.dart';
 import 'audio_service.dart';
 
 class ERPProvider extends ChangeNotifier {
-  String _currentRole = 'admin'; // 'admin', 'teacher', 'parent'
+  String _currentRole = 'parent'; // 'parent', 'teacher', 'admin'
   String _tripMode = 'morning'; // 'morning', 'evening'
   String _selectedRouteId = 'route-02';
   double _busProgress = 0.68; // 68% along route (at 480m mark)

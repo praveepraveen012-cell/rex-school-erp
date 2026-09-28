@@ -52,14 +52,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   String? _lastRole;
 
   String _resolveRole(ERPProvider erp) {
+    // 1. ApiService is the primary authority based on user authentication
     final apiRole = ApiService.activeRole.toUpperCase();
-    if (apiRole == 'SUPER_ADMIN' || erp.currentRole.toLowerCase() == 'admin') {
-      return 'SUPER_ADMIN';
-    } else if (apiRole == 'TEACHER' || erp.currentRole.toLowerCase() == 'teacher') {
-      return 'TEACHER';
-    } else {
-      return 'PARENT';
-    }
+    if (apiRole == 'SUPER_ADMIN') return 'SUPER_ADMIN';
+    if (apiRole == 'TEACHER') return 'TEACHER';
+    if (apiRole == 'PARENT') return 'PARENT';
+
+    // 2. Fallback to ERPProvider state
+    final erpRole = erp.currentRole.toLowerCase();
+    if (erpRole == 'teacher') return 'TEACHER';
+    if (erpRole == 'parent') return 'PARENT';
+    if (erpRole == 'admin' || erpRole == 'super_admin') return 'SUPER_ADMIN';
+
+    return 'PARENT';
   }
 
   List<Widget> _getPagesForRole(String role) {
@@ -787,7 +792,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       title: "School Calendar & Events",
                       onTap: () {
                         Navigator.pop(context);
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => const CalendarScreen()));
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const SchoolCalendarScreen()));
                       },
                     ),
                   ],
