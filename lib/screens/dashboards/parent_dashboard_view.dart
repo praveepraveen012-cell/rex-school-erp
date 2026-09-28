@@ -113,7 +113,7 @@ class _ParentDashboardViewState extends State<ParentDashboardView> {
                       ApiService.switchChild(s);
                       try {
                         final erp = Provider.of<ERPProvider>(context, listen: false);
-                        erp.selectStudentById(s['id'] as int);
+                        erp.selectStudentById(s['first_name'] ?? s['id']);
                       } catch (_) {}
                       Navigator.pop(ctx);
                       _loadParentData();

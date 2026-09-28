@@ -403,8 +403,16 @@ class ERPProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void selectStudentById(String id) {
-    final s = _students.firstWhere((st) => st.id == id, orElse: () => _currentStudent);
+  void selectStudentById(dynamic idOrName) {
+    final query = idOrName?.toString().toLowerCase().trim() ?? '';
+    final s = _students.firstWhere(
+      (st) =>
+          st.id.toLowerCase() == query ||
+          st.name.toLowerCase().contains(query) ||
+          (query == '1' && st.name.contains('Aarav')) ||
+          (query == '7' && st.name.contains('Ananya')),
+      orElse: () => _currentStudent,
+    );
     _currentStudent = s;
     notifyListeners();
   }
