@@ -140,6 +140,102 @@ class ERPProvider extends ChangeNotifier {
         feesTotal: 54000,
         feesPaid: 54000,
       ),
+      Student(
+        id: "STU-1005",
+        name: "David Paul",
+        rollNo: "10A-05",
+        grade: "10",
+        section: "A",
+        dob: "2011-09-18",
+        gender: "Male",
+        bloodGroup: "B+",
+        parentName: "Thomas Paul",
+        parentPhone: "+91 94422 33445",
+        address: "14, Commercial Road, Ooty",
+        attendanceRate: 95,
+        feesTotal: 54000,
+        feesPaid: 54000,
+      ),
+      Student(
+        id: "STU-1006",
+        name: "Fatima Sheikh",
+        rollNo: "10A-06",
+        grade: "10",
+        section: "A",
+        dob: "2011-04-22",
+        gender: "Female",
+        bloodGroup: "A+",
+        parentName: "Farooq Sheikh",
+        parentPhone: "+91 94433 66778",
+        address: "9, Upper Bazar, Ooty",
+        attendanceRate: 92,
+        feesTotal: 54000,
+        feesPaid: 36000,
+      ),
+      Student(
+        id: "STU-1008",
+        name: "Karthik Raja",
+        rollNo: "8B-08",
+        grade: "8",
+        section: "B",
+        dob: "2013-06-14",
+        gender: "Male",
+        bloodGroup: "B+",
+        parentName: "Raja Sundaram",
+        parentPhone: "+91 94411 22334",
+        address: "21, Fingerpost, Ooty",
+        attendanceRate: 96,
+        feesTotal: 48000,
+        feesPaid: 48000,
+      ),
+      Student(
+        id: "STU-1009",
+        name: "Sneha Reddy",
+        rollNo: "8B-09",
+        grade: "8",
+        section: "B",
+        dob: "2013-10-05",
+        gender: "Female",
+        bloodGroup: "O+",
+        parentName: "Prasad Reddy",
+        parentPhone: "+91 94488 99001",
+        address: "7, Botanical Garden Road, Ooty",
+        attendanceRate: 93,
+        feesTotal: 48000,
+        feesPaid: 32000,
+      ),
+      Student(
+        id: "STU-1010",
+        name: "Vikram Singh",
+        rollNo: "9A-01",
+        grade: "9",
+        section: "A",
+        dob: "2012-07-19",
+        gender: "Male",
+        bloodGroup: "AB+",
+        parentName: "Balraj Singh",
+        parentPhone: "+91 94477 88990",
+        address: "3, Stone House, Ooty",
+        attendanceRate: 97,
+        feesTotal: 51000,
+        feesPaid: 51000,
+      ),
+      Student(
+        id: "STU-1011",
+        name: "Divya Nair",
+        rollNo: "9A-02",
+        grade: "9",
+        section: "A",
+        dob: "2012-02-11",
+        gender: "Female",
+        bloodGroup: "A+",
+        parentName: "Mohan Nair",
+        parentPhone: "+91 94466 55443",
+        address: "18, Davisdale, Ooty",
+        attendanceRate: 90,
+        feesTotal: 51000,
+        feesPaid: 34000,
+      ),
     ];
 
     _busRoutes = [
@@ -476,7 +572,117 @@ class ERPProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Attendance handlers
+  // Multi-Date & Multi-Class Isolated Attendance Ledger
+  // Key format: "${date}_${grade}_${section}" -> { studentId: status }
+  final Map<String, Map<String, String>> _attendanceLedger = {};
+
+  List<Student> getStudentsByClass(String grade, String section) {
+    return _students.where((s) => s.grade == grade && s.section == section).toList();
+  }
+
+  String getStudentAttendanceStatus({
+    required String studentId,
+    required String date,
+    required String grade,
+    required String section,
+  }) {
+    final key = "${date}_${grade}_${section}";
+    if (_attendanceLedger.containsKey(key) && _attendanceLedger[key]!.containsKey(studentId)) {
+      return _attendanceLedger[key]![studentId]!;
+    }
+    final s = _students.firstWhere((st) => st.id == studentId, orElse: () => _currentStudent);
+    return s.todayStatus;
+  }
+
+  void setStudentAttendanceStatus({
+    required String studentId,
+    required String date,
+    required String grade,
+    required String section,
+    required String status,
+  }) {
+    final key = "${date}_${grade}_${section}";
+    _attendanceLedger.putIfAbsent(key, () => {});
+    _attendanceLedger[key]![studentId] = status;
+
+    final now = DateTime.now();
+    final todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+    if (date == todayStr) {
+      try {
+        final s = _students.firstWhere((st) => st.id == studentId);
+        s.todayStatus = status;
+        if (status == 'Present') {
+          s.checkInTime = '08:05 AM (RFID Gate A)';
+        } else if (status == 'Late') {
+          s.checkInTime = '08:25 AM (Late Gate B)';
+        } else {
+          s.checkInTime = 'Absent (Not Scanned)';
+        }
+      } catch (_) {}
+    }
+    notifyListeners();
+  }
+
+  void markAllPresentForDate({
+    required String date,
+    required String grade,
+    required String section,
+  }) {
+    final key = "${date}_${grade}_${section}";
+    _attendanceLedger.putIfAbsent(key, () => {});
+    final classStudents = getStudentsByClass(grade, section);
+    for (final s in classStudents) {
+      _attendanceLedger[key]![s.id] = 'Present';
+      s.todayStatus = 'Present';
+      s.checkInTime = '08:05 AM (Marked Present)';
+    }
+    _activityLog.insert(0, "All students in Grade $grade-$section marked Present for $date");
+    notifyListeners();
+  }
+
+  Future<Map<String, dynamic>> saveAttendanceRegister({
+    required String date,
+    required String grade,
+    required String section,
+  }) async {
+    final classStudents = getStudentsByClass(grade, section);
+    final key = "${date}_${grade}_${section}";
+    _attendanceLedger.putIfAbsent(key, () => {});
+
+    final records = <Map<String, dynamic>>[];
+    for (final s in classStudents) {
+      final status = getStudentAttendanceStatus(
+        studentId: s.id,
+        date: date,
+        grade: grade,
+        section: section,
+      );
+      _attendanceLedger[key]![s.id] = status;
+
+      final numericId = int.tryParse(s.id.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+      records.add({
+        'studentId': numericId,
+        'status': status.toLowerCase(),
+        'remarks': '',
+      });
+    }
+
+    final classId = grade == '8' ? 1 : (grade == '9' ? 2 : 3);
+    final sectionId = (grade == '8' && section == 'B') ? 2 : (grade == '9' ? 3 : 5);
+
+    final res = await ApiService.submitAttendance(
+      classId: classId,
+      sectionId: sectionId,
+      date: date,
+      records: records,
+    );
+
+    _activityLog.insert(0, "Attendance saved for Grade $grade-$section on $date");
+    notifyListeners();
+    return res;
+  }
+
+  // Attendance handlers (legacy backwards-compatibility)
   void updateStudentAttendance(String studentId, String status) {
     final student = _students.firstWhere((s) => s.id == studentId);
     student.todayStatus = status;

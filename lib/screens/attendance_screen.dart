@@ -15,6 +15,137 @@ class AttendanceScreen extends StatefulWidget {
 
 class _AttendanceScreenState extends State<AttendanceScreen> {
   DateTime _selectedDate = DateTime.now();
+  String _selectedGrade = "10";
+  String _selectedSection = "A";
+  bool _isSaving = false;
+
+  String get _dateKey =>
+      "${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}";
+
+  String _formatDate(DateTime d) {
+    const months = [
+      "", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ];
+    return "${d.day} ${months[d.month]} ${d.year}";
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2025, 1, 1),
+      lastDate: DateTime(2027, 12, 31),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF1E3A8A),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF0F172A),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
+
+  Future<void> _saveAttendance(ERPProvider erp) async {
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+    try {
+      await erp.saveAttendanceRegister(
+        date: _dateKey,
+        grade: _selectedGrade,
+        section: _selectedSection,
+      );
+      final students = erp.getStudentsByClass(_selectedGrade, _selectedSection);
+      int present = 0, absent = 0, late = 0;
+      for (final s in students) {
+        final st = erp.getStudentAttendanceStatus(
+          studentId: s.id,
+          date: _dateKey,
+          grade: _selectedGrade,
+          section: _selectedSection,
+        );
+        if (st == 'Present') present++;
+        else if (st == 'Absent') absent++;
+        else if (st == 'Late') late++;
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Attendance saved for Grade $_selectedGrade-$_selectedSection (${_formatDate(_selectedDate)}): $present Present, $absent Absent"),
+            backgroundColor: const Color(0xFF16A34A),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Failed to save attendance: $e"),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  void _confirmMarkAllPresent(ERPProvider erp) {
+    final students = erp.getStudentsByClass(_selectedGrade, _selectedSection);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.done_all, color: Color(0xFF10B981)),
+            SizedBox(width: 8),
+            Text("Mark All Present?"),
+          ],
+        ),
+        content: Text(
+          "Are you sure you want to mark all ${students.length} students in Grade $_selectedGrade-$_selectedSection as Present for ${_formatDate(_selectedDate)}?\n\nThis will overwrite individual selections for this date.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              erp.markAllPresentForDate(
+                date: _dateKey,
+                grade: _selectedGrade,
+                section: _selectedSection,
+              );
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("All ${students.length} students marked Present for ${_formatDate(_selectedDate)}"),
+                  backgroundColor: const Color(0xFF16A34A),
+                ),
+              );
+            },
+            child: const Text("Confirm All Present"),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -303,11 +434,29 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   // TEACHER / SUPER ADMIN ATTENDANCE REGISTER
   // ==========================================================================
   Widget _buildTeacherAttendanceView(BuildContext context, ERPProvider erp) {
-    final students = erp.students;
+    final students = erp.getStudentsByClass(_selectedGrade, _selectedSection);
 
-    final presentCount = students.where((s) => s.todayStatus == 'Present').length;
-    final absentCount = students.where((s) => s.todayStatus == 'Absent').length;
-    final lateCount = students.where((s) => s.todayStatus == 'Late').length;
+    final presentCount = students.where((s) => erp.getStudentAttendanceStatus(
+      studentId: s.id,
+      date: _dateKey,
+      grade: _selectedGrade,
+      section: _selectedSection,
+    ) == 'Present').length;
+
+    final absentCount = students.where((s) => erp.getStudentAttendanceStatus(
+      studentId: s.id,
+      date: _dateKey,
+      grade: _selectedGrade,
+      section: _selectedSection,
+    ) == 'Absent').length;
+
+    final lateCount = students.where((s) => erp.getStudentAttendanceStatus(
+      studentId: s.id,
+      date: _dateKey,
+      grade: _selectedGrade,
+      section: _selectedSection,
+    ) == 'Late').length;
+
     final total = students.length;
     final attendancePct = total > 0 ? ((presentCount + lateCount) / total * 100).toStringAsFixed(1) : "0.0";
 
@@ -322,20 +471,26 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-          IconButton(
-            tooltip: "Mark All Present",
-            icon: const Icon(Icons.done_all, color: Color(0xFF10B981)),
-            onPressed: () {
-              for (final s in students) {
-                erp.updateStudentAttendance(s.id, 'Present');
-              }
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("All students marked Present for today!"),
-                  backgroundColor: Color(0xFF16A34A),
-                ),
-              );
-            },
+          Padding(
+            padding: const EdgeInsets.only(right: 12, top: 8, bottom: 8),
+            child: ElevatedButton.icon(
+              icon: _isSaving
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    )
+                  : const Icon(Icons.save_rounded, size: 16),
+              label: Text(_isSaving ? "Saving..." : "Save"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2563EB),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                elevation: 0,
+              ),
+              onPressed: _isSaving ? null : () => _saveAttendance(erp),
+            ),
           ),
         ],
       ),
@@ -344,9 +499,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Class & Date Header
+            // 1. Date Selector Bar
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
@@ -354,32 +509,130 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ),
               child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEFF6FF),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left),
+                    tooltip: "Previous Day",
+                    onPressed: () {
+                      setState(() {
+                        _selectedDate = _selectedDate.subtract(const Duration(days: 1));
+                      });
+                    },
+                  ),
+                  Expanded(
+                    child: InkWell(
+                      onTap: _pickDate,
                       borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.calendar_today, size: 16, color: Color(0xFF1E3A8A)),
+                            const SizedBox(width: 8),
+                            Text(
+                              _formatDate(_selectedDate),
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A)),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    child: const Icon(Icons.calendar_today_outlined, color: Color(0xFF2563EB), size: 20),
                   ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Grade 10 - Section A (CBSE)", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                        Text("Faculty Attendance Roll Call", style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-                      ],
-                    ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right),
+                    tooltip: "Next Day",
+                    onPressed: () {
+                      setState(() {
+                        _selectedDate = _selectedDate.add(const Duration(days: 1));
+                      });
+                    },
                   ),
-                  Text("$attendancePct%", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF16A34A))),
                 ],
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // Metric Counters
+            // 2. Class & Section Selector
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Select Class & Section:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF475569))),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      // Grade selector
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFCBD5E1)),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedGrade,
+                              isExpanded: true,
+                              icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF1E3A8A)),
+                              items: const [
+                                DropdownMenuItem(value: "10", child: Text("Grade 10")),
+                                DropdownMenuItem(value: "9", child: Text("Grade 9")),
+                                DropdownMenuItem(value: "8", child: Text("Grade 8")),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) setState(() => _selectedGrade = val);
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      // Section selector
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFCBD5E1)),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedSection,
+                              isExpanded: true,
+                              icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF1E3A8A)),
+                              items: const [
+                                DropdownMenuItem(value: "A", child: Text("Section A")),
+                                DropdownMenuItem(value: "B", child: Text("Section B")),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) setState(() => _selectedSection = val);
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // 3. Metric Counters
             Row(
               children: [
                 _buildCountChip("Present", presentCount, const Color(0xFF10B981), const Color(0xFFDCFCE7)),
@@ -387,81 +640,174 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 _buildCountChip("Absent", absentCount, const Color(0xFFDC2626), const Color(0xFFFEE2E2)),
                 const SizedBox(width: 8),
                 _buildCountChip("Late", lateCount, const Color(0xFFF59E0B), const Color(0xFFFEF3C7)),
+                const SizedBox(width: 8),
+                _buildCountChip("Rate", "$attendancePct%", const Color(0xFF2563EB), const Color(0xFFEFF6FF)),
               ],
             ),
 
             const SizedBox(height: 16),
 
-            const Text("Student Roll Call", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+            // 4. Roster Header with Separate Mark All Present Action
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Student Roll Call ($total Students)",
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                ),
+                TextButton.icon(
+                  onPressed: () => _confirmMarkAllPresent(erp),
+                  icon: const Icon(Icons.done_all, size: 16, color: Color(0xFF10B981)),
+                  label: const Text(
+                    "Mark All Present",
+                    style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xFFECFDF5),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ],
+            ),
+
             const SizedBox(height: 10),
 
-            ...students.map((student) {
-              return Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(14),
+            if (students.isEmpty) ...[
+              Container(
+                padding: const EdgeInsets.all(32),
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
-                child: Row(
+                child: Column(
                   children: [
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundColor: const Color(0xFF1E3A8A).withOpacity(0.08),
-                      child: Text(student.rollNo.split('-').last, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                          Text(student.checkInTime, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-                        ],
-                      ),
-                    ),
-                    Row(
-                      children: ['Present', 'Absent', 'Late'].map((status) {
-                        final isSel = student.todayStatus == status;
-                        final color = status == 'Present'
-                            ? const Color(0xFF16A34A)
-                            : (status == 'Absent' ? const Color(0xFFDC2626) : const Color(0xFFD97706));
-                        return Padding(
-                          padding: const EdgeInsets.only(left: 4),
-                          child: InkWell(
-                            onTap: () => erp.updateStudentAttendance(student.id, status),
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: isSel ? color : Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                status[0],
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11,
-                                  color: isSel ? Colors.white : Colors.grey.shade600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                    const Icon(Icons.groups_outlined, size: 40, color: Colors.grey),
+                    const SizedBox(height: 10),
+                    Text(
+                      "No students registered in Grade $_selectedGrade-$_selectedSection",
+                      style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
-              );
-            }),
+              ),
+            ] else ...[
+              ...students.map((student) {
+                final status = erp.getStudentAttendanceStatus(
+                  studentId: student.id,
+                  date: _dateKey,
+                  grade: _selectedGrade,
+                  section: _selectedSection,
+                );
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundColor: const Color(0xFF1E3A8A).withOpacity(0.08),
+                        child: Text(
+                          student.rollNo.split('-').last,
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            Text("Parent: ${student.parentPhone}", style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                          ],
+                        ),
+                      ),
+                      Row(
+                        children: ['Present', 'Absent', 'Late'].map((stOption) {
+                          final isSel = status == stOption;
+                          final color = stOption == 'Present'
+                              ? const Color(0xFF16A34A)
+                              : (stOption == 'Absent' ? const Color(0xFFDC2626) : const Color(0xFFD97706));
+                          return Padding(
+                            padding: const EdgeInsets.only(left: 4),
+                            child: InkWell(
+                              onTap: () {
+                                erp.setStudentAttendanceStatus(
+                                  studentId: student.id,
+                                  date: _dateKey,
+                                  grade: _selectedGrade,
+                                  section: _selectedSection,
+                                  status: stOption,
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: isSel ? color : Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: isSel ? color : Colors.grey.shade300,
+                                    width: isSel ? 1.5 : 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  stOption[0],
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: isSel ? Colors.white : Colors.grey.shade700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+
+            const SizedBox(height: 16),
+
+            // Bottom Full-width Save Button
+            ElevatedButton.icon(
+              onPressed: _isSaving ? null : () => _saveAttendance(erp),
+              icon: _isSaving
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    )
+                  : const Icon(Icons.check_circle_outline),
+              label: Text(_isSaving
+                  ? "Saving Attendance..."
+                  : "Save Attendance Register for ${_formatDate(_selectedDate)}"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1E3A8A),
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 48),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCountChip(String label, int count, Color color, Color bg) {
+  Widget _buildCountChip(String label, dynamic count, Color color, Color bg) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8),
