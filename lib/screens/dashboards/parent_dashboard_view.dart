@@ -266,17 +266,35 @@ class _ParentDashboardViewState extends State<ParentDashboardView> {
     final rollNo = activeStudent['roll_no']?.toString() ?? "1";
     final studentId = (activeStudent['id'] as num?)?.toInt() ?? 1;
 
-    // Bus Tracking Data
-    final bus = _dashboardData?['busTracking'] ?? {
-      'busNumber': 'Bus #12',
-      'vehicleNo': 'TN-01-RX-9821',
-      'routeName': 'Central - Anna Nagar - School',
-      'driverName': 'Ramesh Kumar',
-      'driverMobile': '+91 98765 43210',
-      'status': 'On Route',
-      'etaMinutes': 12,
-      'lastUpdated': 'Just now'
-    };
+    // Bus Tracking Data (Child-specific assigned bus)
+    final isAnanya = childName.contains('Ananya') || (activeStudent['id'] == 7);
+    final bus = _dashboardData?['busTracking'] ?? (isAnanya
+        ? {
+            'busNumber': 'Bus #04',
+            'vehicleNo': 'TN-43-B-3104',
+            'routeName': 'Botanical Garden - Charing Cross - School',
+            'driverName': 'K. Prakash',
+            'driverMobile': '+91 98432 99014',
+            'status': 'Assigned Route',
+            'stopName': 'Botanical Garden Junction',
+            'pickupTime': '07:30 AM',
+            'dropTime': '04:00 PM',
+            'gpsStatus': 'NOT_CONFIGURED',
+            'lastUpdated': 'Assigned Route'
+          }
+        : {
+            'busNumber': 'Route 02',
+            'vehicleNo': 'TN-43-A-2015',
+            'routeName': 'Coonoor Road - Charring Cross - Rex SSS',
+            'driverName': 'Joseph Selvaraj',
+            'driverMobile': '+91 94432 10045',
+            'status': 'Assigned Route',
+            'stopName': 'Charring Cross Junction',
+            'pickupTime': '07:48 AM',
+            'dropTime': '04:05 PM',
+            'gpsStatus': 'NOT_CONFIGURED',
+            'lastUpdated': 'Assigned Route'
+          });
 
     // Fees Data
     final fees = _dashboardData?['feeSummary'] ?? {
@@ -501,20 +519,20 @@ class _ParentDashboardViewState extends State<ParentDashboardView> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("${bus['busNumber'] ?? 'Bus #12'} • Live Telematics", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                            Text("Driver: ${bus['driverName'] ?? 'Ramesh Kumar'} (${bus['driverMobile'] ?? '+91 98765 43210'})", style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                            Text("${bus['busNumber'] ?? 'Route 02'} (${bus['vehicleNo'] ?? 'TN-43-A-2015'})", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            Text("Driver: ${bus['driverName'] ?? 'Joseph Selvaraj'} (${bus['driverMobile'] ?? '+91 94432 10045'})", style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
                           ],
                         ),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFECFDF5),
+                          color: const Color(0xFFFEF3C7),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(
-                          bus['status'] ?? 'On Route',
-                          style: const TextStyle(color: Color(0xFF059669), fontSize: 11, fontWeight: FontWeight.bold),
+                        child: const Text(
+                          'GPS: Not Configured',
+                          style: TextStyle(color: Color(0xFFB45309), fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
@@ -532,9 +550,9 @@ class _ParentDashboardViewState extends State<ParentDashboardView> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text("Estimated Arrival at Stop", style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                            Text("Assigned Stop: ${bus['stopName'] ?? 'Designated Stop'}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
                             const SizedBox(height: 2),
-                            Text("${bus['etaMinutes'] ?? 12} Minutes", style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
+                            Text("Scheduled Pickup: ${bus['pickupTime'] ?? '07:45 AM'}", style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
                           ],
                         ),
                         ElevatedButton.icon(
@@ -544,11 +562,16 @@ class _ParentDashboardViewState extends State<ParentDashboardView> {
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
-                          icon: const Icon(Icons.location_on, color: Colors.white, size: 14),
-                          label: const Text("Track Bus", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                          icon: const Icon(Icons.directions_bus, color: Colors.white, size: 14),
+                          label: const Text("Bus Details", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "⚠️ Live satellite GPS tracking is not configured. Displaying assigned bus route and driver details.",
+                    style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontStyle: FontStyle.italic),
                   ),
                 ],
               ),

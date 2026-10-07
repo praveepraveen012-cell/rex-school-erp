@@ -22,10 +22,18 @@ class BusTrackerScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final erp = Provider.of<ERPProvider>(context);
     final permissions = AppPermissions.of(ApiService.activeRole);
-    final route = erp.selectedRoute;
-    final schedule = erp.currentSchedule;
-    final studentStop = erp.studentStop;
     final isParent = permissions.isParent;
+    final isAnanya = erp.currentStudent.name.contains('Ananya') || erp.currentStudent.id == 'STU-1007';
+    final assignedRouteId = isAnanya ? 'route-04' : 'route-02';
+    final route = isParent
+        ? erp.busRoutes.firstWhere((r) => r.id == assignedRouteId, orElse: () => erp.selectedRoute)
+        : erp.selectedRoute;
+    final schedule = route.getSchedule(erp.tripMode);
+    final stops = schedule.stops;
+    final studentStop = stops.firstWhere(
+      (s) => s.isStudentStop,
+      orElse: () => stops.length > 2 ? stops[2] : stops.first,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -159,6 +167,37 @@ class BusTrackerScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
             ],
+
+            // GPS Telematics Integration Status Card (Section 17 & 18)
+            Container(
+              padding: const EdgeInsets.all(14),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(Icons.satellite_alt_outlined, color: Color(0xFFD97706), size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        "GPS Provider: Not Configured",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF92400E)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    "Live satellite coordinates are disabled because no GPS/telematics provider API has been integrated. Real-time bus movement on map is paused to prevent displaying fictitious coordinates. Displaying registered route stops, schedule, and driver contact info.",
+                    style: TextStyle(fontSize: 12, color: Color(0xFFB45309), height: 1.35),
+                  ),
+                ],
+              ),
+            ),
 
             // Active Route Map Canvas Card
             Card(

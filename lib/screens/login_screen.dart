@@ -87,8 +87,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     final admission = _parentAdmissionCtrl.text.trim();
     final mobile = _parentMobileCtrl.text.trim();
 
-    if (admission.isEmpty || mobile.isEmpty) {
-      setState(() => _errorMessage = "Please enter Admission Number and Registered Mobile.");
+    if (mobile.isEmpty) {
+      setState(() => _errorMessage = "Please enter your registered mobile number.");
       return;
     }
 
@@ -97,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       _errorMessage = null;
     });
 
-    final res = await ApiService.loginParent(admission, mobile);
+    final res = await ApiService.loginParent(mobile, admission.isNotEmpty ? admission : null);
     setState(() => _isLoading = false);
 
     if (res['success'] == true) {
@@ -633,33 +633,33 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text(
-            "Parent / Student Login",
+            "Parent Account Login",
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
           ),
           const SizedBox(height: 4),
           const Text(
-            "Enter your child's Admission Number and your registered 10-digit mobile number.",
+            "Enter your registered mobile number to automatically access all your enrolled children under one account.",
             style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 16),
           TextField(
-            controller: _parentAdmissionCtrl,
+            controller: _parentMobileCtrl,
+            keyboardType: TextInputType.phone,
             decoration: const InputDecoration(
-              labelText: "Student Admission Number",
-              hintText: "e.g. REX-2024-001",
-              prefixIcon: Icon(Icons.badge, color: Color(0xFF1E3A8A)),
+              labelText: "Registered Parent Mobile Number",
+              hintText: "e.g. 9876543210 or +91 9876543210",
+              prefixIcon: Icon(Icons.phone_android, color: Color(0xFF1E3A8A)),
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             ),
           ),
           const SizedBox(height: 12),
           TextField(
-            controller: _parentMobileCtrl,
-            keyboardType: TextInputType.phone,
+            controller: _parentAdmissionCtrl,
             decoration: const InputDecoration(
-              labelText: "Parent Registered Mobile",
-              hintText: "e.g. 9876543210",
-              prefixIcon: Icon(Icons.phone_android, color: Color(0xFF1E3A8A)),
+              labelText: "Student Admission Number (Optional)",
+              hintText: "e.g. REX-2024-001 (Optional)",
+              prefixIcon: Icon(Icons.badge, color: Color(0xFF1E3A8A)),
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             ),
@@ -674,15 +674,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             ),
             child: _isLoading
                 ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text("Sign In as Parent", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                : const Text("Sign In to Parent Account", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
           ),
           const SizedBox(height: 12),
           Center(
             child: TextButton.icon(
               icon: const Icon(Icons.touch_app, size: 16),
-              label: const Text("Auto-fill Aarav Sharma (10-A)", style: TextStyle(fontSize: 12)),
+              label: const Text("Auto-fill Parent (+91 98765 43210 • 2 Wards)", style: TextStyle(fontSize: 12)),
               onPressed: () {
-                _parentAdmissionCtrl.text = "REX-2024-001";
+                _parentAdmissionCtrl.text = "";
                 _parentMobileCtrl.text = "9876543210";
               },
             ),

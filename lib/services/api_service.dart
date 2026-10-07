@@ -168,15 +168,31 @@ class ApiService {
     return {'success': false, 'error': 'Invalid OTP code. Enter 123456.'};
   }
 
-  static Future<Map<String, dynamic>> loginParent(String admissionNo, String parentMobile) async {
-    final cleanAdmission = admissionNo.trim().toUpperCase();
-    final cleanMobile = parentMobile.replaceAll(RegExp(r'[^0-9]'), '');
+  static Future<Map<String, dynamic>> loginParent(String mobileOrAdmission, [String? optionalMobile]) async {
+    String cleanAdmission = '';
+    String cleanMobile = '';
+
+    if (optionalMobile != null && optionalMobile.trim().isNotEmpty) {
+      cleanAdmission = mobileOrAdmission.trim().toUpperCase();
+      cleanMobile = optionalMobile.replaceAll(RegExp(r'[^0-9]'), '');
+    } else {
+      final digits = mobileOrAdmission.replaceAll(RegExp(r'[^0-9]'), '');
+      if (digits.length >= 10) {
+        cleanMobile = digits;
+      } else {
+        cleanAdmission = mobileOrAdmission.trim().toUpperCase();
+      }
+    }
 
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/parent/login'),
         headers: _headers(),
-        body: jsonEncode({'admissionNo': cleanAdmission, 'parentMobile': cleanMobile}),
+        body: jsonEncode({
+          'mobile': cleanMobile,
+          'parentMobile': cleanMobile,
+          if (cleanAdmission.isNotEmpty) 'admissionNo': cleanAdmission,
+        }),
       ).timeout(const Duration(milliseconds: 2800));
 
       final data = jsonDecode(response.body);
@@ -185,8 +201,17 @@ class ApiService {
         _authToken = data['token'];
         _currentUser = data['user'];
         _activeStudent = data['activeStudent'];
-        _linkedStudents = data['students'] ?? [];
-        return {'success': true, 'user': _currentUser, 'activeStudent': _activeStudent, 'students': _linkedStudents};
+        _linkedStudents = data['children'] ?? data['students'] ?? [];
+        if (_activeStudent == null && _linkedStudents.isNotEmpty) {
+          _activeStudent = _linkedStudents[0];
+        }
+        return {
+          'success': true,
+          'user': _currentUser,
+          'activeStudent': _activeStudent,
+          'students': _linkedStudents,
+          'children': _linkedStudents,
+        };
       } else if (response.statusCode == 400 || response.statusCode == 401 || response.statusCode == 403) {
         return {'success': false, 'error': data['error'] ?? 'Student record not found.'};
       }
@@ -194,18 +219,19 @@ class ApiService {
       debugPrint("Backend unreachable during parent login: $e");
     }
 
-    // Resilient fallback
-    if (cleanAdmission.isNotEmpty && cleanMobile.length >= 10) {
+    // Resilient fallback (Offline / Demo)
+    if (cleanMobile.length >= 10 || cleanAdmission.isNotEmpty) {
       loginDemo('PARENT');
       return {
         'success': true,
         'user': _currentUser,
         'activeStudent': _activeStudent,
         'students': _linkedStudents,
-        'isOffline': true
+        'children': _linkedStudents,
+        'isOffline': true,
       };
     }
-    return {'success': false, 'error': 'Please check Admission Number and 10-digit mobile number.'};
+    return {'success': false, 'error': 'Please enter a valid 10-digit registered mobile number.'};
   }
 
   // Demo / Offline Login matching SQLite seed records
@@ -530,28 +556,75 @@ class ApiService {
   // --------------------------------------------------------------------------
   // Transport & Live Bus Tracking Endpoints
   // --------------------------------------------------------------------------
+  static Future<Map<String, dynamic>> getGpsStatus() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/transport/gps-status'), headers: _headers()).timeout(const Duration(seconds: 3));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {
+        'success': true,
+        'gpsProvider': 'NOT_CONFIGURED',
+        'status': 'NOT_CONFIGURED',
+        'isConfigured': false,
+        'message': 'GPS tracking provider is not configured. Telematics integration is awaiting provider API credentials.',
+        'requiredDetails': [
+          '1. GPS tracking provider/API',
+          '2. API Base URL',
+          '3. API Key / Access Token',
+          '4. Vehicle/Bus identifier format',
+          '5. Location endpoint',
+          '6. Authentication method',
+          '7. Latitude/Longitude response format',
+          '8. Location update frequency',
+          '9. Driver/device tracking method',
+          '10. Map provider/API key if required'
+        ]
+      };
+    }
+  }
+
   static Future<Map<String, dynamic>> getLiveBus({int? studentId}) async {
     try {
       final query = studentId != null ? '?studentId=$studentId' : '';
       final response = await http.get(Uri.parse('$baseUrl/transport/my-bus$query'), headers: _headers()).timeout(const Duration(seconds: 4));
       return jsonDecode(response.body);
     } catch (e) {
+      final isAnanya = studentId == 7 || (_activeStudent?['first_name'] == 'Ananya');
       return {
         'success': true,
-        'tracking': {
-          'busNumber': 'Bus #12',
-          'vehicleNo': 'TN-01-RX-9821',
-          'routeName': 'Central - Anna Nagar - School',
-          'driverName': 'Ramesh Kumar',
-          'driverMobile': '+91 98765 43210',
-          'status': 'On Route',
-          'etaMinutes': 12,
-          'currentStop': 'Roundtana Junction, Stop 2',
-          'pickupStop': 'Anna Nagar West Circle',
-          'pickupTime': '07:45 AM',
-          'dropTime': '03:45 PM',
-          'lastUpdated': 'Just now'
-        }
+        'gpsProvider': 'NOT_CONFIGURED',
+        'isConfigured': false,
+        'status': 'GPS_NOT_CONFIGURED',
+        'message': 'GPS tracking provider is not configured. Telematics integration is awaiting provider API credentials.',
+        'tracking': isAnanya
+            ? {
+                'busNumber': 'Bus #04',
+                'vehicleNo': 'TN-43-B-3104',
+                'routeName': 'Botanical Garden - Charing Cross - School',
+                'driverName': 'K. Prakash',
+                'driverMobile': '+91 98432 99014',
+                'status': 'Assigned Route',
+                'pickupStop': 'Botanical Garden Junction',
+                'pickupTime': '07:30 AM',
+                'dropTime': '04:00 PM',
+                'etaMinutes': 15,
+                'lastUpdated': 'Route active (GPS not configured)',
+                'coordinates': null,
+              }
+            : {
+                'busNumber': 'Route 02',
+                'vehicleNo': 'TN-43-A-2015',
+                'routeName': 'Coonoor Road - Charring Cross - Rex SSS',
+                'driverName': 'Joseph Selvaraj',
+                'driverMobile': '+91 94432 10045',
+                'status': 'Assigned Route',
+                'pickupStop': 'Charring Cross Junction',
+                'pickupTime': '07:48 AM',
+                'dropTime': '04:05 PM',
+                'etaMinutes': 12,
+                'lastUpdated': 'Route active (GPS not configured)',
+                'coordinates': null,
+              }
       };
     }
   }

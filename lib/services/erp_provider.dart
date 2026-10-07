@@ -354,37 +354,37 @@ class ERPProvider extends ChangeNotifier {
       BusRoute(
         id: "route-04",
         routeNumber: "Route 04",
-        name: "Kotagiri Ghat Road - Ketti - Rex SSS",
-        vehicleNo: "TN-43-A-4492",
+        name: "Botanical Garden - Charing Cross - Rex SSS",
+        vehicleNo: "TN-43-B-3104",
         model: "Tata Starbus Ultra (42-Seater Fleet)",
         driverName: "K. Prakash",
         driverPhone: "+91 98432 99014",
         attendantName: "M. Revathi",
         attendantPhone: "+91 98432 99015",
         speed: 30,
-        status: "On Transit",
+        status: "Assigned Route",
         morning: BusSchedule(
           title: "Morning Pickup Schedule",
           departs: "07:10 AM",
           destination: "Rex SSS Campus Gate (08:15 AM)",
           currentStopIndex: 1,
           stops: [
-            BusStop(name: "Ketti Valley View", time: "07:10 AM", status: "passed", distanceMeters: 7400),
-            BusStop(name: "Dodabetta Crossing", time: "07:32 AM", status: "approaching", distanceMeters: 3100),
-            BusStop(name: "Snowdon Road Crossing", time: "07:50 AM", status: "pending", distanceMeters: 1200),
+            BusStop(name: "Botanical Garden Junction", time: "07:30 AM", status: "passed", distanceMeters: 6200, isStudentStop: true),
+            BusStop(name: "Commercial Road", time: "07:45 AM", status: "approaching", distanceMeters: 2800),
+            BusStop(name: "Charring Cross", time: "07:55 AM", status: "pending", distanceMeters: 1200),
             BusStop(name: "Rex SSS Main Gate", time: "08:15 AM", status: "pending", distanceMeters: 0),
           ],
         ),
         evening: BusSchedule(
           title: "Evening Drop-off Schedule",
           departs: "03:45 PM",
-          destination: "Ketti Valley View (04:50 PM)",
+          destination: "Botanical Garden Junction (04:30 PM)",
           currentStopIndex: 0,
           stops: [
             BusStop(name: "Rex SSS Main Gate", time: "03:45 PM", status: "passed", distanceMeters: 0),
-            BusStop(name: "Snowdon Road Crossing", time: "04:10 PM", status: "pending", distanceMeters: 1200),
-            BusStop(name: "Dodabetta Crossing", time: "04:28 PM", status: "pending", distanceMeters: 3100),
-            BusStop(name: "Ketti Valley View", time: "04:50 PM", status: "pending", distanceMeters: 7400),
+            BusStop(name: "Charring Cross", time: "04:05 PM", status: "pending", distanceMeters: 1200),
+            BusStop(name: "Commercial Road", time: "04:18 PM", status: "pending", distanceMeters: 2800),
+            BusStop(name: "Botanical Garden Junction", time: "04:30 PM", status: "pending", distanceMeters: 6200, isStudentStop: true),
           ],
         ),
       ),
@@ -511,6 +511,11 @@ class ERPProvider extends ChangeNotifier {
       orElse: () => _currentStudent,
     );
     _currentStudent = s;
+    if (s.name.contains('Ananya') || s.id == 'STU-1007' || query == '7') {
+      _selectedRouteId = 'route-04';
+    } else {
+      _selectedRouteId = 'route-02';
+    }
     notifyListeners();
   }
 
