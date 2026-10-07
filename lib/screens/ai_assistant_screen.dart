@@ -83,9 +83,14 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
 
     _scrollToBottom();
 
+    int? activeStudentId;
+    if (ApiService.activeRole == 'PARENT' && ApiService.activeStudent != null) {
+      activeStudentId = (ApiService.activeStudent!['id'] as num?)?.toInt();
+    }
+
     final res = await ApiService.askAiAssistant(
       query: queryText,
-      studentId: ApiService.activeRole == 'PARENT' ? ApiService.activeStudent?['id'] : null,
+      studentId: activeStudentId,
     );
 
     if (mounted) {
