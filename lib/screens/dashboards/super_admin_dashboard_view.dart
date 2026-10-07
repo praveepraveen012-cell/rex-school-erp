@@ -14,6 +14,7 @@ import '../notice_board_screen.dart';
 import '../message_center_screen.dart';
 import '../bus_tracker_screen.dart';
 import '../virtual_office_screen.dart';
+import '../homework_screen.dart';
 
 class SuperAdminDashboardView extends StatefulWidget {
   const SuperAdminDashboardView({super.key});
@@ -306,6 +307,12 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
                   color: const Color(0xFFDC2626),
                   label: "Broadcast SMS",
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MessageCenterScreen())),
+                ),
+                _buildActionTile(
+                  icon: Icons.assignment_outlined,
+                  color: const Color(0xFF0D9488),
+                  label: "Homework Desk",
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HomeworkScreen())),
                 ),
                 _buildActionTile(
                   icon: Icons.directions_bus,

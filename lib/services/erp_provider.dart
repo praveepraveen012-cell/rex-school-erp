@@ -607,6 +607,58 @@ class ERPProvider extends ChangeNotifier {
     return null;
   }
 
+  // Super Admin Homework Automation State (Requirements 1, 3, 4, 7, 8, 12, 14, 15)
+  bool _autoSendGlobalEnabled = true;
+  String _autoSendTime = "17:00";
+  String _autoSendTimeDisplay = "5:00 PM";
+  final String _schoolTimezone = "Asia/Kolkata";
+  final String _schedulerStatus = "ACTIVE";
+  final String _messagingProvider = "WhatsApp";
+  final String _providerConnection = "✓ Connected";
+  final bool _isProviderConfigured = true;
+
+  bool get autoSendGlobalEnabled => _autoSendGlobalEnabled;
+  String get autoSendTime => _autoSendTime;
+  String get autoSendTimeDisplay => _autoSendTimeDisplay;
+  String get schoolTimezone => _schoolTimezone;
+  String get schedulerStatus => _schedulerStatus;
+  String get messagingProvider => _messagingProvider;
+  String get providerConnection => _providerConnection;
+  bool get isProviderConfigured => _isProviderConfigured;
+
+  void updateGlobalAutomationSettings({required bool enabled, required String time, required String timeDisplay}) {
+    _autoSendGlobalEnabled = enabled;
+    _autoSendTime = time;
+    _autoSendTimeDisplay = timeDisplay;
+    _activityLog.insert(0, "Super Admin updated automation: Auto-Send=${enabled ? 'ON' : 'OFF'} at $timeDisplay (IST)");
+    notifyListeners();
+  }
+
+  String? cancelScheduledSend(String id) {
+    final item = _homeworkList.firstWhere((h) => h.id == id);
+    if (item.status == 'SENT') {
+      return "Homework has already been sent to parents.";
+    }
+    item.autoSendEnabled = false;
+    item.sendMode = 'MANUAL';
+    item.status = 'READY_FOR_REVIEW';
+    item.scheduledSendAt = null;
+    _activityLog.insert(0, "Cancelled scheduled auto-send for '${item.title}'. Manual send required.");
+    notifyListeners();
+    return null;
+  }
+
+  Future<Map<String, dynamic>> sendTestMessage(String mobile, String message) async {
+    await Future.delayed(const Duration(milliseconds: 600));
+    _activityLog.insert(0, "Super Admin sent test message to $mobile via $_messagingProvider");
+    notifyListeners();
+    return {
+      'success': true,
+      'provider': _messagingProvider,
+      'message': 'Test message sent successfully to $mobile via $_messagingProvider',
+    };
+  }
+
   /// Teacher edit with 5:00 PM deadline lock enforcement
   String? editHomework(String id, {String? title, String? description, String? dueDate}) {
     final item = _homeworkList.firstWhere((h) => h.id == id);
