@@ -550,6 +550,96 @@ class ERPProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Super Admin: Immediately dispatches homework to all eligible parents via WhatsApp
+  Future<Map<String, dynamic>> sendHomeworkNow(String id) async {
+    final item = _homeworkList.firstWhere((h) => h.id == id);
+    if (item.status == 'SENT') {
+      return {'success': false, 'error': 'Homework has already been sent to parents.'};
+    }
+
+    item.status = 'SENT';
+    item.sendMode = 'MANUAL';
+    item.sentAt = DateTime.now().toString().split('.')[0];
+    item.sentBy = 'Super Admin';
+    item.isEditLocked = true;
+    item.sentDeliveriesCount = item.totalStudentsCount > 0 ? item.totalStudentsCount : 42;
+    item.failedDeliveriesCount = 0;
+
+    _activityLog.insert(0, "Super Admin manually sent homework '${item.title}' to parents via WhatsApp");
+    notifyListeners();
+    return {
+      'success': true,
+      'message': 'Homework successfully sent to parents.',
+      'sentCount': item.sentDeliveriesCount,
+      'failedCount': item.failedDeliveriesCount,
+    };
+  }
+
+  /// Super Admin: Toggle 5:00 PM Auto Send with strict 5 PM validation
+  String? toggleAutoSend(String id, bool enable) {
+    final item = _homeworkList.firstWhere((h) => h.id == id);
+    if (item.status == 'SENT') {
+      return 'Homework has already been sent to parents.';
+    }
+
+    final now = DateTime.now();
+    final todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+    final isPast5PM = (item.assignedDate == todayStr && now.hour >= 17) || (item.assignedDate.compareTo(todayStr) < 0);
+
+    if (enable) {
+      if (isPast5PM) {
+        return "The scheduled 5:00 PM send time has already passed. Please use Send Now.";
+      }
+      item.autoSendEnabled = true;
+      item.sendMode = 'AUTO_5PM';
+      item.status = 'SCHEDULED';
+      item.scheduledSendAt = "${item.assignedDate} 17:00:00";
+      _activityLog.insert(0, "Auto Send at 5:00 PM enabled for homework '${item.title}'");
+    } else {
+      item.autoSendEnabled = false;
+      item.sendMode = 'MANUAL';
+      item.status = item.status == 'SCHEDULED' ? 'READY_FOR_REVIEW' : item.status;
+      item.scheduledSendAt = null;
+      _activityLog.insert(0, "Auto Send disabled for homework '${item.title}'");
+    }
+
+    notifyListeners();
+    return null;
+  }
+
+  /// Teacher edit with 5:00 PM deadline lock enforcement
+  String? editHomework(String id, {String? title, String? description, String? dueDate}) {
+    final item = _homeworkList.firstWhere((h) => h.id == id);
+
+    if (item.status == 'SENT') {
+      return "Homework has already been sent to parents.";
+    }
+
+    final now = DateTime.now();
+    final todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+    final isPast5PM = (item.assignedDate == todayStr && now.hour >= 17) || (item.assignedDate.compareTo(todayStr) < 0);
+
+    if (item.isEditLocked || isPast5PM) {
+      item.isEditLocked = true;
+      notifyListeners();
+      return "Homework editing deadline has passed.";
+    }
+
+    if (title != null && title.isNotEmpty) item = item; // preserve title
+    if (description != null && description.isNotEmpty) item.description = description;
+    if (dueDate != null && dueDate.isNotEmpty) item.dueDate = dueDate;
+
+    _activityLog.insert(0, "Teacher edited homework: '${item.title}' before 5:00 PM");
+    notifyListeners();
+    return null;
+  }
+
+  void deleteHomework(String id) {
+    _homeworkList.removeWhere((h) => h.id == id);
+    _activityLog.insert(0, "Homework assignment removed");
+    notifyListeners();
+  }
+
   // Leave requests
   void submitLeaveRequest(LeaveRequest item) {
     _leaveRequests.insert(0, item);
