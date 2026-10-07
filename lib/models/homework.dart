@@ -3,7 +3,7 @@ class HomeworkItem {
   final String subject;
   final String grade;
   final String teacher;
-  final String title;
+  String title;
   String description;
   final String assignedDate;
   String dueDate;

@@ -625,7 +625,7 @@ class ERPProvider extends ChangeNotifier {
       return "Homework editing deadline has passed.";
     }
 
-    if (title != null && title.isNotEmpty) item = item; // preserve title
+    if (title != null && title.isNotEmpty) item.title = title;
     if (description != null && description.isNotEmpty) item.description = description;
     if (dueDate != null && dueDate.isNotEmpty) item.dueDate = dueDate;
 
