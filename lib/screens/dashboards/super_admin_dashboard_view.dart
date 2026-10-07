@@ -15,6 +15,13 @@ import '../message_center_screen.dart';
 import '../bus_tracker_screen.dart';
 import '../virtual_office_screen.dart';
 import '../homework_screen.dart';
+import '../ai_assistant_screen.dart';
+import '../campus_operations_screen.dart';
+import '../hr_management_screen.dart';
+import '../management_intelligence_screen.dart';
+import '../question_bank_screen.dart';
+import '../admission_screen.dart';
+import '../settings_modules_screen.dart';
 
 class SuperAdminDashboardView extends StatefulWidget {
   const SuperAdminDashboardView({super.key});
@@ -261,13 +268,67 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
               ],
             ),
 
+            const SizedBox(height: 18),
+
+            // ================================================================
+            // GREXOTIX AI PRINCIPAL COPILOT BANNER
+            // ================================================================
+            InkWell(
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AiAssistantScreen())),
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(color: const Color(0xFF1E3A8A).withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4)),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.auto_awesome, color: Color(0xFFF59E0B), size: 24),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            "AI Principal Assistant",
+                            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            "Ask natural language questions on attendance, fee dues & school operations.",
+                            style: TextStyle(color: Colors.white70, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
+                  ],
+                ),
+              ),
+            ),
+
             const SizedBox(height: 22),
 
             // ================================================================
-            // QUICK ADMINISTRATIVE ACTIONS
+            // GREXOTIX OPERATING SYSTEM MODULES
             // ================================================================
             const Text(
-              "Quick Administrative Actions",
+              "Digital School Operating Modules",
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
             ),
             const SizedBox(height: 12),
@@ -285,22 +346,52 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceScreen())),
                 ),
                 _buildActionTile(
+                  icon: Icons.app_registration_rounded,
+                  color: const Color(0xFF0284C7),
+                  label: "Admissions",
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdmissionScreen())),
+                ),
+                _buildActionTile(
                   icon: Icons.account_balance,
                   color: const Color(0xFF059669),
                   label: "Fee Ledger",
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeesScreen())),
                 ),
                 _buildActionTile(
-                  icon: Icons.group_add,
-                  color: const Color(0xFF7C3AED),
-                  label: "All Students",
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SchoolStrengthScreen())),
+                  icon: Icons.assignment_outlined,
+                  color: const Color(0xFF0D9488),
+                  label: "Homework",
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HomeworkScreen())),
                 ),
                 _buildActionTile(
-                  icon: Icons.badge,
+                  icon: Icons.quiz_rounded,
+                  color: const Color(0xFF6366F1),
+                  label: "Question Bank",
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuestionBankScreen())),
+                ),
+                _buildActionTile(
+                  icon: Icons.corporate_fare_rounded,
                   color: const Color(0xFFD97706),
-                  label: "Teachers",
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffRoomScreen())),
+                  label: "Campus Hub",
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CampusOperationsScreen())),
+                ),
+                _buildActionTile(
+                  icon: Icons.badge_rounded,
+                  color: const Color(0xFF9333EA),
+                  label: "HR & Payroll",
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HrManagementScreen())),
+                ),
+                _buildActionTile(
+                  icon: Icons.insights_rounded,
+                  color: const Color(0xFFEA580C),
+                  label: "Intelligence",
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManagementIntelligenceScreen())),
+                ),
+                _buildActionTile(
+                  icon: Icons.directions_bus,
+                  color: const Color(0xFF2563EB),
+                  label: "GPS Fleet",
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BusTrackerScreen())),
                 ),
                 _buildActionTile(
                   icon: Icons.campaign,
@@ -309,16 +400,16 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MessageCenterScreen())),
                 ),
                 _buildActionTile(
-                  icon: Icons.assignment_outlined,
-                  color: const Color(0xFF0D9488),
-                  label: "Homework Desk",
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HomeworkScreen())),
+                  icon: Icons.group_add,
+                  color: const Color(0xFF7C3AED),
+                  label: "All Students",
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SchoolStrengthScreen())),
                 ),
                 _buildActionTile(
-                  icon: Icons.directions_bus,
-                  color: const Color(0xFF2563EB),
-                  label: "GPS Fleet",
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BusTrackerScreen())),
+                  icon: Icons.tune_rounded,
+                  color: const Color(0xFF475569),
+                  label: "Settings",
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsModulesScreen())),
                 ),
               ],
             ),

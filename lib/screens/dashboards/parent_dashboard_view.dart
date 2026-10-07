@@ -10,6 +10,8 @@ import '../homework_screen.dart';
 import '../attendance_screen.dart';
 import '../report_card_screen.dart';
 import '../notice_board_screen.dart';
+import '../ai_assistant_screen.dart';
+import '../campus_operations_screen.dart';
 
 class ParentDashboardView extends StatefulWidget {
   const ParentDashboardView({super.key});
@@ -489,6 +491,60 @@ class _ParentDashboardViewState extends State<ParentDashboardView> {
             const SizedBox(height: 18),
 
             // ================================================================
+            // AI PARENT COPILOT BANNER (Scoped to child)
+            // ================================================================
+            InkWell(
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AiAssistantScreen())),
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(color: const Color(0xFF1E3A8A).withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4)),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.auto_awesome, color: Color(0xFFF59E0B), size: 24),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "AI Parent Assistant for $childName",
+                            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            "Ask about attendance records, pending homework, fees due & exam schedule.",
+                            style: TextStyle(color: Colors.white70, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            // ================================================================
             // LIVE BUS GPS TRACKER CARD
             // ================================================================
             Container(
@@ -742,6 +798,7 @@ class _ParentDashboardViewState extends State<ParentDashboardView> {
               children: [
                 _buildShortcutTile(icon: Icons.assignment_outlined, label: "Report Card", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportCardScreen()))),
                 _buildShortcutTile(icon: Icons.calendar_today_outlined, label: "Attendance", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceScreen()))),
+                _buildShortcutTile(icon: Icons.badge_outlined, label: "ID Card", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CampusOperationsScreen(initialTab: 4)))),
                 _buildShortcutTile(icon: Icons.campaign_outlined, label: "Circulars", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NoticeBoardScreen()))),
                 _buildShortcutTile(icon: Icons.alt_route_outlined, label: "Bus Route", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BusTrackerScreen()))),
               ],

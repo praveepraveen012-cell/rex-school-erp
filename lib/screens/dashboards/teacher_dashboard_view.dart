@@ -11,6 +11,9 @@ import '../notice_board_screen.dart';
 import '../calendar_screen.dart';
 import '../class_diary_screen.dart';
 import '../staff_room_screen.dart';
+import '../ai_assistant_screen.dart';
+import '../question_bank_screen.dart';
+import '../hr_management_screen.dart';
 
 class TeacherDashboardView extends StatefulWidget {
   const TeacherDashboardView({super.key});
@@ -185,13 +188,67 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
               ),
             ),
 
+            const SizedBox(height: 18),
+
+            // ================================================================
+            // AI TEACHER COPILOT BANNER
+            // ================================================================
+            InkWell(
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AiAssistantScreen())),
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF047857), Color(0xFF10B981)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(color: const Color(0xFF047857).withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4)),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.auto_awesome, color: Color(0xFFFEF08A), size: 24),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            "AI Teacher Academic Assistant",
+                            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            "Analyze student submissions, identify struggling students & generate lesson ideas.",
+                            style: TextStyle(color: Colors.white70, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
+                  ],
+                ),
+              ),
+            ),
+
             const SizedBox(height: 20),
 
             // ================================================================
             // QUICK ACTION TILES FOR TEACHERS
             // ================================================================
             const Text(
-              "Teaching Actions & Registers",
+              "Teaching Actions & Academic Desks",
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
             ),
             const SizedBox(height: 12),
@@ -223,6 +280,30 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
               children: [
                 Expanded(
                   child: _buildTeacherActionCard(
+                    icon: Icons.quiz_rounded,
+                    color: const Color(0xFF6366F1),
+                    title: "Question Bank",
+                    subtitle: "CBSE test repository",
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuestionBankScreen())),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildTeacherActionCard(
+                    icon: Icons.beach_access_rounded,
+                    color: const Color(0xFFD97706),
+                    title: "Staff Leaves",
+                    subtitle: "Apply & balance records",
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HrManagementScreen(initialTab: 1))),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTeacherActionCard(
                     icon: Icons.edit_calendar,
                     color: const Color(0xFF7C3AED),
                     title: "Class Diary",
@@ -234,7 +315,7 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
                 Expanded(
                   child: _buildTeacherActionCard(
                     icon: Icons.campaign,
-                    color: const Color(0xFFD97706),
+                    color: const Color(0xFFDC2626),
                     title: "Notices & Events",
                     subtitle: "Campus announcements",
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NoticeBoardScreen())),

@@ -40,6 +40,14 @@ import 'calendar_screen.dart';
 import 'message_center_screen.dart';
 import 'feedback_screen.dart';
 
+// Grexotix Operating Modules
+import 'ai_assistant_screen.dart';
+import 'campus_operations_screen.dart';
+import 'hr_management_screen.dart';
+import 'management_intelligence_screen.dart';
+import 'question_bank_screen.dart';
+import 'settings_modules_screen.dart';
+
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
 
@@ -651,6 +659,63 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                         Navigator.push(context, MaterialPageRoute(builder: (_) => const MessageCenterScreen()));
                       },
                     ),
+                    _buildDrawerSectionHeader("GREXOTIX DIGITAL OPERATING SYSTEM"),
+                    _buildDrawerItem(
+                      icon: Icons.auto_awesome,
+                      title: "AI Principal Assistant",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const AiAssistantScreen()));
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.app_registration_rounded,
+                      title: "Admissions & Enrolment",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const AdmissionScreen()));
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.quiz_outlined,
+                      title: "Question Bank & Assessments",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const QuestionBankScreen()));
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.corporate_fare_outlined,
+                      title: "Campus Operations Hub",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const CampusOperationsScreen()));
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.badge_outlined,
+                      title: "HR, Attendance & Payroll",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const HrManagementScreen()));
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.insights_rounded,
+                      title: "Management Intelligence & KPIs",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const ManagementIntelligenceScreen()));
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.tune_rounded,
+                      title: "Modular Architecture & Campus",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsModulesScreen()));
+                      },
+                    ),
                   ] else if (role == 'TEACHER') ...[
                     _buildDrawerSectionHeader("FACULTY MODULES"),
                     _buildDrawerItem(
@@ -723,6 +788,30 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                         Navigator.push(context, MaterialPageRoute(builder: (_) => const AssignmentScreen()));
                       },
                     ),
+                    _buildDrawerItem(
+                      icon: Icons.auto_awesome,
+                      title: "AI Teacher Assistant",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const AiAssistantScreen()));
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.quiz_outlined,
+                      title: "Question Bank & Tests",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const QuestionBankScreen()));
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.beach_access_outlined,
+                      title: "Faculty Leave Application",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const HrManagementScreen(initialTab: 1)));
+                      },
+                    ),
                   ] else ...[
                     _buildDrawerSectionHeader("PARENT PORTAL"),
                     _buildDrawerItem(
@@ -793,6 +882,22 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       onTap: () {
                         Navigator.pop(context);
                         Navigator.push(context, MaterialPageRoute(builder: (_) => const SchoolCalendarScreen()));
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.auto_awesome,
+                      title: "AI Parent Assistant",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const AiAssistantScreen()));
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.qr_code_2_rounded,
+                      title: "Digital Student ID Card",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const CampusOperationsScreen(initialTab: 4)));
                       },
                     ),
                   ],

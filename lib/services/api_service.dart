@@ -646,4 +646,355 @@ class ApiService {
       return {'success': true, 'settings': {'school_name': 'Christus Rex Senior Secondary School'}};
     }
   }
+
+  // ==========================================================================
+  // GREXOTIX MODULE 01: ADMISSIONS & ENROLMENT
+  // ==========================================================================
+  static Future<Map<String, dynamic>> getAdmissions({String? status}) async {
+    try {
+      final url = status != null ? '$baseUrl/admissions?status=$status' : '$baseUrl/admissions';
+      final res = await http.get(Uri.parse(url), headers: _headers()).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'applications': [], 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> submitAdmission(Map<String, dynamic> data) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/admissions/apply'),
+        headers: _headers(),
+        body: jsonEncode(data),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> enrollAdmission(int id, int classId, int sectionId) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/admissions/$id/enroll'),
+        headers: _headers(),
+        body: jsonEncode({'classId': classId, 'sectionId': sectionId}),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  // ==========================================================================
+  // GREXOTIX MODULE 02: ACADEMIC (QUESTION BANK & EXAMS)
+  // ==========================================================================
+  static Future<Map<String, dynamic>> getQuestionBank({int? classId, String? subject}) async {
+    try {
+      final q = <String>[];
+      if (classId != null) q.add('classId=$classId');
+      if (subject != null) q.add('subject=${Uri.encodeComponent(subject)}');
+      final url = '$baseUrl/academic/questions${q.isNotEmpty ? '?${q.join('&')}' : ''}';
+      final res = await http.get(Uri.parse(url), headers: _headers()).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'questions': [], 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> createQuestion(Map<String, dynamic> data) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/academic/questions'),
+        headers: _headers(),
+        body: jsonEncode(data),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getExams({int? classId}) async {
+    try {
+      final url = classId != null ? '$baseUrl/academic/exams?classId=$classId' : '$baseUrl/academic/exams';
+      final res = await http.get(Uri.parse(url), headers: _headers()).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'exams': [], 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getExamResults(int examId, {int? studentId}) async {
+    try {
+      final url = studentId != null
+          ? '$baseUrl/academic/exams/$examId/results?studentId=$studentId'
+          : '$baseUrl/academic/exams/$examId/results';
+      final res = await http.get(Uri.parse(url), headers: _headers()).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'results': [], 'error': e.toString()};
+    }
+  }
+
+  // ==========================================================================
+  // GREXOTIX MODULE 05: CAMPUS OPERATIONS (LIBRARY, INVENTORY, VISITORS, HOSTEL, ID CARDS)
+  // ==========================================================================
+  static Future<Map<String, dynamic>> getLibraryBooks({String? search, String? category}) async {
+    try {
+      final q = <String>[];
+      if (search != null) q.add('search=${Uri.encodeComponent(search)}');
+      if (category != null) q.add('category=${Uri.encodeComponent(category)}');
+      final url = '$baseUrl/campus/library/books${q.isNotEmpty ? '?${q.join('&')}' : ''}';
+      final res = await http.get(Uri.parse(url), headers: _headers()).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'books': [], 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> issueLibraryBook(int bookId, int studentId, {int days = 14}) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/campus/library/issue'),
+        headers: _headers(),
+        body: jsonEncode({'bookId': bookId, 'studentId': studentId, 'days': days}),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> returnLibraryBook(int transactionId) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/campus/library/return'),
+        headers: _headers(),
+        body: jsonEncode({'transactionId': transactionId}),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getInventoryItems() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/campus/inventory/items'), headers: _headers()).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'items': [], 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getVisitors() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/campus/visitors'), headers: _headers()).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'visitors': [], 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> registerVisitor(Map<String, dynamic> data) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/campus/visitors/register'),
+        headers: _headers(),
+        body: jsonEncode(data),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> checkoutVisitor(int visitorId) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/campus/visitors/$visitorId/checkout'),
+        headers: _headers(),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getHostels() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/campus/hostel/buildings'), headers: _headers()).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'buildings': [], 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getStudentIdCard(int studentId) async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/campus/id-cards/student/$studentId'), headers: _headers()).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  // ==========================================================================
+  // GREXOTIX MODULE 06: HR & STAFF MANAGEMENT (ATTENDANCE, LEAVE, PAYROLL, EVALUATIONS)
+  // ==========================================================================
+  static Future<Map<String, dynamic>> getStaffAttendance({String? date}) async {
+    try {
+      final url = date != null ? '$baseUrl/hr/attendance?date=$date' : '$baseUrl/hr/attendance';
+      final res = await http.get(Uri.parse(url), headers: _headers()).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'attendance': [], 'stats': {}, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> markStaffAttendance(int staffId, String status, {String? notes}) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/hr/attendance'),
+        headers: _headers(),
+        body: jsonEncode({'staffId': staffId, 'status': status, 'notes': notes}),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getStaffLeaves() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/hr/leaves'), headers: _headers()).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'leaves': [], 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> reviewStaffLeave(int leaveId, String status, {String? remarks}) async {
+    try {
+      final res = await http.put(
+        Uri.parse('$baseUrl/hr/leaves/$leaveId'),
+        headers: _headers(),
+        body: jsonEncode({'status': status, 'remarks': remarks}),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getPayroll({String? month}) async {
+    try {
+      final url = month != null ? '$baseUrl/hr/payroll?month=$month' : '$baseUrl/hr/payroll';
+      final res = await http.get(Uri.parse(url), headers: _headers()).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'payroll': [], 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getStaffEvaluations() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/hr/evaluations'), headers: _headers()).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'evaluations': [], 'error': e.toString()};
+    }
+  }
+
+  // ==========================================================================
+  // GREXOTIX MODULE 07: MANAGEMENT INTELLIGENCE (KPIS, ANALYTICS, CUSTOM REPORTS)
+  // ==========================================================================
+  static Future<Map<String, dynamic>> getExecutiveKpis() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/intelligence/kpis'), headers: _headers()).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'kpis': {}, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getClassPerformanceAnalytics() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/intelligence/analytics/performance'), headers: _headers()).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'classes': [], 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> generateCustomReport(Map<String, dynamic> params) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/intelligence/reports/custom'),
+        headers: _headers(),
+        body: jsonEncode(params),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'report': {}, 'error': e.toString()};
+    }
+  }
+
+  // ==========================================================================
+  // GREXOTIX MODULE 08: AI SCHOOL INTELLIGENCE (PRINCIPAL, TEACHER, PARENT)
+  // ==========================================================================
+  static Future<Map<String, dynamic>> askAiAssistant({required String query, int? studentId}) async {
+    try {
+      final body = <String, dynamic>{'query': query};
+      if (studentId != null) {
+        body['studentId'] = studentId;
+      } else if (_activeStudent != null && activeRole == 'PARENT') {
+        body['studentId'] = _activeStudent!['id'];
+      }
+      final res = await http.post(
+        Uri.parse('$baseUrl/ai/query'),
+        headers: _headers(),
+        body: jsonEncode(body),
+      ).timeout(const Duration(seconds: 8));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'answer': 'Unable to connect to AI engine: ${e.toString()}', 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getAiAlerts() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/ai/alerts'), headers: _headers()).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'alerts': [], 'predictions': [], 'error': e.toString()};
+    }
+  }
+
+  // ==========================================================================
+  // GREXOTIX MODULE 10: CONFIGURABLE MODULE SETTINGS
+  // ==========================================================================
+  static Future<Map<String, dynamic>> getModuleSettings() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/settings/modules'), headers: _headers()).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'modules': {}, 'campuses': [], 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateModuleSettings(Map<String, dynamic> modules) async {
+    try {
+      final res = await http.put(
+        Uri.parse('$baseUrl/settings/modules'),
+        headers: _headers(),
+        body: jsonEncode(modules),
+      ).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
 }
+

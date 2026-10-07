@@ -17,8 +17,7 @@ yarn-error.log
 .gradle/
 local.properties
 
-# Local backend & DB
-backend/
+# Local DB
 database.sqlite*
 .env
 
