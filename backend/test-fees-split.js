@@ -11,8 +11,8 @@ async function runSplitPaymentAndBusTests() {
   try {
     // ------------------------------------------------------------------------
     // SETUP: Clear temporary test fee payments for student 1 & student 2 to have known balances
-    // ------------------------------------------------------------------------
     db.run(`DELETE FROM fee_payments WHERE student_id IN (1, 2, 3)`);
+    db.run(`DELETE FROM fee_structures WHERE id NOT IN (SELECT MIN(id) FROM fee_structures GROUP BY class_id)`);
 
     // 1. Authenticate Super Admin
     const adminLoginRes = await fetch(`${BASE}/auth/admin/login`, {
