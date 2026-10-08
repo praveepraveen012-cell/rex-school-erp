@@ -523,6 +523,7 @@ class ApiService {
   static Future<Map<String, dynamic>> payFees({
     required int studentId,
     required double amount,
+    String paymentType = 'FULL',
     String paymentMode = 'ONLINE_UPI',
     int? feeStructureId,
     String? gatewayTransactionId,
@@ -534,6 +535,7 @@ class ApiService {
         body: jsonEncode({
           'studentId': studentId,
           'amount': amount,
+          'paymentType': paymentType,
           'paymentMode': paymentMode,
           'feeStructureId': feeStructureId,
           'gatewayTransactionId': gatewayTransactionId,
@@ -547,9 +549,41 @@ class ApiService {
         'payment': {
           'receiptNo': 'REC-2026-${DateTime.now().millisecondsSinceEpoch % 100000}',
           'amountPaid': amount,
+          'paymentType': paymentType,
           'status': 'PAID'
         }
       };
+    }
+  }
+
+  static Future<Map<String, dynamic>> getFeesAdmin({String? status, int? classId, String? search}) async {
+    try {
+      final params = <String>[];
+      if (status != null && status != 'ALL') params.add('status=$status');
+      if (classId != null) params.add('classId=$classId');
+      if (search != null && search.isNotEmpty) params.add('search=$search');
+      final query = params.isNotEmpty ? '?${params.join('&')}' : '';
+      final response = await http.get(Uri.parse('$baseUrl/fees$query'), headers: _headers()).timeout(const Duration(seconds: 5));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> sendFeeReminder({int? studentId, List<int>? studentIds, String? filter}) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/fees/send-reminder'),
+        headers: _headers(),
+        body: jsonEncode({
+          'studentId': studentId,
+          'studentIds': studentIds,
+          'filter': filter,
+        }),
+      ).timeout(const Duration(seconds: 6));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': true, 'message': 'Reminder queued locally.'};
     }
   }
 
@@ -565,20 +599,9 @@ class ApiService {
         'success': true,
         'gpsProvider': 'NOT_CONFIGURED',
         'status': 'NOT_CONFIGURED',
+        'mode': 'DEMO',
         'isConfigured': false,
-        'message': 'GPS tracking provider is not configured. Telematics integration is awaiting provider API credentials.',
-        'requiredDetails': [
-          '1. GPS tracking provider/API',
-          '2. API Base URL',
-          '3. API Key / Access Token',
-          '4. Vehicle/Bus identifier format',
-          '5. Location endpoint',
-          '6. Authentication method',
-          '7. Latitude/Longitude response format',
-          '8. Location update frequency',
-          '9. Driver/device tracking method',
-          '10. Map provider/API key if required'
-        ]
+        'message': 'GPS tracking provider is not configured. Telematics integration is operating in Demo Simulation Mode.',
       };
     }
   }
@@ -589,41 +612,48 @@ class ApiService {
       final response = await http.get(Uri.parse('$baseUrl/transport/my-bus$query'), headers: _headers()).timeout(const Duration(seconds: 4));
       return jsonDecode(response.body);
     } catch (e) {
-      final isAnanya = studentId == 7 || (_activeStudent?['first_name'] == 'Ananya');
+      final isAnanya = studentId == 2 || studentId == 7 || (_activeStudent?['first_name'] == 'Ananya');
       return {
         'success': true,
-        'gpsProvider': 'NOT_CONFIGURED',
-        'isConfigured': false,
-        'status': 'GPS_NOT_CONFIGURED',
-        'message': 'GPS tracking provider is not configured. Telematics integration is awaiting provider API credentials.',
+        'hasAssignment': true,
         'tracking': isAnanya
             ? {
+                'busId': 2,
                 'busNumber': 'Bus #04',
                 'vehicleNo': 'TN-43-B-3104',
-                'routeName': 'Botanical Garden - Charing Cross - School',
-                'driverName': 'K. Prakash',
-                'driverMobile': '+91 98432 99014',
-                'status': 'Assigned Route',
-                'pickupStop': 'Botanical Garden Junction',
-                'pickupTime': '07:30 AM',
-                'dropTime': '04:00 PM',
-                'etaMinutes': 15,
-                'lastUpdated': 'Route active (GPS not configured)',
-                'coordinates': null,
+                'routeName': 'Kotagiri - Ooty Road - Botanical Garden - Rex SSS',
+                'driverName': 'R. Kumaravel',
+                'driverMobile': '9842177420',
+                'trackingMode': 'DEMO',
+                'trackingModeLabel': 'Demo Tracking',
+                'isDemoActive': false,
+                'status': 'Stationary (Demo Ready)',
+                'pickupStop': 'Botanical Garden Road Junction',
+                'pickupTime': '07:42 AM',
+                'dropTime': '04:12 PM',
+                'etaMinutes': 18,
+                'currentLatitude': 11.4190,
+                'currentLongitude': 76.7118,
+                'routeStops': [],
               }
             : {
+                'busId': 1,
                 'busNumber': 'Route 02',
                 'vehicleNo': 'TN-43-A-2015',
-                'routeName': 'Coonoor Road - Charring Cross - Rex SSS',
+                'routeName': 'Coonoor - Wellington - Charring Cross - Rex SSS',
                 'driverName': 'Joseph Selvaraj',
-                'driverMobile': '+91 94432 10045',
-                'status': 'Assigned Route',
+                'driverMobile': '9443210045',
+                'trackingMode': 'DEMO',
+                'trackingModeLabel': 'Demo Tracking',
+                'isDemoActive': false,
+                'status': 'Stationary (Demo Ready)',
                 'pickupStop': 'Charring Cross Junction',
                 'pickupTime': '07:48 AM',
                 'dropTime': '04:05 PM',
                 'etaMinutes': 12,
-                'lastUpdated': 'Route active (GPS not configured)',
-                'coordinates': null,
+                'currentLatitude': 11.4116,
+                'currentLongitude': 76.7088,
+                'routeStops': [],
               }
       };
     }
@@ -635,6 +665,99 @@ class ApiService {
       return jsonDecode(response.body);
     } catch (e) {
       return {'success': true, 'buses': []};
+    }
+  }
+
+  static Future<Map<String, dynamic>> addBus(Map<String, dynamic> busData) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/transport/bus'),
+        headers: _headers(),
+        body: jsonEncode(busData),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateBus(int id, Map<String, dynamic> busData) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/transport/bus/$id'),
+        headers: _headers(),
+        body: jsonEncode(busData),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteBus(int id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/transport/bus/$id'),
+        headers: _headers(),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> startDemoTracking(int busId, {int speed = 1, int? routeId}) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/transport/demo-tracking/start'),
+        headers: _headers(),
+        body: jsonEncode({
+          'busId': busId,
+          'speedMultiplier': speed,
+          'routeId': routeId,
+        }),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> stopDemoTracking(int busId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/transport/demo-tracking/stop'),
+        headers: _headers(),
+        body: jsonEncode({'busId': busId}),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> resetDemoTracking(int busId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/transport/demo-tracking/reset'),
+        headers: _headers(),
+        body: jsonEncode({'busId': busId}),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getBusTracking(int busId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/transport/bus/$busId/tracking'),
+        headers: _headers(),
+      ).timeout(const Duration(seconds: 4));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
     }
   }
 

@@ -359,9 +359,13 @@ CREATE TABLE IF NOT EXISTS fee_payments (
   amount_paid REAL NOT NULL,
   total_fees REAL NOT NULL,
   pending_amount REAL NOT NULL,
+  previously_paid REAL DEFAULT 0,
+  payment_type TEXT DEFAULT 'FULL' CHECK(payment_type IN ('FULL', 'SPLIT')),
   payment_mode TEXT DEFAULT 'ONLINE_UPI' CHECK(payment_mode IN ('CASH', 'CHEQUE', 'ONLINE_UPI', 'NET_BANKING', 'CARD')),
   transaction_ref TEXT UNIQUE,
   status TEXT DEFAULT 'PAID' CHECK(status IN ('PAID', 'PENDING', 'PARTIAL', 'FAILED')),
+  parent_id INTEGER REFERENCES parents(id),
+  created_by INTEGER REFERENCES users(id),
   paid_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   receipt_no TEXT UNIQUE NOT NULL
 );
@@ -373,7 +377,7 @@ CREATE TABLE IF NOT EXISTS buses (
   vehicle_no TEXT NOT NULL UNIQUE,
   model TEXT NOT NULL,
   capacity INTEGER DEFAULT 36,
-  status TEXT DEFAULT 'ACTIVE' CHECK(status IN ('ACTIVE', 'MAINTENANCE', 'IDLE')),
+  status TEXT DEFAULT 'ACTIVE' CHECK(status IN ('ACTIVE', 'MAINTENANCE', 'IDLE', 'INACTIVE')),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -404,7 +408,9 @@ CREATE TABLE IF NOT EXISTS bus_stops (
   stop_order INTEGER NOT NULL,
   pickup_time TEXT NOT NULL,
   drop_time TEXT NOT NULL,
-  distance_meters INTEGER DEFAULT 0
+  distance_meters INTEGER DEFAULT 0,
+  latitude REAL,
+  longitude REAL
 );
 
 CREATE TABLE IF NOT EXISTS student_transport_assignments (
@@ -414,6 +420,24 @@ CREATE TABLE IF NOT EXISTS student_transport_assignments (
   route_id INTEGER NOT NULL REFERENCES bus_routes(id) ON DELETE CASCADE,
   pickup_stop_id INTEGER REFERENCES bus_stops(id) ON DELETE SET NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS bus_tracking_state (
+  bus_id INTEGER PRIMARY KEY REFERENCES buses(id) ON DELETE CASCADE,
+  route_id INTEGER REFERENCES bus_routes(id) ON DELETE SET NULL,
+  driver_id INTEGER REFERENCES drivers(id) ON DELETE SET NULL,
+  tracking_mode TEXT DEFAULT 'DEMO' CHECK(tracking_mode IN ('DEMO', 'LIVE_GPS')),
+  is_active INTEGER DEFAULT 0,
+  speed_multiplier INTEGER DEFAULT 1,
+  current_stop_index INTEGER DEFAULT 0,
+  progress_percent REAL DEFAULT 0.0,
+  latitude REAL,
+  longitude REAL,
+  current_stop_name TEXT,
+  next_stop_name TEXT,
+  eta_minutes INTEGER DEFAULT 15,
+  status_text TEXT DEFAULT 'Stationary',
+  last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 25. HOMEWORK AUTOMATION SETTINGS

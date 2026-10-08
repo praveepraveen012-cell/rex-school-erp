@@ -823,6 +823,37 @@ const ERPStorage = {
     return routes.find(r => r.id === id) || routes[0];
   },
 
+  addBusRoute(routeData) {
+    const routes = this.getBusRoutes();
+    routes.push(routeData);
+    this.saveBusRoutes(routes);
+    this.addActivity(`New Bus registered: ${routeData.vehicleNo} (${routeData.name})`);
+    return routeData;
+  },
+
+  updateBusRoute(id, updatedData) {
+    const routes = this.getBusRoutes();
+    const idx = routes.findIndex(r => r.id === id);
+    if (idx !== -1) {
+      routes[idx] = { ...routes[idx], ...updatedData };
+      this.saveBusRoutes(routes);
+      this.addActivity(`Bus updated: ${routes[idx].vehicleNo}`);
+      return routes[idx];
+    }
+    return null;
+  },
+
+  deleteBusRoute(id) {
+    let routes = this.getBusRoutes();
+    const target = routes.find(r => r.id === id);
+    routes = routes.filter(r => r.id !== id);
+    this.saveBusRoutes(routes);
+    if (target) {
+      this.addActivity(`Bus deactivated: ${target.vehicleNo}`);
+    }
+    return true;
+  },
+
   // Digital Homework Diary Accessors
   getHomework() {
     const raw = localStorage.getItem(this.KEYS.HOMEWORK);

@@ -98,6 +98,19 @@ class BusMapPainter extends CustomPainter {
           ..strokeWidth = 2.5
           ..style = PaintingStyle.stroke,
       );
+    // 5. Draw Animated Moving Bus Marker
+    final metrics = path.computeMetrics().toList();
+    if (metrics.isNotEmpty) {
+      final metric = metrics.first;
+      final clampedProgress = progressPercent.clamp(0.0, 1.0);
+      final tangent = metric.getTangentForOffset(metric.length * clampedProgress);
+      if (tangent != null) {
+        final busPos = tangent.position;
+        // Outer pulsing radar pulse
+        canvas.drawCircle(busPos, 16.0, Paint()..color = const Color(0xFF2563EB).withOpacity(0.28));
+        canvas.drawCircle(busPos, 11.0, Paint()..color = const Color(0xFF1E3A8A));
+        canvas.drawCircle(busPos, 5.0, Paint()..color = const Color(0xFFFACC15)); // Golden bus core
+      }
     }
   }
 

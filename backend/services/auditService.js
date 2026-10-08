@@ -12,13 +12,39 @@ const auditService = {
    * @param {string|Object} [entry.details]
    * @param {string} [entry.ipAddress]
    */
-  log({ userId = null, userRole = 'SYSTEM', action, module, recordId = null, details = null, ipAddress = null }) {
+  log(arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
     try {
+      let userId = null;
+      let userRole = 'SYSTEM';
+      let action = 'GENERAL';
+      let module = 'general';
+      let recordId = null;
+      let details = null;
+      let ipAddress = '127.0.0.1';
+
+      if (typeof arg1 === 'object' && arg1 !== null) {
+        userId = arg1.userId || null;
+        userRole = arg1.userRole || 'SYSTEM';
+        action = arg1.action || 'GENERAL';
+        module = arg1.module || 'general';
+        recordId = arg1.recordId || null;
+        details = arg1.details || null;
+        ipAddress = arg1.ipAddress || '127.0.0.1';
+      } else {
+        userId = arg1 || null;
+        userRole = arg2 || 'SYSTEM';
+        action = arg3 || 'GENERAL';
+        module = arg4 || 'general';
+        recordId = arg5 || null;
+        details = arg6 || null;
+        ipAddress = arg7 || '127.0.0.1';
+      }
+
       const detailsStr = typeof details === 'object' && details !== null ? JSON.stringify(details) : (details || '');
       db.run(
         `INSERT INTO audit_logs (user_id, user_role, action, module, record_id, details, ip_address)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [userId, userRole, action, module, recordId ? String(recordId) : null, detailsStr, ipAddress || '127.0.0.1']
+        [userId, userRole, action, module, recordId ? String(recordId) : null, detailsStr, ipAddress]
       );
     } catch (err) {
       console.error('Failed to write audit log:', err.message);
