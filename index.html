@@ -90,6 +90,9 @@
             <span class="theme-icon">🌙</span>
           </button>
           <button type="button" class="btn btn-secondary" data-action="book-tour">Visit Campus</button>
+          <button type="button" id="home-nav-signin-btn" class="btn btn-outline" onclick="window.AuthUI.showLoginModal()" style="font-weight: 700;">
+            Sign In
+          </button>
           <button type="button" class="btn btn-primary" onclick="HomeModule.launchERP('dashboard')">
             Launch ERP Portal &rarr;
           </button>
@@ -1276,7 +1279,10 @@
             <span>📅 AY 2026-27</span>
           </div>
 
-          <!-- Role Perspective Switcher -->
+          <!-- Dynamic Authentication Badge & Role Switcher -->
+          <div id="rex-auth-badge" class="rex-auth-badge"></div>
+
+          <!-- Role Perspective Switcher (Synchronized with Authentication) -->
           <div class="role-simulator-wrapper">
             <span class="role-label">Role:</span>
             <select id="role-select-box" class="role-select">

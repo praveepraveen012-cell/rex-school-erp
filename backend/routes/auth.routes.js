@@ -31,6 +31,231 @@ function getRolePermissions(role) {
 }
 
 // ----------------------------------------------------------------------------
+// 0. UNIFIED LOGIN ENDPOINT (Supports Super Admin, Teacher, and Parent)
+// ----------------------------------------------------------------------------
+router.post(['/', '/login'], authLimiter, (req, res) => {
+  const identifier = req.body.email || req.body.username || req.body.emailOrUsername || req.body.mobile || req.body.mobile_number || req.body.parentMobile || req.body.phone;
+  const password = req.body.password;
+  const requestedRole = req.body.role;
+  const otp = req.body.otp;
+  const admissionNo = req.body.admissionNo;
+
+  if (!identifier) {
+    return res.status(400).json({
+      success: false,
+      error: 'Please provide email, username, or mobile number.'
+    });
+  }
+
+  const cleanIdent = String(identifier || '').trim();
+
+  // 1. If mobile number and OTP are provided -> Teacher OTP verification
+  if (otp && /^\d{10}$/.test(cleanIdent.replace(/\D/g, ''))) {
+    const cleanMobile = cleanIdent.replace(/\D/g, '').slice(-10);
+    const verification = otpService.verifyOtp(cleanMobile, otp);
+    if (!verification.valid) {
+      return res.status(400).json({
+        success: false,
+        error: verification.message || 'Invalid or expired OTP.'
+      });
+    }
+    const teacher = db.get(
+      `SELECT t.*, u.id as user_id, u.role, u.status as user_status
+       FROM teachers t
+       JOIN users u ON t.user_id = u.id
+       WHERE t.mobile = ?`,
+      [cleanMobile]
+    );
+    if (!teacher) {
+      return res.status(404).json({ success: false, error: 'Teacher account not found for this mobile number.' });
+    }
+    const token = createToken(teacher.user_id, 'TEACHER');
+    return res.json({
+      success: true,
+      message: 'Teacher authenticated successfully.',
+      token,
+      role: 'TEACHER',
+      permissions: getRolePermissions('TEACHER'),
+      user: { id: teacher.user_id, name: teacher.name, mobile: teacher.mobile, email: teacher.email, role: 'TEACHER' },
+      teacher
+    });
+  }
+
+  // 2. Query user from users table by username, email, or mobile
+  const user = db.get(
+    `SELECT * FROM users WHERE username = ? OR email = ? OR mobile = ?`,
+    [cleanIdent, cleanIdent, cleanIdent.replace(/\D/g, '').slice(-10) || cleanIdent]
+  );
+
+  // If password provided and user exists in users table
+  if (user && password) {
+    if (requestedRole && user.role !== requestedRole) {
+      return res.status(403).json({
+        success: false,
+        error: `Access denied. Account does not have ${requestedRole} privileges.`
+      });
+    }
+
+    if (user.status !== 'active') {
+      return res.status(403).json({
+        success: false,
+        error: 'Your account has been disabled. Please contact system support.'
+      });
+    }
+
+    const passwordMatch = bcrypt.compareSync(password, user.password_hash);
+    if (!passwordMatch) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid credentials. Incorrect password.'
+      });
+    }
+
+    db.run(`UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?`, [user.id]);
+    const token = createToken(user.id, user.role);
+
+    let teacher = null;
+    if (user.role === 'TEACHER') {
+      teacher = db.get(`SELECT * FROM teachers WHERE user_id = ?`, [user.id]);
+    }
+
+    let parent = null;
+    let linkedStudents = [];
+    if (user.role === 'PARENT') {
+      parent = db.get(`SELECT * FROM parents WHERE user_id = ?`, [user.id]);
+      if (parent) {
+        linkedStudents = db.query(
+          `SELECT s.*, c.name as class_name, sec.name as section_name
+           FROM students s
+           JOIN classes c ON s.class_id = c.id
+           JOIN sections sec ON s.section_id = sec.id
+           WHERE s.id IN (
+             SELECT student_id FROM student_parents WHERE parent_id = ?
+             UNION
+             SELECT id FROM students WHERE parent_id = ?
+           ) AND s.status = 'active'`,
+          [parent.id, parent.id]
+        );
+      }
+    }
+
+    auditService.log({
+      userId: user.id,
+      userRole: user.role,
+      action: 'LOGIN_SUCCESS',
+      module: 'AUTH',
+      details: `User ${user.username} (${user.role}) logged in successfully`,
+      ipAddress: req.ip
+    });
+
+    return res.json({
+      success: true,
+      message: 'Authenticated successfully.',
+      token,
+      role: user.role,
+      permissions: getRolePermissions(user.role),
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        name: teacher ? teacher.name : (parent ? parent.name : (user.username === 'admin' ? 'Rev. Fr. Principal' : user.username)),
+        role: user.role,
+        status: user.status
+      },
+      ...(teacher ? { teacher } : {}),
+      ...(parent ? { parent, students: linkedStudents, children: linkedStudents, activeStudent: linkedStudents[0] } : {})
+    });
+  }
+
+  // 3. Parent mobile authentication without password or with student admission number
+  const cleanMobile = cleanIdent.replace(/\D/g, '').slice(-10);
+  if (cleanMobile.length === 10) {
+    const parentRec = db.get(
+      `SELECT p.*, u.id as user_id, u.password_hash, u.status as user_status
+       FROM parents p
+       JOIN users u ON p.user_id = u.id
+       WHERE REPLACE(REPLACE(REPLACE(p.mobile, '+91', ''), ' ', ''), '-', '') LIKE '%' || ?
+          OR p.mobile = ?
+          OR p.mobile = ?`,
+      [cleanMobile, cleanMobile, `+91${cleanMobile}`]
+    );
+
+    if (parentRec) {
+      if (password && parentRec.password_hash) {
+        const passwordMatch = bcrypt.compareSync(password, parentRec.password_hash);
+        if (!passwordMatch) {
+          return res.status(401).json({ success: false, error: 'Invalid credentials. Incorrect password.' });
+        }
+      }
+
+      const linkedStudents = db.query(
+        `SELECT s.*, c.name as class_name, sec.name as section_name
+         FROM students s
+         JOIN classes c ON s.class_id = c.id
+         JOIN sections sec ON s.section_id = sec.id
+         WHERE s.id IN (
+           SELECT student_id FROM student_parents WHERE parent_id = ?
+           UNION
+           SELECT id FROM students WHERE parent_id = ?
+           UNION
+           SELECT id FROM students WHERE REPLACE(REPLACE(REPLACE(parent_mobile, '+91', ''), ' ', ''), '-', '') LIKE '%' || ?
+         ) AND s.status = 'active'`,
+        [parentRec.id, parentRec.id, cleanMobile]
+      );
+
+      if (linkedStudents.length > 0) {
+        let activeStudent = linkedStudents[0];
+        if (admissionNo) {
+          const matched = linkedStudents.find(s => s.admission_no.toUpperCase() === String(admissionNo).trim().toUpperCase());
+          if (matched) activeStudent = matched;
+        }
+
+        db.run(`UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?`, [parentRec.user_id]);
+        const token = createToken(parentRec.user_id, 'PARENT');
+
+        return res.json({
+          success: true,
+          message: 'Parent authenticated successfully.',
+          token,
+          role: 'PARENT',
+          permissions: getRolePermissions('PARENT'),
+          user: {
+            id: parentRec.user_id,
+            name: parentRec.name,
+            mobile: `+91${cleanMobile}`,
+            email: parentRec.email,
+            role: 'PARENT'
+          },
+          parent: { id: parentRec.id, name: parentRec.name, mobile: `+91${cleanMobile}`, email: parentRec.email },
+          activeStudent,
+          children: linkedStudents,
+          students: linkedStudents
+        });
+      }
+    }
+  }
+
+  if (!user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Invalid credentials. User not found.'
+    });
+  }
+
+  if (!password) {
+    return res.status(400).json({
+      success: false,
+      error: 'Please provide both email/username and password.'
+    });
+  }
+
+  return res.status(401).json({
+    success: false,
+    error: 'Invalid credentials. Incorrect password.'
+  });
+});
+
+// ----------------------------------------------------------------------------
 // 1. SUPER ADMIN LOGIN
 // ----------------------------------------------------------------------------
 router.post('/admin/login', authLimiter, (req, res) => {
@@ -111,6 +336,7 @@ router.post('/admin/login', authLimiter, (req, res) => {
       id: user.id,
       username: user.username,
       email: user.email,
+      name: 'Rev. Fr. Principal',
       role: user.role,
       status: user.status
     }
@@ -120,8 +346,8 @@ router.post('/admin/login', authLimiter, (req, res) => {
 // ----------------------------------------------------------------------------
 // 2. TEACHER AUTHENTICATION (Mobile Number + OTP)
 // ----------------------------------------------------------------------------
-router.post('/teacher/send-otp', otpLimiter, (req, res) => {
-  const { mobile } = req.body;
+router.post(['/teacher/send-otp', '/teacher/request-otp'], otpLimiter, (req, res) => {
+  const mobile = req.body.mobile || req.body.mobile_number;
 
   if (!mobile || !/^\d{10}$/.test(String(mobile).trim())) {
     return res.status(400).json({
@@ -165,8 +391,9 @@ router.post('/teacher/send-otp', otpLimiter, (req, res) => {
   });
 });
 
-router.post('/teacher/verify-otp', authLimiter, (req, res) => {
-  const { mobile, otp } = req.body;
+router.post(['/teacher/verify-otp', '/teacher/verify'], authLimiter, (req, res) => {
+  const mobile = req.body.mobile || req.body.mobile_number;
+  const otp = req.body.otp;
 
   if (!mobile || !otp) {
     return res.status(400).json({
@@ -258,7 +485,7 @@ function normalizeMobile(phone) {
 }
 
 router.post('/parent/login', authLimiter, (req, res) => {
-  const rawMobile = req.body.mobile || req.body.parentMobile;
+  const rawMobile = req.body.mobile || req.body.mobile_number || req.body.parentMobile || req.body.phone;
   const { admissionNo, password } = req.body;
 
   if (!rawMobile) {

@@ -498,6 +498,13 @@ const HomeModule = {
   },
 
   launchERP(targetView) {
+    if (window.RexApi && !window.RexApi.isAuthenticated()) {
+      if (window.AuthUI) {
+        window.AuthUI.showLoginModal();
+      }
+      return;
+    }
+
     document.body.classList.add('erp-active');
     const simulatorOverlay = document.getElementById('mobile-device-simulator');
     if (simulatorOverlay) {
@@ -510,8 +517,14 @@ const HomeModule = {
     if (appContainer) appContainer.style.display = 'flex';
 
     if (window.App && App.switchView) {
-      App.switchView(targetView || 'dashboard');
-      App.showToast("Welcome to Rex Senior Secondary School ERP Management Portal", "info");
+      let dest = targetView;
+      if (!dest || dest === 'dashboard') {
+        const role = window.RexApi ? window.RexApi.getRole() : null;
+        if (role === 'TEACHER') dest = 'attendance';
+        else if (role === 'PARENT') dest = 'parent-portal';
+        else dest = 'dashboard';
+      }
+      App.switchView(dest);
     }
   },
 

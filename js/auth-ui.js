@@ -1,99 +1,166 @@
 /**
  * Rex Senior Secondary School Management Platform
- * Role Selection & Authentication UI Module
+ * Complete Role Selection, Database Authentication & Session UI Module
  */
 
 (function (window) {
   const AuthUI = {
     currentTab: 'admin', // 'admin' | 'teacher' | 'parent'
+    teacherAuthMode: 'otp', // 'otp' | 'password'
+    parentAuthMode: 'mobile', // 'mobile' | 'password'
     teacherMobile: '',
 
     init() {
+      this.attachGlobalListeners();
       this.renderUserBadge();
-      // If not authenticated, open login modal
-      if (!window.RexApi.isAuthenticated()) {
-        setTimeout(() => this.showLoginModal(), 400);
+
+      // Check if user is not authenticated and is attempting to access a protected view
+      const hash = window.location.hash ? window.location.hash.replace('#', '') : '';
+      const isProtected = hash && hash !== 'home';
+
+      if (!window.RexApi.isAuthenticated() && isProtected) {
+        setTimeout(() => this.showLoginModal(), 300);
       }
     },
 
+    attachGlobalListeners() {
+      window.addEventListener('hashchange', () => {
+        const hash = window.location.hash ? window.location.hash.replace('#', '') : '';
+        if (hash && hash !== 'home' && !window.RexApi.isAuthenticated()) {
+          this.showLoginModal();
+          if (window.App) window.App.switchView('home');
+        }
+      });
+    },
+
     // ------------------------------------------------------------------------
-    // Top Bar User Status & Child Switcher
+    // Top Bar & Navbar User Status & Actions
     // ------------------------------------------------------------------------
     renderUserBadge() {
-      let badgeContainer = document.getElementById('rex-auth-badge');
-      if (!badgeContainer) {
-        const header = document.querySelector('.header-right') || document.querySelector('header');
-        if (!header) return;
-        badgeContainer = document.createElement('div');
-        badgeContainer.id = 'rex-auth-badge';
-        badgeContainer.className = 'rex-auth-badge';
-        header.prepend(badgeContainer);
-      }
-
       const user = window.RexApi.getUser();
+      const isAuthed = window.RexApi.isAuthenticated();
 
-      if (!user) {
-        badgeContainer.innerHTML = `
-          <button class="rex-btn-login" onclick="window.AuthUI.showLoginModal()">
-            <i class="fas fa-sign-in-alt"></i> Sign In / Select Role
-          </button>
-        `;
-        return;
-      }
+      // 1. ERP Topbar Badge & Profile
+      const topbarRight = document.querySelector('.topbar-right');
+      if (topbarRight) {
+        let badgeContainer = document.getElementById('rex-auth-badge');
+        if (!badgeContainer) {
+          badgeContainer = document.createElement('div');
+          badgeContainer.id = 'rex-auth-badge';
+          badgeContainer.className = 'rex-auth-badge';
+          topbarRight.prepend(badgeContainer);
+        }
 
-      let roleColor = '#1E3A8A';
-      let roleLabel = 'Super Admin';
-      if (user.role === 'TEACHER') {
-        roleColor = '#059669';
-        roleLabel = 'Faculty / Teacher';
-      } else if (user.role === 'PARENT') {
-        roleColor = '#7C3AED';
-        roleLabel = 'Parent';
-      }
+        // Hide old dummy role simulator selector
+        const roleSimWrapper = document.querySelector('.role-simulator-wrapper');
+        if (roleSimWrapper) {
+          roleSimWrapper.style.display = 'none';
+        }
 
-      // Check linked students for parents
-      let studentSwitcherHtml = '';
-      if (user.role === 'PARENT') {
-        const students = JSON.parse(localStorage.getItem('rex_parent_students') || '[]');
-        const activeStudent = window.RexApi.getActiveStudent();
+        if (!isAuthed) {
+          badgeContainer.innerHTML = `
+            <button type="button" class="rex-btn-login" onclick="window.AuthUI.showLoginModal()">
+              <i class="fas fa-sign-in-alt"></i> Sign In / Select Role
+            </button>
+          `;
 
-        if (students.length > 1) {
-          studentSwitcherHtml = `
-            <div class="rex-student-switcher">
-              <label><i class="fas fa-child"></i> Ward:</label>
-              <select onchange="window.AuthUI.switchChild(this.value)">
-                ${students.map(s => `
-                  <option value="${s.id}" ${activeStudent && activeStudent.id === s.id ? 'selected' : ''}>
-                    ${s.first_name} ${s.last_name} (${s.class_name}-${s.section_name})
-                  </option>
-                `).join('')}
-              </select>
+          const userNameEl = document.getElementById('current-user-name');
+          const userRoleEl = document.getElementById('current-user-role');
+          const userAvatarEl = document.getElementById('current-user-avatar');
+          if (userNameEl) userNameEl.textContent = "Not Signed In";
+          if (userRoleEl) userRoleEl.textContent = "Guest Access";
+          if (userAvatarEl) userAvatarEl.textContent = "??";
+        } else {
+          let roleColor = '#1E3A8A';
+          let roleLabel = 'Super Admin';
+          let avatarInitials = 'RP';
+
+          if (user.role === 'TEACHER') {
+            roleColor = '#059669';
+            roleLabel = 'Teacher / Faculty';
+            avatarInitials = 'AK';
+          } else if (user.role === 'PARENT') {
+            roleColor = '#7C3AED';
+            roleLabel = 'Parent';
+            avatarInitials = 'RS';
+          }
+
+          // Student switcher for multi-child parents
+          let studentSwitcherHtml = '';
+          if (user.role === 'PARENT') {
+            const students = JSON.parse(localStorage.getItem('rex_parent_students') || '[]');
+            const activeStudent = window.RexApi.getActiveStudent();
+
+            if (students.length > 1) {
+              studentSwitcherHtml = `
+                <div class="rex-student-switcher" title="Select child profile">
+                  <label><i class="fas fa-child"></i> Ward:</label>
+                  <select onchange="window.AuthUI.switchChild(this.value)">
+                    ${students.map(s => `
+                      <option value="${s.id}" ${activeStudent && activeStudent.id === s.id ? 'selected' : ''}>
+                        ${s.first_name} ${s.last_name} (${s.class_name || 'Class 10'}-${s.section_name || 'A'})
+                      </option>
+                    `).join('')}
+                  </select>
+                </div>
+              `;
+            } else if (activeStudent) {
+              studentSwitcherHtml = `
+                <span class="rex-single-student">
+                  <i class="fas fa-user-graduate"></i> ${activeStudent.first_name}
+                </span>
+              `;
+            }
+          }
+
+          badgeContainer.innerHTML = `
+            <div class="rex-user-pill">
+              <span class="rex-role-tag" style="background:${roleColor}">
+                ${roleLabel}
+              </span>
+              <span class="rex-user-name">${user.name || user.username || user.email}</span>
+              ${studentSwitcherHtml}
+              <button type="button" class="rex-btn-switch" onclick="window.AuthUI.showLoginModal()" title="Switch Account / Role">
+                <i class="fas fa-exchange-alt"></i> Switch
+              </button>
+              <button type="button" class="rex-btn-logout" onclick="window.RexApi.logout()" title="Logout of School Portal">
+                <i class="fas fa-sign-out-alt"></i> Logout
+              </button>
             </div>
           `;
-        } else if (activeStudent) {
-          studentSwitcherHtml = `
-            <span class="rex-single-student">
-              <i class="fas fa-user-graduate"></i> ${activeStudent.first_name} (${activeStudent.class_name})
-            </span>
-          `;
+
+          // Update header profile card
+          const userNameEl = document.getElementById('current-user-name');
+          const userRoleEl = document.getElementById('current-user-role');
+          const userAvatarEl = document.getElementById('current-user-avatar');
+          if (userNameEl) userNameEl.textContent = user.name || user.username;
+          if (userRoleEl) userRoleEl.textContent = roleLabel;
+          if (userAvatarEl) userAvatarEl.textContent = avatarInitials;
         }
       }
 
-      badgeContainer.innerHTML = `
-        <div class="rex-user-pill">
-          <span class="rex-role-tag" style="background:${roleColor}">
-            ${roleLabel}
-          </span>
-          <span class="rex-user-name">${user.name || user.username || user.email}</span>
-          ${studentSwitcherHtml}
-          <button class="rex-btn-switch" onclick="window.AuthUI.showLoginModal()" title="Switch Role / Account">
-            <i class="fas fa-exchange-alt"></i> Switch
-          </button>
-          <button class="rex-btn-logout" onclick="window.RexApi.logout()" title="Logout">
-            <i class="fas fa-sign-out-alt"></i>
-          </button>
-        </div>
-      `;
+      // 2. Home Landing Page Navbar Actions
+      const homeNavActions = document.querySelector('.home-nav-actions');
+      if (homeNavActions) {
+        let homeSignInBtn = document.getElementById('home-nav-signin-btn');
+        if (!homeSignInBtn) {
+          homeSignInBtn = document.createElement('button');
+          homeSignInBtn.id = 'home-nav-signin-btn';
+          homeSignInBtn.type = 'button';
+          homeSignInBtn.className = 'btn btn-outline';
+          homeSignInBtn.style.fontSize = '0.82rem';
+          homeSignInBtn.style.fontWeight = '700';
+          homeNavActions.prepend(homeSignInBtn);
+        }
+
+        if (!isAuthed) {
+          homeSignInBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+          homeSignInBtn.onclick = () => this.showLoginModal();
+        } else {
+          homeSignInBtn.innerHTML = `<i class="fas fa-user-circle"></i> ${user.role.replace('_', ' ')}`;
+          homeSignInBtn.onclick = () => this.routeToDashboard();
+        }
+      }
     },
 
     switchChild(studentId) {
@@ -102,12 +169,40 @@
       if (target) {
         window.RexApi.setActiveStudent(target);
         window.RexApi.showToast(`Switched active profile to ${target.first_name} ${target.last_name}`, 'info');
-        window.location.reload();
+        if (window.FeesModule && typeof window.FeesModule.render === 'function') {
+          window.FeesModule.render();
+        }
+        if (window.AttendanceModule && typeof window.AttendanceModule.render === 'function') {
+          window.AttendanceModule.render();
+        }
+        if (window.TransportModule && typeof window.TransportModule.render === 'function') {
+          window.TransportModule.render();
+        }
+      }
+    },
+
+    routeToDashboard() {
+      const role = window.RexApi.getRole();
+      if (role === 'TEACHER') {
+        if (window.App) {
+          window.App.applyRole('teacher', false);
+          window.App.switchView('attendance');
+        }
+      } else if (role === 'PARENT') {
+        if (window.App) {
+          window.App.applyRole('parent', false);
+          window.App.switchView('parent-portal');
+        }
+      } else {
+        if (window.App) {
+          window.App.applyRole('admin', false);
+          window.App.switchView('dashboard');
+        }
       }
     },
 
     // ------------------------------------------------------------------------
-    // Authentication Modal
+    // Authentication Modal Dialog
     // ------------------------------------------------------------------------
     showLoginModal() {
       let modal = document.getElementById('rex-login-modal');
@@ -122,100 +217,133 @@
         <div class="rex-modal-card">
           <div class="rex-modal-header">
             <div class="rex-modal-title-group">
-              <img src="assets/rex_emblem.png" alt="Rex Logo" class="rex-modal-logo" onerror="this.style.display='none'">
+              <img src="assets/rex_emblem.png" alt="Rex Logo" class="rex-modal-logo" onerror="this.src='assets/logo.png'">
               <div>
                 <h3>Rex Management App</h3>
-                <p>Select your user profile to securely access the school platform</p>
+                <p>Official School Management System • Authenticate via Role</p>
               </div>
             </div>
-            ${window.RexApi.isAuthenticated() ? '<button class="rex-modal-close" onclick="window.AuthUI.hideLoginModal()">&times;</button>' : ''}
+            <button type="button" class="rex-modal-close" onclick="window.AuthUI.hideLoginModal()" title="Close">&times;</button>
           </div>
 
           <!-- Role Selection Tabs -->
           <div class="rex-role-tabs">
-            <button class="rex-tab-btn ${this.currentTab === 'admin' ? 'active' : ''}" onclick="window.AuthUI.switchTab('admin')">
+            <button type="button" class="rex-tab-btn ${this.currentTab === 'admin' ? 'active' : ''}" onclick="window.AuthUI.switchTab('admin')">
               <i class="fas fa-shield-alt"></i> Super Admin
             </button>
-            <button class="rex-tab-btn ${this.currentTab === 'teacher' ? 'active' : ''}" onclick="window.AuthUI.switchTab('teacher')">
-              <i class="fas fa-chalkboard-teacher"></i> Teacher Login
+            <button type="button" class="rex-tab-btn ${this.currentTab === 'teacher' ? 'active' : ''}" onclick="window.AuthUI.switchTab('teacher')">
+              <i class="fas fa-chalkboard-teacher"></i> Teacher
             </button>
-            <button class="rex-tab-btn ${this.currentTab === 'parent' ? 'active' : ''}" onclick="window.AuthUI.switchTab('parent')">
-              <i class="fas fa-user-friends"></i> Parent Login
+            <button type="button" class="rex-tab-btn ${this.currentTab === 'parent' ? 'active' : ''}" onclick="window.AuthUI.switchTab('parent')">
+              <i class="fas fa-user-friends"></i> Parent
             </button>
           </div>
 
           <div class="rex-modal-body">
+            <!-- Inline Error Banner -->
+            <div id="auth-error-banner" class="rex-auth-error-banner" style="display: none;"></div>
+
             <!-- TAB 1: SUPER ADMIN -->
             <div id="tab-admin" class="rex-tab-pane ${this.currentTab === 'admin' ? 'active' : ''}">
               <div class="rex-login-banner admin">
-                <i class="fas fa-user-shield"></i>
+                <i class="fas fa-user-shield" style="font-size: 1.5rem;"></i>
                 <div>
-                  <strong>Super Admin Access</strong>
-                  <div>Full management of students, faculty, classes, events & attendance</div>
+                  <strong>Super Admin Sign In</strong>
+                  <div>Administrative controls, student directory, fee ledgers & fleet tracking</div>
                 </div>
               </div>
-              <form onsubmit="window.AuthUI.handleAdminLogin(event)">
+              <form id="admin-login-form" onsubmit="window.AuthUI.handleAdminLogin(event)">
                 <div class="rex-form-group">
-                  <label>Email or Username</label>
-                  <input type="text" id="admin-user" required placeholder="admin" value="admin">
+                  <label for="admin-user">Email or Username *</label>
+                  <input type="text" id="admin-user" required placeholder="admin" value="admin" autocomplete="username">
                 </div>
                 <div class="rex-form-group">
-                  <label>Password</label>
-                  <input type="password" id="admin-pass" required placeholder="••••••••" value="AdminPassword123!">
+                  <label for="admin-pass">Password *</label>
+                  <input type="password" id="admin-pass" required placeholder="••••••••" value="AdminPassword123!" autocomplete="current-password">
                 </div>
                 <div class="rex-demo-hint">
-                  <i class="fas fa-info-circle"></i> Default Demo Credentials: <code>admin</code> / <code>AdminPassword123!</code>
+                  <i class="fas fa-info-circle"></i> Default Seed Credentials: <code>admin</code> / <code>AdminPassword123!</code>
                 </div>
                 <button type="submit" class="rex-btn-primary admin" id="btn-admin-submit">
-                  <i class="fas fa-key"></i> Sign In as Super Admin
+                  <i class="fas fa-sign-in-alt"></i> Sign In as Super Admin
                 </button>
               </form>
             </div>
 
-            <!-- TAB 2: TEACHER OTP LOGIN -->
+            <!-- TAB 2: TEACHER LOGIN -->
             <div id="tab-teacher" class="rex-tab-pane ${this.currentTab === 'teacher' ? 'active' : ''}">
               <div class="rex-login-banner teacher">
-                <i class="fas fa-mobile-alt"></i>
+                <i class="fas fa-chalkboard-teacher" style="font-size: 1.5rem;"></i>
                 <div>
-                  <strong>Teacher Mobile OTP Authentication</strong>
-                  <div>Instant secure access to your assigned classes and attendance sheet</div>
+                  <strong>Teacher & Faculty Access</strong>
+                  <div>Mark smart attendance, post homework diaries & record test marks</div>
                 </div>
               </div>
 
-              <!-- Step 1: Request OTP -->
-              <div id="teacher-step-1">
-                <form onsubmit="window.AuthUI.handleTeacherSendOtp(event)">
-                  <div class="rex-form-group">
-                    <label>Registered Mobile Number</label>
-                    <div class="rex-phone-input">
-                      <span>+91</span>
-                      <input type="tel" id="teacher-phone" maxlength="10" required placeholder="9876500004" value="9876500004">
-                    </div>
-                  </div>
-                  <div class="rex-demo-hint">
-                    <i class="fas fa-info-circle"></i> Seeded Faculty Mobile: <code>9876500004</code> (Mrs. Anitha Kumar, Class 10-A)
-                  </div>
-                  <button type="submit" class="rex-btn-primary teacher" id="btn-teacher-send">
-                    <i class="fas fa-paper-plane"></i> Send OTP Verification Code
-                  </button>
-                </form>
+              <!-- Teacher Sub-mode selector (OTP vs Password) -->
+              <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem;">
+                <button type="button" class="btn btn-sm ${this.teacherAuthMode === 'otp' ? 'btn-primary' : 'btn-outline'}" onclick="window.AuthUI.setTeacherMode('otp')" style="flex: 1; font-size: 0.78rem;">
+                  📱 Mobile OTP
+                </button>
+                <button type="button" class="btn btn-sm ${this.teacherAuthMode === 'password' ? 'btn-primary' : 'btn-outline'}" onclick="window.AuthUI.setTeacherMode('password')" style="flex: 1; font-size: 0.78rem;">
+                  🔑 Email & Password
+                </button>
               </div>
 
-              <!-- Step 2: Verify OTP -->
-              <div id="teacher-step-2" style="display:none;">
-                <form onsubmit="window.AuthUI.handleTeacherVerifyOtp(event)">
-                  <div class="rex-otp-header">
-                    <span>Enter 6-digit OTP sent to <strong id="teacher-sent-phone"></strong></span>
-                    <button type="button" class="rex-btn-link" onclick="window.AuthUI.resetTeacherOtp()">Change</button>
+              <!-- Sub-mode: OTP -->
+              <div id="teacher-otp-container" style="display: ${this.teacherAuthMode === 'otp' ? 'block' : 'none'};">
+                <!-- Step 1: Send OTP -->
+                <div id="teacher-step-1">
+                  <form onsubmit="window.AuthUI.handleTeacherSendOtp(event)">
+                    <div class="rex-form-group">
+                      <label for="teacher-phone">Registered Mobile Number *</label>
+                      <div class="rex-phone-input">
+                        <span>+91</span>
+                        <input type="tel" id="teacher-phone" maxlength="10" required placeholder="9876500004" value="9876500004">
+                      </div>
+                    </div>
+                    <div class="rex-demo-hint">
+                      <i class="fas fa-info-circle"></i> Seeded Faculty Mobile: <code>9876500004</code> (Mrs. Anitha Kumar)
+                    </div>
+                    <button type="submit" class="rex-btn-primary teacher" id="btn-teacher-send">
+                      <i class="fas fa-paper-plane"></i> Send OTP Code
+                    </button>
+                  </form>
+                </div>
+
+                <!-- Step 2: Verify OTP -->
+                <div id="teacher-step-2" style="display: none;">
+                  <form onsubmit="window.AuthUI.handleTeacherVerifyOtp(event)">
+                    <div class="rex-otp-header">
+                      <span>Enter 6-digit OTP sent to <strong id="teacher-sent-phone"></strong></span>
+                      <button type="button" class="rex-btn-link" onclick="window.AuthUI.resetTeacherOtp()">Change</button>
+                    </div>
+                    <div class="rex-form-group">
+                      <input type="text" id="teacher-otp" maxlength="6" required placeholder="123456" class="rex-otp-box">
+                    </div>
+                    <div class="rex-demo-hint dev-otp">
+                      <i class="fas fa-key"></i> Test OTP Code: <strong>123456</strong>
+                    </div>
+                    <button type="submit" class="rex-btn-primary teacher" id="btn-teacher-verify">
+                      <i class="fas fa-check-circle"></i> Verify OTP & Enter Dashboard
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              <!-- Sub-mode: Password -->
+              <div id="teacher-pass-container" style="display: ${this.teacherAuthMode === 'password' ? 'block' : 'none'};">
+                <form onsubmit="window.AuthUI.handleTeacherPasswordLogin(event)">
+                  <div class="rex-form-group">
+                    <label for="teacher-email">Teacher Email / Username *</label>
+                    <input type="text" id="teacher-email" required placeholder="maths@rex.edu" value="maths@rex.edu">
                   </div>
                   <div class="rex-form-group">
-                    <input type="text" id="teacher-otp" maxlength="6" required placeholder="123456" class="rex-otp-box">
+                    <label for="teacher-pass">Password *</label>
+                    <input type="password" id="teacher-pass" required placeholder="••••••••" value="AdminPassword123!">
                   </div>
-                  <div class="rex-demo-hint dev-otp">
-                    <i class="fas fa-key"></i> Development Test OTP: <strong>123456</strong>
-                  </div>
-                  <button type="submit" class="rex-btn-primary teacher" id="btn-teacher-verify">
-                    <i class="fas fa-check-circle"></i> Verify OTP & Enter Dashboard
+                  <button type="submit" class="rex-btn-primary teacher" id="btn-teacher-pass-submit">
+                    <i class="fas fa-sign-in-alt"></i> Sign In as Teacher
                   </button>
                 </form>
               </div>
@@ -224,29 +352,29 @@
             <!-- TAB 3: PARENT LOGIN -->
             <div id="tab-parent" class="rex-tab-pane ${this.currentTab === 'parent' ? 'active' : ''}">
               <div class="rex-login-banner parent">
-                <i class="fas fa-family-restroom"></i>
+                <i class="fas fa-family-restroom" style="font-size: 1.5rem;"></i>
                 <div>
-                  <strong>Parent Portal Login</strong>
-                  <div>View your child's attendance, bus location, marksheet, and notices</div>
+                  <strong>Parent Portal Authentication</strong>
+                  <div>Pay school fees via Split Payment, track school bus GPS & review homework</div>
                 </div>
               </div>
               <form onsubmit="window.AuthUI.handleParentLogin(event)">
                 <div class="rex-form-group">
-                  <label>Student Admission Number</label>
-                  <input type="text" id="parent-adm" required placeholder="REX-2024-001" value="REX-2024-001">
-                </div>
-                <div class="rex-form-group">
-                  <label>Registered Parent Mobile Number</label>
+                  <label for="parent-phone">Registered Parent Mobile Number *</label>
                   <div class="rex-phone-input">
                     <span>+91</span>
                     <input type="tel" id="parent-phone" maxlength="10" required placeholder="9876543210" value="9876543210">
                   </div>
                 </div>
+                <div class="rex-form-group">
+                  <label for="parent-adm">Student Admission Number (Optional for Multi-child)</label>
+                  <input type="text" id="parent-adm" placeholder="REX-2024-001" value="REX-2024-001">
+                </div>
                 <div class="rex-demo-hint">
-                  <i class="fas fa-info-circle"></i> Seeded Parent: <code>REX-2024-001</code> / <code>9876543210</code> (Aarav & Ananya Sharma)
+                  <i class="fas fa-info-circle"></i> Seeded Parent: <code>9876543210</code> (Aarav & Ananya Sharma)
                 </div>
                 <button type="submit" class="rex-btn-primary parent" id="btn-parent-submit">
-                  <i class="fas fa-sign-in-alt"></i> Access Parent Portal
+                  <i class="fas fa-sign-in-alt"></i> Enter Parent Portal
                 </button>
               </form>
             </div>
@@ -260,10 +388,29 @@
     hideLoginModal() {
       const modal = document.getElementById('rex-login-modal');
       if (modal) modal.style.display = 'none';
+      this.clearError();
+    },
+
+    showError(msg) {
+      const banner = document.getElementById('auth-error-banner');
+      if (banner) {
+        banner.textContent = msg;
+        banner.style.display = 'block';
+      }
+      window.RexApi.showToast(msg, 'error');
+    },
+
+    clearError() {
+      const banner = document.getElementById('auth-error-banner');
+      if (banner) {
+        banner.style.display = 'none';
+        banner.textContent = '';
+      }
     },
 
     switchTab(tab) {
       this.currentTab = tab;
+      this.clearError();
       document.querySelectorAll('.rex-tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.rex-tab-pane').forEach(p => p.classList.remove('active'));
 
@@ -274,34 +421,64 @@
       if (targetPane) targetPane.classList.add('active');
     },
 
+    setTeacherMode(mode) {
+      this.teacherAuthMode = mode;
+      this.clearError();
+      const otpContainer = document.getElementById('teacher-otp-container');
+      const passContainer = document.getElementById('teacher-pass-container');
+      if (otpContainer) otpContainer.style.display = mode === 'otp' ? 'block' : 'none';
+      if (passContainer) passContainer.style.display = mode === 'password' ? 'block' : 'none';
+    },
+
     // ------------------------------------------------------------------------
     // Form Handlers
     // ------------------------------------------------------------------------
     async handleAdminLogin(e) {
       e.preventDefault();
+      this.clearError();
+
+      const user = document.getElementById('admin-user').value.trim();
+      const pass = document.getElementById('admin-pass').value.trim();
+
+      if (!user || !pass) {
+        this.showError('Please enter both username and password.');
+        return;
+      }
+
       const btn = document.getElementById('btn-admin-submit');
       btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
 
       try {
-        const user = document.getElementById('admin-user').value;
-        const pass = document.getElementById('admin-pass').value;
-        await window.RexApi.loginAdmin(user, pass);
+        const res = await window.RexApi.loginAdmin(user, pass);
         window.RexApi.showToast('Super Admin authenticated successfully!', 'success');
         this.hideLoginModal();
-        window.location.reload();
+        this.renderUserBadge();
+
+        if (window.App) {
+          window.App.applyRole('admin', false);
+          window.App.switchView('dashboard');
+        }
       } catch (err) {
-        window.RexApi.showToast(err.message, 'error');
+        this.showError(err.message || 'Invalid email/username or password.');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-key"></i> Sign In as Super Admin';
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In as Super Admin';
       }
     },
 
     async handleTeacherSendOtp(e) {
       e.preventDefault();
+      this.clearError();
+
       const phoneInput = document.getElementById('teacher-phone');
       const mobile = phoneInput.value.trim();
+
+      if (!mobile || mobile.length !== 10) {
+        this.showError('Please enter a valid 10-digit mobile number.');
+        return;
+      }
+
       const btn = document.getElementById('btn-teacher-send');
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending OTP...';
@@ -312,21 +489,28 @@
         document.getElementById('teacher-sent-phone').textContent = `+91 ${mobile}`;
         document.getElementById('teacher-step-1').style.display = 'none';
         document.getElementById('teacher-step-2').style.display = 'block';
-        window.RexApi.showToast(res.message, 'success');
+        window.RexApi.showToast(res.message || 'OTP sent successfully!', 'success');
         if (res.devOtp) {
           document.getElementById('teacher-otp').value = res.devOtp;
         }
       } catch (err) {
-        window.RexApi.showToast(err.message, 'error');
+        this.showError(err.message || 'Failed to send OTP. Please check mobile number.');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send OTP Verification Code';
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send OTP Code';
       }
     },
 
     async handleTeacherVerifyOtp(e) {
       e.preventDefault();
+      this.clearError();
+
       const otp = document.getElementById('teacher-otp').value.trim();
+      if (!otp) {
+        this.showError('Please enter the 6-digit OTP code.');
+        return;
+      }
+
       const btn = document.getElementById('btn-teacher-verify');
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
@@ -335,9 +519,14 @@
         await window.RexApi.verifyTeacherOtp(this.teacherMobile, otp);
         window.RexApi.showToast('Teacher verified and logged in successfully!', 'success');
         this.hideLoginModal();
-        window.location.reload();
+        this.renderUserBadge();
+
+        if (window.App) {
+          window.App.applyRole('teacher', false);
+          window.App.switchView('attendance');
+        }
       } catch (err) {
-        window.RexApi.showToast(err.message, 'error');
+        this.showError(err.message || 'Invalid or expired OTP code.');
       } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-check-circle"></i> Verify OTP & Enter Dashboard';
@@ -347,26 +536,69 @@
     resetTeacherOtp() {
       document.getElementById('teacher-step-2').style.display = 'none';
       document.getElementById('teacher-step-1').style.display = 'block';
+      this.clearError();
+    },
+
+    async handleTeacherPasswordLogin(e) {
+      e.preventDefault();
+      this.clearError();
+
+      const email = document.getElementById('teacher-email').value.trim();
+      const pass = document.getElementById('teacher-pass').value.trim();
+
+      const btn = document.getElementById('btn-teacher-pass-submit');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
+
+      try {
+        await window.RexApi.login({ email, password: pass, role: 'TEACHER' });
+        window.RexApi.showToast('Teacher authenticated successfully!', 'success');
+        this.hideLoginModal();
+        this.renderUserBadge();
+
+        if (window.App) {
+          window.App.applyRole('teacher', false);
+          window.App.switchView('attendance');
+        }
+      } catch (err) {
+        this.showError(err.message || 'Invalid teacher credentials.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In as Teacher';
+      }
     },
 
     async handleParentLogin(e) {
       e.preventDefault();
+      this.clearError();
+
       const adm = document.getElementById('parent-adm').value.trim();
       const mobile = document.getElementById('parent-phone').value.trim();
+
+      if (!mobile || mobile.length !== 10) {
+        this.showError('Please enter a valid 10-digit registered mobile number.');
+        return;
+      }
+
       const btn = document.getElementById('btn-parent-submit');
       btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying Ward & Parent...';
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
 
       try {
         await window.RexApi.loginParent(adm, mobile);
         window.RexApi.showToast('Parent authenticated successfully!', 'success');
         this.hideLoginModal();
-        window.location.reload();
+        this.renderUserBadge();
+
+        if (window.App) {
+          window.App.applyRole('parent', false);
+          window.App.switchView('parent-portal');
+        }
       } catch (err) {
-        window.RexApi.showToast(err.message, 'error');
+        this.showError(err.message || 'Authentication failed. Please verify parent mobile.');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Access Parent Portal';
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Enter Parent Portal';
       }
     }
   };
@@ -384,7 +616,7 @@
       align-items: center;
       background: #FFFFFF;
       border: 1px solid #E2E8F0;
-      padding: 4px 8px 4px 6px;
+      padding: 4px 10px 4px 6px;
       border-radius: 20px;
       gap: 8px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.06);
@@ -411,6 +643,7 @@
       background: #F8FAFC;
       color: #1E293B;
       font-weight: 600;
+      cursor: pointer;
     }
     .rex-btn-switch, .rex-btn-logout, .rex-btn-login {
       border: none;
@@ -430,8 +663,9 @@
     .rex-btn-login {
       background: #1E3A8A;
       color: white;
-      padding: 6px 12px;
+      padding: 6px 14px;
       border-radius: 8px;
+      font-weight: 700;
     }
     .rex-btn-login:hover {
       background: #172554;
@@ -533,6 +767,17 @@
     .rex-modal-body {
       padding: 24px;
     }
+    .rex-auth-error-banner {
+      background: #FEF2F2;
+      border: 1px solid #FCA5A5;
+      color: #B91C1C;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      animation: shake 0.25s ease;
+    }
     .rex-tab-pane {
       display: none;
     }
@@ -567,6 +812,7 @@
       border: 1px solid #CBD5E1;
       border-radius: 8px;
       font-size: 14px;
+      box-sizing: border-box;
       transition: border-color 0.2s;
     }
     .rex-form-group input:focus {
@@ -592,6 +838,7 @@
     .rex-phone-input input {
       border: none;
       border-radius: 0;
+      flex: 1;
     }
     .rex-otp-box {
       font-size: 22px !important;
@@ -635,9 +882,20 @@
     .rex-btn-primary.parent { background: #7C3AED; }
     .rex-btn-primary:hover { filter: brightness(1.1); }
     .rex-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .rex-btn-link {
+      background: none;
+      border: none;
+      color: #2563EB;
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: 600;
+      padding: 0;
+      text-decoration: underline;
+    }
   `;
   document.head.appendChild(style);
 
   window.AuthUI = AuthUI;
+  window.RexAuthUI = AuthUI;
   document.addEventListener('DOMContentLoaded', () => AuthUI.init());
 })(window);

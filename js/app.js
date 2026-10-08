@@ -24,17 +24,42 @@ const App = {
       TransportModule.init();
     }
 
-    // Load saved preferences
-    this.currentRole = ERPStorage.getRole() || 'admin';
+    // Load and synchronize authenticated session
+    const isAuthed = window.RexApi ? window.RexApi.isAuthenticated() : false;
+    if (isAuthed) {
+      const user = window.RexApi.getUser();
+      if (user && user.role === 'TEACHER') {
+        this.currentRole = 'teacher';
+      } else if (user && user.role === 'PARENT') {
+        this.currentRole = 'parent';
+      } else {
+        this.currentRole = 'admin';
+      }
+      ERPStorage.setRole(this.currentRole);
+    } else {
+      this.currentRole = null;
+      ERPStorage.setRole(null);
+    }
+
     const savedTheme = localStorage.getItem(ERPStorage.KEYS.THEME) || 'light';
     this.setTheme(savedTheme);
 
     // Initial view: check URL hash or default to home webapp
     const hash = window.location.hash ? window.location.hash.replace('#', '') : '';
-    const initialView = hash || 'home';
+    let initialView = hash || 'home';
+
+    // If not authenticated and accessing a protected view, redirect to home and prompt login
+    if (!isAuthed && initialView !== 'home') {
+      initialView = 'home';
+      setTimeout(() => {
+        if (window.AuthUI) window.AuthUI.showLoginModal();
+      }, 400);
+    }
 
     this.attachEvents();
-    this.applyRole(this.currentRole, false);
+    if (this.currentRole) {
+      this.applyRole(this.currentRole, false);
+    }
     this.switchView(initialView);
 
     console.log("Rex Senior Secondary School ERP initialized successfully.");
@@ -156,25 +181,30 @@ const App = {
     this.currentRole = role;
     ERPStorage.setRole(role);
 
+    const authUser = window.RexApi ? window.RexApi.getUser() : null;
     const userNameEl = document.getElementById('current-user-name');
     const userRoleEl = document.getElementById('current-user-role');
     const userAvatarEl = document.getElementById('current-user-avatar');
 
     if (role === 'admin') {
-      if (userNameEl) userNameEl.textContent = "Rev. Fr. Principal";
+      if (userNameEl) userNameEl.textContent = authUser ? (authUser.name || authUser.username) : "Rev. Fr. Principal";
       if (userRoleEl) userRoleEl.textContent = "Principal / Super Admin";
       if (userAvatarEl) userAvatarEl.textContent = "RP";
       if (isUserAction) this.switchView('dashboard');
     } else if (role === 'teacher') {
-      if (userNameEl) userNameEl.textContent = "Mrs. Sunita Rao";
-      if (userRoleEl) userRoleEl.textContent = "Grade 10-A Mentor";
-      if (userAvatarEl) userAvatarEl.textContent = "SR";
+      if (userNameEl) userNameEl.textContent = authUser ? (authUser.name || authUser.username) : "Mrs. Anitha Kumar";
+      if (userRoleEl) userRoleEl.textContent = "Teacher / Faculty";
+      if (userAvatarEl) userAvatarEl.textContent = "AK";
       if (isUserAction) this.switchView('attendance');
     } else if (role === 'parent') {
-      if (userNameEl) userNameEl.textContent = "Rajesh Sharma";
-      if (userRoleEl) userRoleEl.textContent = "Parent of Aarav (10-A)";
+      if (userNameEl) userNameEl.textContent = authUser ? (authUser.name || authUser.username) : "Mr. Rajesh Sharma";
+      if (userRoleEl) userRoleEl.textContent = "Parent (Aarav & Ananya Sharma)";
       if (userAvatarEl) userAvatarEl.textContent = "RS";
       if (isUserAction) this.switchView('parent-portal');
+    }
+
+    if (window.AuthUI && typeof window.AuthUI.renderUserBadge === 'function') {
+      window.AuthUI.renderUserBadge();
     }
 
     if (isUserAction) {
@@ -183,6 +213,20 @@ const App = {
   },
 
   switchView(viewId) {
+    // Protected routes guard: all views other than 'home' require active authentication
+    if (viewId !== 'home') {
+      const isAuthed = window.RexApi ? window.RexApi.isAuthenticated() : false;
+      if (!isAuthed) {
+        if (window.AuthUI) {
+          window.AuthUI.showLoginModal();
+        }
+        if (this.currentView !== 'home') {
+          this.switchView('home');
+        }
+        return;
+      }
+    }
+
     this.currentView = viewId;
 
     const appContainer = document.querySelector('.app-container');
@@ -1386,6 +1430,8 @@ const App = {
     }, duration);
   }
 };
+
+window.App = App;
 
 window.addEventListener('DOMContentLoaded', () => {
   App.init();

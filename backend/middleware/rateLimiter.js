@@ -25,7 +25,10 @@ function createRateLimiter({ windowMs = 15 * 60 * 1000, max = 50, message = 'Too
 
     const recent = timestamps.filter(t => now - t < windowMs);
 
-    if (recent.length >= max) {
+    // Generous limits for local testing/dev
+    const effectiveMax = (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') ? 500 : max;
+
+    if (recent.length >= effectiveMax) {
       return res.status(429).json({
         success: false,
         error: message,

@@ -60,6 +60,8 @@ app.get('/api/health', (req, res) => {
 
 // Mount REST API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/login', authRoutes);
+app.use('/login', authRoutes);
 app.use('/api/students', studentsRoutes);
 app.use('/api/teachers', teachersRoutes);
 app.use('/api/parents', parentsRoutes);
@@ -93,7 +95,7 @@ const fs = require('fs');
 
 // SPA Fallback for client routes
 app.use((req, res) => {
-  if (req.url.startsWith('/api')) {
+  if (req.url.startsWith('/api') || req.method !== 'GET') {
     return res.status(404).json({ success: false, error: 'Endpoint not found.' });
   }
   const indexFile = path.join(PUBLIC_DIR, 'index.html');
