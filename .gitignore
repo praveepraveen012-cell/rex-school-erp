@@ -20,4 +20,5 @@ local.properties
 # Local DB
 database.sqlite*
 .env
+.chrome_test*
 
