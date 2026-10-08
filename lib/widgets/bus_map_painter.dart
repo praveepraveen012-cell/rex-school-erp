@@ -98,6 +98,8 @@ class BusMapPainter extends CustomPainter {
           ..strokeWidth = 2.5
           ..style = PaintingStyle.stroke,
       );
+    }
+
     // 5. Draw Animated Moving Bus Marker
     final metrics = path.computeMetrics().toList();
     if (metrics.isNotEmpty) {
