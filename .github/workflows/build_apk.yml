@@ -76,9 +76,8 @@ jobs:
             cp /tmp/rex_backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           fi
 
-          # 6. Ensure app label is Rex Management App, applicationName is set, and launcher icons are linked
+          # 6. Ensure app label is Rex Management App and launcher icons are linked
           sed -i 's/android:label="[^"]*"/android:label="Rex Management App"/' android/app/src/main/AndroidManifest.xml
-          sed -i 's/android:name="\${applicationName}"/android:name="io.flutter.app.FlutterApplication"/' android/app/src/main/AndroidManifest.xml
           if ! grep -q "android:roundIcon" android/app/src/main/AndroidManifest.xml; then
             sed -i 's/android:icon="@mipmap\/ic_launcher"/android:icon="@mipmap\/ic_launcher" android:roundIcon="@mipmap\/ic_launcher_round"/' android/app/src/main/AndroidManifest.xml
           fi
@@ -92,12 +91,9 @@ jobs:
           sed -i 's/signingConfig = signingConfigs.release/signingConfig = signingConfigs.debug/g' android/app/build.gradle || true
           sed -i 's/signingConfig signingConfigs.release/signingConfig signingConfigs.debug/g' android/app/build.gradle || true
 
-          # 8b. Ensure Google Maps SDK API key and applicationName placeholders are present
-          if ! grep -q "MAPS_API_KEY" android/app/build.gradle; then
-            sed -i '/defaultConfig {/a \        manifestPlaceholders += [MAPS_API_KEY: (project.findProperty("MAPS_API_KEY") ?: System.getenv("GOOGLE_MAPS_ANDROID_API_KEY") ?: "AIzaSyRexManagementDemoAndroidKey7788"), applicationName: "io.flutter.app.FlutterApplication"]' android/app/build.gradle || true
-          fi
+          # 8b. Ensure Google Maps SDK API key meta-data exists in AndroidManifest
           if ! grep -q "com.google.android.geo.API_KEY" android/app/src/main/AndroidManifest.xml; then
-            sed -i '/<\/application>/i \        <meta-data android:name="com.google.android.geo.API_KEY" android:value="${MAPS_API_KEY}"/>' android/app/src/main/AndroidManifest.xml || true
+            sed -i '/<\/application>/i \        <meta-data android:name="com.google.android.geo.API_KEY" android:value="AIzaSyRexManagementDemoAndroidKey7788"/>' android/app/src/main/AndroidManifest.xml || true
           fi
 
           # 9. Verify generated wrapper files and styles exist

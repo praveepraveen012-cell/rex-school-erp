@@ -6,7 +6,7 @@
 
     <application
         android:label="Rex Management App"
-        android:name="io.flutter.app.FlutterApplication"
+        android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round">
         <activity
@@ -29,7 +29,7 @@
         <!-- Google Maps SDK for Android API Key (Requirement 2) -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="${MAPS_API_KEY}" />
+            android:value="AIzaSyRexManagementDemoAndroidKey7788" />
 
         <meta-data
             android:name="flutterEmbedding"
