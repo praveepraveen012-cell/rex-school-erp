@@ -224,8 +224,8 @@ const StudentsModule = {
                 <button class="btn btn-sm btn-outline-primary" style="flex: 1;" onclick="event.stopPropagation(); StudentsModule.openStudentDrawer('${s.id}')">
                   Full 360° Profile
                 </button>
-                <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); FeesModule.openCashierModal('${s.id}')" title="Collect Fee">
-                  ₹ Pay
+                <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); FeesModule.openStudentLedgerModal('${s.id}')" title="View Fee Details">
+                  📋 Fees
                 </button>
               </div>
             </div>
@@ -284,8 +284,8 @@ const StudentsModule = {
 
         <!-- Quick Action Buttons -->
         <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
-          <button class="btn btn-sm btn-primary" onclick="FeesModule.openCashierModal('${s.id}')">
-            💳 Collect Fee
+          <button class="btn btn-sm btn-outline-primary" onclick="FeesModule.openStudentLedgerModal('${s.id}')">
+            📋 Fee Details
           </button>
           <button class="btn btn-sm btn-outline-primary" onclick="ExamsModule.openReportCardModal('${s.id}')">
             📄 Academic Report

@@ -25,8 +25,18 @@ const FeesModule = {
   },
 
   getUserRole() {
-    const user = (typeof Api !== 'undefined' && Api.getUser()) || null;
-    return (user && user.role) ? user.role.toUpperCase() : 'SUPER_ADMIN';
+    const user = (typeof window.RexApi !== 'undefined' && window.RexApi.getUser()) ||
+                 (typeof Api !== 'undefined' && Api.getUser()) || null;
+    if (user && user.role) return user.role.toUpperCase();
+    if (window.App && window.App.currentRole) {
+      if (window.App.currentRole === 'parent') return 'PARENT';
+      if (window.App.currentRole === 'teacher') return 'TEACHER';
+      return 'SUPER_ADMIN';
+    }
+    const storedRole = (typeof ERPStorage !== 'undefined' && ERPStorage.getRole) ? ERPStorage.getRole() : null;
+    if (storedRole === 'parent') return 'PARENT';
+    if (storedRole === 'teacher') return 'TEACHER';
+    return 'SUPER_ADMIN';
   },
 
   render() {
@@ -116,23 +126,24 @@ const FeesModule = {
         statusLabel = 'UNPAID';
       }
 
-      // CRITICAL PERMISSION RULE: Super Admin NEVER gets payment buttons.
-      // Super Admin sees: "View Ledger", "Receipt", "Send Reminder"
-      // Parent sees: "Pay Fees (Full / Split)", "Receipt"
+      // CRITICAL PERMISSION RULE (Requirements 1 & 3):
+      // Super Admin NEVER gets "Collect Fee" or any payment buttons!
+      // Super Admin sees: "View Details", "Receipt", "Send Reminder"
+      // Parent sees: "Pay Fees (Split / Full)", "Receipt"
       let actionButtons = '';
       if (isSuperAdmin) {
         actionButtons = `
-          <button class="btn btn-sm btn-outline" onclick="FeesModule.openStudentLedgerModal('${s.id}')" title="View details and payment history">
-            📋 Details
+          <button class="btn btn-sm btn-outline-primary" onclick="FeesModule.openStudentLedgerModal('${s.id}')" title="View details and payment history">
+            📋 View Details
           </button>
           ${paid > 0 ? `
-            <button class="btn btn-sm btn-secondary" onclick="FeesModule.previewReceipt('${s.id}')" style="margin-left: 4px;">
+            <button class="btn btn-sm btn-secondary" onclick="FeesModule.previewReceipt('${s.id}')" style="margin-left: 4px;" title="View official fee receipt">
               🧾 Receipt
             </button>
           ` : ''}
           ${due > 0 ? `
-            <button class="btn btn-sm btn-primary" onclick="FeesModule.sendReminder('${s.id}')" style="margin-left: 4px; background: #1e3a8a; border-color: #1e3a8a;" title="Send fee reminder to parent">
-              🔔 Remind
+            <button class="btn btn-sm btn-primary" onclick="FeesModule.sendReminder('${s.id}')" style="margin-left: 4px; background: #1e3a8a; border-color: #1e3a8a;" title="Send fee payment reminder to parent">
+              🔔 Send Reminder
             </button>
           ` : ''}
         `;
@@ -188,8 +199,18 @@ const FeesModule = {
     }).join('');
   },
 
+  // Backward compatibility alias: Super Admin always routes to ledger view
+  openCashierModal(studentId) {
+    if (this.getUserRole() === 'PARENT') {
+      this.openSplitPaymentModal(studentId);
+    } else {
+      this.openStudentLedgerModal(studentId);
+    }
+  },
+
   // ==========================================================================
   // SUPER ADMIN STUDENT FEE DETAILS MODAL (STRICTLY NO PAYMENT CAPABILITY)
+  // Requirements 1, 2, 3: Full ledger details, payment history, receipts, reminders
   // ==========================================================================
   openStudentLedgerModal(studentId) {
     const students = ERPStorage.getStudents();
@@ -200,49 +221,137 @@ const FeesModule = {
     const paid = s.feesPaid || 0;
     const due = tot - paid;
     const statusText = due === 0 ? "PAID" : (paid === 0 ? "UNPAID" : "PARTIALLY PAID");
+    const statusColor = due === 0 ? "#10b981" : (paid === 0 ? "#dc2626" : "#d97706");
 
     const modal = document.getElementById('cashier-modal');
     const content = document.getElementById('cashier-modal-content');
+    const titleEl = document.getElementById('cashier-modal-title');
+    if (titleEl) titleEl.textContent = "Fee Details & Student Ledger";
     if (!modal || !content) return;
 
     content.innerHTML = `
       <div style="background: var(--bg-subtle); border-radius: var(--radius-sm); padding: 1.25rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
         <div>
-          <span style="font-size: 0.75rem; background: #e2e8f0; color: #334155; padding: 2px 8px; border-radius: 4px; font-weight: 700;">SUPER ADMIN VIEWER</span>
-          <h4 style="font-size: 1.15rem; font-weight: 800; color: var(--text-primary); margin: 0.4rem 0 0.1rem 0;">${s.name}</h4>
+          <span style="font-size: 0.75rem; background: #e2e8f0; color: #1e293b; padding: 2px 8px; border-radius: 4px; font-weight: 700; letter-spacing: 0.5px;">ADMINISTRATIVE OVERSIGHT • NO PAYMENT ACTIONS</span>
+          <h4 style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary); margin: 0.4rem 0 0.1rem 0;">${s.name}</h4>
           <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">
-            ID: <b>${s.id}</b> • Roll No: <b>${s.rollNo}</b> • Grade <b>${s.grade}-${s.section}</b>
+            Student ID: <b>${s.id}</b> • Roll No: <b>${s.rollNo}</b> • Grade <b>${s.grade}-${s.section}</b>
           </p>
         </div>
         <div style="text-align: right;">
-          <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">STATUS</div>
-          <div style="font-size: 1.2rem; font-weight: 800; color: ${due === 0 ? '#10b981' : (paid === 0 ? '#dc2626' : '#d97706')};">${statusText}</div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700;">LEDGER STATUS</div>
+          <div style="font-size: 1.25rem; font-weight: 800; color: ${statusColor};">${statusText}</div>
         </div>
       </div>
 
+      <!-- Financial & Guardian Summary Cards -->
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; font-size: 0.85rem;">
-        <div style="background: #f8fafc; border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.85rem;">
-          <strong style="color: var(--text-primary); display: block; margin-bottom: 0.5rem;">👨‍👩‍👧 Parent / Guardian Info</strong>
-          <div>Parent Name: <b>${s.parentName || 'Rajesh Sharma'}</b></div>
-          <div>Mobile: <b>${s.parentPhone || '+91 98765 43210'}</b></div>
-          <div>Address: ${s.address || 'Church Hill Road, Ootacamund'}</div>
+        <div style="background: #f8fafc; border: 1px solid var(--border-subtle); border-radius: 10px; padding: 1rem;">
+          <strong style="color: var(--text-primary); display: flex; align-items: center; gap: 6px; margin-bottom: 0.6rem; font-size: 0.9rem;">
+            👨‍👩‍👧 Parent & Contact Details
+          </strong>
+          <div style="margin-bottom: 4px;">Parent / Guardian: <b>${s.parentName || 'Rajesh Sharma'}</b></div>
+          <div style="margin-bottom: 4px;">Mobile Number: <b>${s.parentPhone || '+91 98765 43210'}</b></div>
+          <div style="margin-bottom: 4px;">Email: ${s.parentEmail || 'parent@rexschool.edu'}</div>
+          <div>Residential Address: ${s.address || 'Coonoor Road, Ootacamund'}</div>
         </div>
 
-        <div style="background: #f8fafc; border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.85rem;">
-          <strong style="color: var(--text-primary); display: block; margin-bottom: 0.5rem;">💰 Fee Account Summary</strong>
-          <div>Total Annual Fee: <b>₹${tot.toLocaleString()}</b></div>
-          <div>Amount Paid: <b style="color: #10b981;">₹${paid.toLocaleString()}</b></div>
-          <div>Outstanding Balance: <b style="color: #dc2626;">₹${due.toLocaleString()}</b></div>
+        <div style="background: #f8fafc; border: 1px solid var(--border-subtle); border-radius: 10px; padding: 1rem;">
+          <strong style="color: var(--text-primary); display: flex; align-items: center; gap: 6px; margin-bottom: 0.6rem; font-size: 0.9rem;">
+            💰 Fee Account Summary
+          </strong>
+          <div style="margin-bottom: 4px; display: flex; justify-content: space-between;">
+            <span>Total Annual Fee:</span>
+            <b>₹${tot.toLocaleString()}</b>
+          </div>
+          <div style="margin-bottom: 4px; display: flex; justify-content: space-between;">
+            <span>Total Collected:</span>
+            <b style="color: #10b981;">₹${paid.toLocaleString()}</b>
+          </div>
+          <div style="margin-bottom: 4px; display: flex; justify-content: space-between;">
+            <span>Outstanding Receivable:</span>
+            <b style="color: #dc2626; font-size: 1.05rem;">₹${due.toLocaleString()}</b>
+          </div>
+          ${due > 0 ? `
+            <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #cbd5e1; font-size: 0.75rem; color: #047857;">
+              Parent Minimum Split (30%): <b>₹${Math.round(due * 0.30).toLocaleString()}</b>
+            </div>
+          ` : ''}
         </div>
       </div>
 
-      <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
-        <button type="button" class="btn btn-secondary" onclick="FeesModule.closeCashierModal()">Close</button>
-        ${due > 0 ? `
-          <button type="button" class="btn btn-primary" onclick="FeesModule.sendReminder('${s.id}'); FeesModule.closeCashierModal();">
-            🔔 Send Payment Reminder to Parent
-          </button>
-        ` : ''}
+      <!-- Fee Breakdown Table (Preserve Information) -->
+      <div style="background: #fff; border: 1px solid var(--border-subtle); border-radius: 10px; padding: 1rem; margin-bottom: 1.25rem;">
+        <strong style="color: var(--text-primary); display: block; margin-bottom: 0.6rem; font-size: 0.88rem;">
+          📊 Fee Structure Breakdown
+        </strong>
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border-subtle); text-align: left; color: var(--text-muted);">
+              <th style="padding: 6px 0;">Particulars</th>
+              <th style="padding: 6px 0; text-align: right;">Total (₹)</th>
+              <th style="padding: 6px 0; text-align: right;">Paid (₹)</th>
+              <th style="padding: 6px 0; text-align: right;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 6px 0;">Quarterly Tuition & Academic Instruction</td>
+              <td style="padding: 6px 0; text-align: right;">₹36,000</td>
+              <td style="padding: 6px 0; text-align: right; color: #10b981;">₹${Math.min(paid, 36000).toLocaleString()}</td>
+              <td style="padding: 6px 0; text-align: right;"><span class="badge ${paid >= 36000 ? 'badge-paid' : 'badge-partial'}">${paid >= 36000 ? 'PAID' : 'PENDING'}</span></td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 6px 0;">STEM Robotics & Computer Science Labs</td>
+              <td style="padding: 6px 0; text-align: right;">₹8,000</td>
+              <td style="padding: 6px 0; text-align: right; color: #10b981;">₹${paid > 36000 ? Math.min(paid - 36000, 8000).toLocaleString() : '0'}</td>
+              <td style="padding: 6px 0; text-align: right;"><span class="badge ${paid >= 44000 ? 'badge-paid' : 'badge-partial'}">${paid >= 44000 ? 'PAID' : 'PENDING'}</span></td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 6px 0;">Sports Arena & Nilgiris Athletic Activities</td>
+              <td style="padding: 6px 0; text-align: right;">₹4,000</td>
+              <td style="padding: 6px 0; text-align: right; color: #10b981;">₹${paid > 44000 ? Math.min(paid - 44000, 4000).toLocaleString() : '0'}</td>
+              <td style="padding: 6px 0; text-align: right;"><span class="badge ${paid >= 48000 ? 'badge-paid' : 'badge-partial'}">${paid >= 48000 ? 'PAID' : 'PENDING'}</span></td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0;">Library Resources & Digital Management</td>
+              <td style="padding: 6px 0; text-align: right;">₹6,000</td>
+              <td style="padding: 6px 0; text-align: right; color: #10b981;">₹${paid > 48000 ? Math.min(paid - 48000, 6000).toLocaleString() : '0'}</td>
+              <td style="padding: 6px 0; text-align: right;"><span class="badge ${paid >= 54000 ? 'badge-paid' : 'badge-partial'}">${paid >= 54000 ? 'PAID' : 'PENDING'}</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Payment History & Receipts -->
+      ${paid > 0 ? `
+        <div style="background: #f8fafc; border: 1px solid var(--border-subtle); border-radius: 10px; padding: 0.9rem; margin-bottom: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-weight: 700; color: var(--text-primary); font-size: 0.85rem;">Official Payment Receipt Available</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Verified digital counter receipt for ₹${paid.toLocaleString()}</div>
+            </div>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="FeesModule.previewReceipt('${s.id}')">
+              🧾 View Official Receipt
+            </button>
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- Administrative Actions: Close, View Receipt, Send Reminder -->
+      <!-- STRICTLY NO PAYMENT FORMS OR PAYMENT INITIATION BUTTONS -->
+      <div style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+        <div style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">
+          Student fee payments must be completed by parents through the Parent App.
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" class="btn btn-secondary" onclick="FeesModule.closeCashierModal()">Close</button>
+          ${due > 0 ? `
+            <button type="button" class="btn btn-primary" style="background: #1e3a8a; border-color: #1e3a8a;" onclick="FeesModule.sendReminder('${s.id}'); FeesModule.closeCashierModal();">
+              🔔 Send Payment Reminder to Parent
+            </button>
+          ` : ''}
+        </div>
       </div>
     `;
 
@@ -253,6 +362,13 @@ const FeesModule = {
   // PARENT SPLIT PAYMENT MODAL (Dynamic 30% Minimum Validation)
   // ==========================================================================
   openSplitPaymentModal(studentId) {
+    if (this.getUserRole() !== 'PARENT') {
+      if (window.App && App.showToast) {
+        App.showToast("Super Admin cannot initiate student fee payments. Viewing ledger details.", "info");
+      }
+      return this.openStudentLedgerModal(studentId);
+    }
+
     const students = ERPStorage.getStudents();
     const s = students.find(item => item.id === studentId);
     if (!s) return;
@@ -265,6 +381,8 @@ const FeesModule = {
 
     const modal = document.getElementById('cashier-modal');
     const content = document.getElementById('cashier-modal-content');
+    const titleEl = document.getElementById('cashier-modal-title');
+    if (titleEl) titleEl.textContent = "Parent Fee Payment Desk";
     if (!modal || !content) return;
 
     content.innerHTML = `
@@ -429,9 +547,11 @@ const FeesModule = {
     ERPStorage.addActivity(`Fee payment of ₹${amount.toLocaleString()} (${paymentType}) received for ${students[index].name} (${receiptNo})`);
 
     // Call backend API if connected
-    if (typeof Api !== 'undefined' && Api.fetch) {
+    const apiClient = (typeof window.RexApi !== 'undefined' ? window.RexApi : (typeof Api !== 'undefined' ? Api : null));
+    if (apiClient && (apiClient.request || apiClient.fetch)) {
       const numericId = parseInt(this.selectedStudent.id.replace(/[^0-9]/g, '') || 1, 10);
-      Api.fetch('/fees/pay', {
+      const reqFn = apiClient.request ? apiClient.request.bind(apiClient) : apiClient.fetch.bind(apiClient);
+      reqFn('/fees/pay', {
         method: 'POST',
         body: JSON.stringify({
           studentId: numericId,
@@ -471,9 +591,11 @@ const FeesModule = {
       ? `Fee Payment Reminder: Your child's fee of ₹${due.toLocaleString()} is currently unpaid. Please make the payment through the Parent App.`
       : `Fee Payment Reminder: Your child's outstanding fee balance is ₹${due.toLocaleString()}. Please complete the remaining payment through the Parent App.`;
 
-    if (typeof Api !== 'undefined' && Api.fetch) {
+    const apiClient = (typeof window.RexApi !== 'undefined' ? window.RexApi : (typeof Api !== 'undefined' ? Api : null));
+    if (apiClient && (apiClient.request || apiClient.fetch)) {
       const numericId = parseInt(s.id.replace(/[^0-9]/g, '') || 1, 10);
-      Api.fetch('/fees/send-reminder', {
+      const reqFn = apiClient.request ? apiClient.request.bind(apiClient) : apiClient.fetch.bind(apiClient);
+      reqFn('/fees/send-reminder', {
         method: 'POST',
         body: JSON.stringify({ studentId: numericId })
       }).then(res => {

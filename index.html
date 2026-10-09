@@ -1400,8 +1400,8 @@
                 <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
               </div>
               <div>
-                <h4>Collect Fee</h4>
-                <p>Instant Receipt & UPI</p>
+                <h4>Fee Ledger</h4>
+                <p>Ledgers & Reminders</p>
               </div>
             </div>
 
@@ -1592,9 +1592,9 @@
           <div class="page-header">
             <div class="page-title-group">
               <h1 class="page-title">
-                <span>Fee Management & Cashier Desk</span>
+                <span>Fee Cashier & Ledger Desk</span>
               </h1>
-              <p class="page-subtitle">Track outstanding student dues, collect counter payments, and generate official stamped receipts.</p>
+              <p class="page-subtitle">Track outstanding student dues, view institutional fee ledgers, generate official stamped receipts, and dispatch parent payment reminders.</p>
             </div>
           </div>
 
@@ -1650,7 +1650,7 @@
                     <th>Collected</th>
                     <th>Outstanding Due</th>
                     <th>Status</th>
-                    <th style="text-align: right;">Cashier Action</th>
+                    <th style="text-align: right;">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="fee-table-body">
@@ -1928,19 +1928,15 @@
     </div>
   </div>
 
-  <!-- Cashier Modal -->
+  <!-- Cashier & Ledger Modal -->
   <div class="modal-overlay" id="cashier-modal">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3 class="modal-title">💳 Fee Cashier & Payment Gateway</h3>
+        <h3 class="modal-title" id="cashier-modal-title">Fee Details & Ledger</h3>
         <button class="modal-close-btn" onclick="FeesModule.closeCashierModal()">&times;</button>
       </div>
       <div class="modal-body" id="cashier-modal-content">
-        <!-- Injected by fees.js -->
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" onclick="FeesModule.closeCashierModal()">Cancel</button>
-        <button type="button" class="btn btn-primary" onclick="FeesModule.processPayment()">Process & Generate Stamped Receipt</button>
+        <!-- Injected dynamically by fees.js -->
       </div>
     </div>
   </div>

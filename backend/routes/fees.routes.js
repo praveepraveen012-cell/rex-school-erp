@@ -272,18 +272,27 @@ router.get('/', (req, res) => {
 });
 
 // ----------------------------------------------------------------------------
-// POST /api/fees/pay - Secure payment transaction endpoint with server verification
-// CRITICAL PERMISSION RULE: SUPER_ADMIN must NEVER be able to make a fee payment.
-// Available ONLY to the PARENT role.
+// POST /api/fees/pay (and aliases /collect, /payment, /collection, /process)
+// CRITICAL PERMISSION RULE (Section 1 & 5):
+// SUPER_ADMIN and TEACHER MUST NEVER be able to initiate or process student fee payments.
+// Student fee payments can ONLY be initiated by authorized PARENT for their own child.
 // ----------------------------------------------------------------------------
-router.post('/pay', (req, res) => {
+router.post(['/pay', '/collect', '/payment', '/collection', '/process'], (req, res) => {
   const role = req.user.role;
 
-  // 1. Strict Role Authorization Rule
+  // 1. Strict Role Authorization Rule: Reject Super Admin and Teachers
   if (role !== 'PARENT') {
+    auditService.log(
+      req.user.id,
+      role,
+      'PAY_FEES_BLOCKED',
+      'fees',
+      req.body.studentId ? String(req.body.studentId) : null,
+      `Blocked unauthorized fee payment attempt by ${role}`
+    );
     return res.status(403).json({
       success: false,
-      error: 'Forbidden: Super Admin is strictly unauthorized to make fee payments. Only registered parents can pay student fees.'
+      error: 'Forbidden: Super Admin is strictly unauthorized to initiate or complete student fee payments. Student fee payments must be made by parents through the Parent App.'
     });
   }
 
@@ -458,7 +467,7 @@ router.post('/pay', (req, res) => {
 // POST /api/fees/send-reminder - Super Admin can dispatch fee reminders
 // Supports single parent, selected parents, or bulk (all unpaid / all partially paid)
 // ----------------------------------------------------------------------------
-router.post('/send-reminder', (req, res) => {
+router.post(['/send-reminder', '/reminder'], (req, res) => {
   if (req.user.role !== 'SUPER_ADMIN') {
     return res.status(403).json({ success: false, error: 'Only Super Admin can trigger fee reminders.' });
   }
