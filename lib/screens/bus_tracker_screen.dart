@@ -209,6 +209,7 @@ class _BusTrackerScreenState extends State<BusTrackerScreen> {
               ),
             ],
           ),
+        ),
         // Multi-child Selector (Requirement 6: Support parents with multiple children)
         if (erp.students.length > 1)
           Container(
