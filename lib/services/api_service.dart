@@ -723,6 +723,45 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> pauseDemoTracking(int busId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/transport/demo-tracking/pause'),
+        headers: _headers(),
+        body: jsonEncode({'busId': busId}),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> resumeDemoTracking(int busId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/transport/demo-tracking/resume'),
+        headers: _headers(),
+        body: jsonEncode({'busId': busId}),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> setDemoSpeed(int busId, int speed) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/transport/demo-tracking/speed'),
+        headers: _headers(),
+        body: jsonEncode({'busId': busId, 'speedMultiplier': speed}),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
   static Future<Map<String, dynamic>> stopDemoTracking(int busId) async {
     try {
       final response = await http.post(
@@ -746,6 +785,55 @@ class ApiService {
       return jsonDecode(response.body);
     } catch (e) {
       return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateBusStatus(int busId, String status) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/transport/bus/$busId/status'),
+        headers: _headers(),
+        body: jsonEncode({'status': status}),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getBusDetails(int busId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/transport/bus/$busId'),
+        headers: _headers(),
+      ).timeout(const Duration(seconds: 4));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getRoutes() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/transport/routes'),
+        headers: _headers(),
+      ).timeout(const Duration(seconds: 4));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'routes': [], 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getMapsConfig() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/transport/maps-config'),
+        headers: _headers(),
+      ).timeout(const Duration(seconds: 3));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'isConfigured': false, 'apiKey': ''};
     }
   }
 

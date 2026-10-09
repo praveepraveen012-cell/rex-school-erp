@@ -4,8 +4,7 @@ const db = require('../database/db');
 const authenticate = require('../middleware/auth');
 const auditService = require('../services/auditService');
 const config = require('../config/env');
-
-router.use(authenticate);
+const demoGpsSimulator = require('../services/demoGpsSimulator');
 
 // Helper: Check if external GPS telematics provider is configured
 function getGpsProviderStatus() {
@@ -21,76 +20,34 @@ function getGpsProviderStatus() {
     mode: isConfigured ? 'LIVE_GPS' : 'DEMO',
     message: isConfigured
       ? `Connected to ${provider} GPS telematics service`
-      : 'Live GPS provider is not configured. Telematics is operating in Demo Simulation Mode for interactive testing.'
+      : 'Live GPS provider is not configured. Operating in DEMO TRACKING mode for realistic route simulation.'
   };
 }
 
-// Helper: advance demo tracking state along route stops
-function updateDemoTrackingPosition(busId) {
-  const state = db.get(`SELECT * FROM bus_tracking_state WHERE bus_id = ?`, [busId]);
-  if (!state) return null;
+// ----------------------------------------------------------------------------
+// GET /api/transport/maps-config - Client Google Maps API configuration
+// (Available before authentication if needed by UI script loader)
+// ----------------------------------------------------------------------------
+router.get('/maps-config', (req, res) => {
+  const webApiKey = process.env.GOOGLE_MAPS_WEB_API_KEY || process.env.GOOGLE_MAPS_API_KEY || config.googleMapsWebApiKey || '';
+  const isConfigured = Boolean(webApiKey && webApiKey.trim().length > 8 && !webApiKey.includes('YOUR_'));
 
-  if (state.tracking_mode !== 'DEMO' || state.is_active !== 1) {
-    return state;
-  }
+  return res.json({
+    success: true,
+    apiKey: webApiKey,
+    isConfigured,
+    provider: 'GOOGLE_MAPS',
+    defaultCenter: { lat: 11.4116, lng: 76.7088 }, // Ooty / Nilgiris
+    defaultZoom: 13,
+    sampleRoutesAvailable: true,
+    message: isConfigured
+      ? 'Google Maps API key configured.'
+      : 'Google Maps API key not set in environment (GOOGLE_MAPS_WEB_API_KEY). Interactive route visualizer enabled as fallback.'
+  });
+});
 
-  const routeId = state.route_id;
-  if (!routeId) return state;
-
-  const stops = db.query(`SELECT * FROM bus_stops WHERE route_id = ? ORDER BY stop_order ASC`, [routeId]);
-  if (stops.length < 2) return state;
-
-  // Advance based on elapsed time and speed multiplier
-  const lastUpdatedTime = state.last_updated ? new Date(state.last_updated).getTime() : Date.now();
-  const elapsedSec = Math.max(0.2, (Date.now() - lastUpdatedTime) / 1000);
-
-  // Speed: ~2.5% progression per 2 seconds at 1x
-  const speed = state.speed_multiplier || 1;
-  const progressStep = (0.02 * speed) * (elapsedSec / 2.0);
-  let newProgress = (state.progress_percent + progressStep);
-  if (newProgress >= 1.0) {
-    // Loop smoothly back to beginning for continuous demo tracking
-    newProgress = newProgress % 1.0;
-  }
-
-  // Calculate segment and coordinates
-  const totalSegments = stops.length - 1;
-  const rawSegment = newProgress * totalSegments;
-  const segIndex = Math.min(totalSegments - 1, Math.floor(rawSegment));
-  const t = rawSegment - segIndex;
-
-  const currentStop = stops[segIndex];
-  const nextStop = stops[segIndex + 1] || stops[segIndex];
-
-  const currentLat = (currentStop.latitude || 11.3530) + ((nextStop.latitude || 11.4168) - (currentStop.latitude || 11.3530)) * t;
-  const currentLng = (currentStop.longitude || 76.7959) + ((nextStop.longitude || 76.6963) - (currentStop.longitude || 76.7959)) * t;
-
-  const route = db.get(`SELECT * FROM bus_routes WHERE id = ?`, [routeId]);
-  const baseEta = (route && route.eta_minutes) || 15;
-  const remainingEta = Math.max(1, Math.round(baseEta * (1.0 - newProgress)));
-  const statusText = newProgress > 0.95 ? 'Approaching Campus Gate' : `En Route to ${nextStop.stop_name}`;
-
-  db.run(
-    `UPDATE bus_tracking_state
-     SET progress_percent = ?, current_stop_index = ?, latitude = ?, longitude = ?,
-         current_stop_name = ?, next_stop_name = ?, eta_minutes = ?, status_text = ?,
-         last_updated = CURRENT_TIMESTAMP
-     WHERE bus_id = ?`,
-    [
-      parseFloat(newProgress.toFixed(4)),
-      segIndex,
-      parseFloat(currentLat.toFixed(6)),
-      parseFloat(currentLng.toFixed(6)),
-      currentStop.stop_name,
-      nextStop.stop_name,
-      remainingEta,
-      statusText,
-      busId
-    ]
-  );
-
-  return db.get(`SELECT * FROM bus_tracking_state WHERE bus_id = ?`, [busId]);
-}
+// Require authentication for all subsequent endpoints
+router.use(authenticate);
 
 // ----------------------------------------------------------------------------
 // GET /api/transport/gps-status - GPS integration telemetry status
@@ -107,13 +64,13 @@ router.get('/gps-status', (req, res) => {
     modesSupported: [
       {
         mode: 'DEMO',
-        name: 'Demo Live Tracking Mode',
-        description: 'Simulates continuous waypoint progression along configured stops without physical GPS hardware.'
+        name: 'DEMO TRACKING',
+        description: 'Gradual waypoint progression along ordered route stops without physical GPS hardware.'
       },
       {
         mode: 'LIVE_GPS',
-        name: 'Live GPS Satellite Telematics',
-        description: 'Receives real telemetry coordinates when telematics API provider is connected.'
+        name: 'LIVE GPS',
+        description: 'Satellite telematics coordinates received when external hardware provider is connected.'
       }
     ]
   });
@@ -121,6 +78,7 @@ router.get('/gps-status', (req, res) => {
 
 // ----------------------------------------------------------------------------
 // GET /api/transport/my-bus - Live bus tracking for parent's active child
+// Strict Data Isolation: Parents can ONLY view buses assigned to their own children!
 // ----------------------------------------------------------------------------
 router.get('/my-bus', (req, res) => {
   const role = req.user.role;
@@ -146,7 +104,7 @@ router.get('/my-bus', (req, res) => {
     const assignment = db.get(
       `SELECT sta.*, b.bus_number, b.vehicle_no, b.model, b.capacity, b.status as bus_status,
               br.route_code, br.name as route_name, br.start_point, br.end_point, br.eta_minutes, br.live_status,
-              bs.stop_name as pickup_stop_name, bs.pickup_time, bs.drop_time,
+              bs.stop_name as pickup_stop_name, bs.pickup_time, bs.drop_time, bs.latitude as pickup_lat, bs.longitude as pickup_lng,
               d.name as driver_name, d.mobile as driver_mobile, d.license_no
        FROM student_transport_assignments sta
        JOIN buses b ON sta.bus_id = b.id
@@ -172,12 +130,15 @@ router.get('/my-bus', (req, res) => {
       });
     }
 
-    // Advance demo tracking position if demo is running
-    const trackingState = updateDemoTrackingPosition(assignment.bus_id);
+    // Read authoritative simulation state from simulator or database
+    let trackingState = demoGpsSimulator.getState(assignment.bus_id) || db.get(`SELECT * FROM bus_tracking_state WHERE bus_id = ?`, [assignment.bus_id]);
     const gpsStatus = getGpsProviderStatus();
 
     const stops = db.query(
-      `SELECT * FROM bus_stops WHERE route_id = ? ORDER BY stop_order ASC`,
+      `SELECT id, route_id, stop_name, stop_order, pickup_time, drop_time, distance_meters, latitude, longitude
+       FROM bus_stops
+       WHERE route_id = ?
+       ORDER BY stop_order ASC`,
       [assignment.route_id]
     );
 
@@ -199,6 +160,8 @@ router.get('/my-bus', (req, res) => {
         vehicleNo: assignment.vehicle_no,
         model: assignment.model,
         capacity: assignment.capacity,
+        busStatus: assignment.bus_status,
+        routeId: assignment.route_id,
         routeName: assignment.route_name,
         routeCode: assignment.route_code,
         startPoint: assignment.start_point,
@@ -207,25 +170,33 @@ router.get('/my-bus', (req, res) => {
         driverMobile: assignment.driver_mobile || '9443210045',
         driverLicense: assignment.license_no || 'TN43-2015',
         trackingMode: trackingMode,
-        trackingModeLabel: trackingMode === 'DEMO' ? 'Demo Tracking' : 'Live GPS',
+        trackingModeLabel: trackingMode === 'DEMO' ? 'DEMO TRACKING' : 'LIVE GPS',
         isDemoActive: isDemoActive,
         isGpsConnected: gpsStatus.isConfigured,
         speedMultiplier: trackingState ? trackingState.speed_multiplier : 1,
         progressPercent: trackingState ? trackingState.progress_percent : 0.0,
-        currentLatitude: trackingState ? trackingState.latitude : (stops.length > 0 ? stops[0].latitude : 11.3530),
-        currentLongitude: trackingState ? trackingState.longitude : (stops.length > 0 ? stops[0].longitude : 76.7959),
+        currentLatitude: trackingState && trackingState.latitude ? trackingState.latitude : (stops.length > 0 ? stops[0].latitude : 11.3530),
+        currentLongitude: trackingState && trackingState.longitude ? trackingState.longitude : (stops.length > 0 ? stops[0].longitude : 76.7959),
         currentStop: trackingState ? trackingState.current_stop_name : (stops.length > 0 ? stops[0].stop_name : 'Depot'),
         nextStop: trackingState ? trackingState.next_stop_name : (stops.length > 1 ? stops[1].stop_name : 'Destination'),
-        status: isDemoActive ? trackingState.status_text : (gpsStatus.isConfigured ? assignment.live_status : 'Stationary (Demo Ready)'),
-        etaMinutes: trackingState ? trackingState.eta_minutes : assignment.eta_minutes,
+        status: isDemoActive
+          ? trackingState.status_text
+          : (gpsStatus.isConfigured ? assignment.live_status : 'Stationary (DEMO TRACKING Ready)'),
+        etaMinutes: trackingState && trackingState.eta_minutes ? trackingState.eta_minutes : assignment.eta_minutes,
         pickupStop: assignment.pickup_stop_name || 'Designated Gate',
+        pickupStopCoordinates: {
+          latitude: assignment.pickup_lat || 11.4116,
+          longitude: assignment.pickup_lng || 76.7088
+        },
         pickupTime: assignment.pickup_time || '07:45 AM',
         dropTime: assignment.drop_time || '03:45 PM',
         lastUpdated: (trackingState && trackingState.last_updated) || new Date().toISOString(),
         routeStops: stops,
         message: isDemoActive
-          ? 'Live Demo Tracking simulation is running along the configured route.'
-          : (gpsStatus.isConfigured ? 'Connected to live GPS satellite telematics.' : 'Demo live tracking is currently stationary. Start demo tracking in Super Admin to observe motion.')
+          ? 'DEMO TRACKING: Live continuous simulation is moving along configured route stops.'
+          : (gpsStatus.isConfigured
+              ? 'Connected to live GPS satellite telematics.'
+              : 'DEMO TRACKING is stationary. When Super Admin starts tracking, you will see the bus move live.')
       }
     });
   }
@@ -294,7 +265,47 @@ router.get('/fleet', (req, res) => {
 });
 
 // ----------------------------------------------------------------------------
-// SUPER ADMIN BUS CRUD
+// GET /api/transport/bus/:id - View detailed bus information (Requirement 3)
+// ----------------------------------------------------------------------------
+router.get('/bus/:id', (req, res) => {
+  const busId = parseInt(req.params.id, 10);
+  const bus = db.get(`SELECT * FROM buses WHERE id = ?`, [busId]);
+  if (!bus) {
+    return res.status(404).json({ success: false, error: 'Bus not found.' });
+  }
+
+  const driver = db.get(`SELECT * FROM drivers WHERE assigned_bus_id = ?`, [busId]);
+  const route = db.get(`SELECT * FROM bus_routes WHERE assigned_bus_id = ? OR id = 1`, [busId]);
+  const stops = route
+    ? db.query(`SELECT * FROM bus_stops WHERE route_id = ? ORDER BY stop_order ASC`, [route.id])
+    : [];
+
+  const assignedStudents = db.query(
+    `SELECT s.id, s.admission_no, s.first_name, s.last_name, c.name as class_name, sec.name as section_name,
+            bs.stop_name as pickup_stop_name, bs.pickup_time, bs.drop_time
+     FROM student_transport_assignments sta
+     JOIN students s ON sta.student_id = s.id
+     LEFT JOIN classes c ON s.class_id = c.id
+     LEFT JOIN sections sec ON s.section_id = sec.id
+     LEFT JOIN bus_stops bs ON sta.pickup_stop_id = bs.id
+     WHERE sta.bus_id = ?`,
+    [busId]
+  );
+
+  const trackingState = demoGpsSimulator.getState(busId) || db.get(`SELECT * FROM bus_tracking_state WHERE bus_id = ?`, [busId]);
+
+  return res.json({
+    success: true,
+    bus,
+    driver,
+    route: route ? { ...route, stops } : null,
+    assignedStudents,
+    trackingState
+  });
+});
+
+// ----------------------------------------------------------------------------
+// SUPER ADMIN BUS CRUD & STATUS MANAGEMENT (Requirement 3)
 // ----------------------------------------------------------------------------
 
 // POST /api/transport/bus - Add Bus
@@ -314,9 +325,9 @@ router.post('/bus', (req, res) => {
       `INSERT INTO buses (bus_number, vehicle_no, model, capacity, status)
        VALUES (?, ?, ?, ?, ?)`,
       [
-        busNumber,
-        vehicleNo,
-        model || 'Standard Fleet (36-Seater)',
+        busNumber.trim(),
+        vehicleNo.trim(),
+        model ? model.trim() : 'Standard Fleet (36-Seater)',
         parseInt(capacity, 10) || 36,
         status || 'ACTIVE'
       ]
@@ -334,12 +345,28 @@ router.post('/bus', (req, res) => {
       db.run(`UPDATE bus_routes SET assigned_bus_id = ? WHERE id = ?`, [newBusId, routeId]);
     }
 
+    // Get default coordinates from target route or default Nilgiris Depot
+    let initialLat = 11.3530;
+    let initialLng = 76.7959;
+    let initialStopName = 'Initial Depot';
+    let nextStopName = 'Campus Gate';
+
+    if (routeId) {
+      const stops = db.query(`SELECT * FROM bus_stops WHERE route_id = ? ORDER BY stop_order ASC`, [routeId]);
+      if (stops.length > 0) {
+        initialLat = stops[0].latitude || initialLat;
+        initialLng = stops[0].longitude || initialLng;
+        initialStopName = stops[0].stop_name;
+        if (stops.length > 1) nextStopName = stops[1].stop_name;
+      }
+    }
+
     // Initialize bus_tracking_state
     db.run(
       `INSERT OR REPLACE INTO bus_tracking_state
        (bus_id, route_id, driver_id, tracking_mode, is_active, speed_multiplier, current_stop_index, progress_percent, latitude, longitude, current_stop_name, next_stop_name, status_text)
-       VALUES (?, ?, ?, 'DEMO', 0, 1, 0, 0.0, 11.3530, 76.7959, 'Initial Depot', 'Campus Gate', 'Stationary (Demo Ready)')`,
-      [newBusId, routeId || null, driverId || null]
+       VALUES (?, ?, ?, 'DEMO', 0, 1, 0, 0.0, ?, ?, ?, ?, 'Stationary (DEMO TRACKING Ready)')`,
+      [newBusId, routeId || null, driverId || null, initialLat, initialLng, initialStopName, nextStopName]
     );
 
     auditService.log(req.user.id, req.user.role, 'ADD_BUS', 'transport', newBusId.toString(), `Added bus ${busNumber} (${vehicleNo})`);
@@ -412,6 +439,10 @@ router.put('/bus/:id', (req, res) => {
       [routeId || null, driverId || null, busId]
     );
 
+    if (status === 'INACTIVE') {
+      demoGpsSimulator.stop(busId);
+    }
+
     auditService.log(req.user.id, req.user.role, 'UPDATE_BUS', 'transport', busId.toString(), `Updated bus ${bus.bus_number}`);
 
     return res.json({
@@ -423,7 +454,42 @@ router.put('/bus/:id', (req, res) => {
   }
 });
 
-// DELETE /api/transport/bus/:id - Deactivate/Delete Bus
+// PATCH /api/transport/bus/:id/status - Activate / Deactivate Bus (Requirement 3)
+router.patch('/bus/:id/status', (req, res) => {
+  if (req.user.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ success: false, error: 'Only Super Admin can change bus status.' });
+  }
+
+  const busId = parseInt(req.params.id, 10);
+  const { status } = req.body;
+
+  if (!['ACTIVE', 'INACTIVE', 'IDLE', 'MAINTENANCE'].includes(status)) {
+    return res.status(400).json({ success: false, error: 'Status must be ACTIVE, INACTIVE, or MAINTENANCE.' });
+  }
+
+  const bus = db.get(`SELECT * FROM buses WHERE id = ?`, [busId]);
+  if (!bus) {
+    return res.status(404).json({ success: false, error: 'Bus not found.' });
+  }
+
+  const dbStatus = (status === 'INACTIVE') ? 'IDLE' : status;
+  db.run(`UPDATE buses SET status = ? WHERE id = ?`, [dbStatus, busId]);
+
+  if (status === 'INACTIVE' || status === 'IDLE') {
+    demoGpsSimulator.stop(busId);
+  }
+
+  auditService.log(req.user.id, req.user.role, 'CHANGE_BUS_STATUS', 'transport', busId.toString(), `Changed status of ${bus.bus_number} to ${status}`);
+
+  return res.json({
+    success: true,
+    message: `Bus ${bus.bus_number} status updated to ${status}.`,
+    busId,
+    status
+  });
+});
+
+// DELETE /api/transport/bus/:id - Delete or Deactivate Bus
 router.delete('/bus/:id', (req, res) => {
   if (req.user.role !== 'SUPER_ADMIN') {
     return res.status(403).json({ success: false, error: 'Only Super Admin can delete buses.' });
@@ -436,10 +502,11 @@ router.delete('/bus/:id', (req, res) => {
   }
 
   try {
+    demoGpsSimulator.stop(busId);
+
     // Check if students are currently assigned
     const assignedCount = db.get(`SELECT COUNT(*) as count FROM student_transport_assignments WHERE bus_id = ?`, [busId]);
     if (assignedCount && assignedCount.count > 0) {
-      // Deactivate instead of hard delete to preserve historical integrity
       db.run(`UPDATE buses SET status = 'INACTIVE' WHERE id = ?`, [busId]);
       db.run(`UPDATE bus_tracking_state SET is_active = 0, status_text = 'Deactivated' WHERE bus_id = ?`, [busId]);
       return res.json({
@@ -460,7 +527,7 @@ router.delete('/bus/:id', (req, res) => {
 });
 
 // ----------------------------------------------------------------------------
-// DRIVERS & ROUTES MANAGEMENT
+// DRIVERS MANAGEMENT
 // ----------------------------------------------------------------------------
 
 // GET /api/transport/drivers - List drivers
@@ -497,7 +564,11 @@ router.post('/drivers', (req, res) => {
   }
 });
 
-// GET /api/transport/routes - List routes with stops
+// ----------------------------------------------------------------------------
+// ROUTES & ORDERED STOPS MANAGEMENT (Requirement 3 & 8)
+// ----------------------------------------------------------------------------
+
+// GET /api/transport/routes - List routes with ordered stops & coordinates
 router.get('/routes', (req, res) => {
   const routes = db.query(
     `SELECT br.*, b.bus_number, b.vehicle_no
@@ -531,17 +602,155 @@ router.post('/routes', (req, res) => {
       [routeCode, name, assignedBusId || null, startPoint, endPoint, parseInt(etaMinutes, 10) || 15]
     );
 
+    const newRouteId = result.lastInsertRowid;
+
+    // If initial stops provided in request body, add them
+    if (Array.isArray(req.body.stops) && req.body.stops.length > 0) {
+      req.body.stops.forEach((s, idx) => {
+        db.run(
+          `INSERT INTO bus_stops (route_id, stop_name, stop_order, pickup_time, drop_time, distance_meters, latitude, longitude)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            newRouteId,
+            s.stop_name || `Stop ${idx + 1}`,
+            s.stop_order || (idx + 1),
+            s.pickup_time || '07:30 AM',
+            s.drop_time || '04:00 PM',
+            s.distance_meters || 1000,
+            parseFloat(s.latitude) || 11.4116,
+            parseFloat(s.longitude) || 76.7088
+          ]
+        );
+      });
+    }
+
     return res.status(201).json({
       success: true,
       message: 'Route created successfully.',
-      routeId: result.lastInsertRowid
+      routeId: newRouteId
     });
   } catch (err) {
     return res.status(400).json({ success: false, error: 'Failed to create route: ' + err.message });
   }
 });
 
-// POST /api/transport/assign - Assign Bus -> Driver -> Route -> Students
+// PUT /api/transport/routes/:id - Update route
+router.put('/routes/:id', (req, res) => {
+  if (req.user.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ success: false, error: 'Only Super Admin can manage routes.' });
+  }
+
+  const routeId = parseInt(req.params.id, 10);
+  const { routeCode, name, assignedBusId, startPoint, endPoint, etaMinutes } = req.body;
+
+  try {
+    db.run(
+      `UPDATE bus_routes
+       SET route_code = COALESCE(?, route_code),
+           name = COALESCE(?, name),
+           assigned_bus_id = COALESCE(?, assigned_bus_id),
+           start_point = COALESCE(?, start_point),
+           end_point = COALESCE(?, end_point),
+           eta_minutes = COALESCE(?, eta_minutes)
+       WHERE id = ?`,
+      [routeCode, name, assignedBusId, startPoint, endPoint, etaMinutes, routeId]
+    );
+
+    return res.json({ success: true, message: 'Route updated successfully.' });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: 'Failed to update route: ' + err.message });
+  }
+});
+
+// POST /api/transport/routes/:id/stops - Add ordered stop to route
+router.post('/routes/:id/stops', (req, res) => {
+  if (req.user.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ success: false, error: 'Only Super Admin can manage route stops.' });
+  }
+
+  const routeId = parseInt(req.params.id, 10);
+  const { stop_name, stop_order, pickup_time, drop_time, distance_meters, latitude, longitude } = req.body;
+
+  if (!stop_name || latitude === undefined || longitude === undefined) {
+    return res.status(400).json({ success: false, error: 'Stop name, latitude, and longitude are required.' });
+  }
+
+  try {
+    const maxOrder = db.get(`SELECT MAX(stop_order) as m FROM bus_stops WHERE route_id = ?`, [routeId]);
+    const nextOrder = stop_order || ((maxOrder && maxOrder.m) ? maxOrder.m + 1 : 1);
+
+    const result = db.run(
+      `INSERT INTO bus_stops (route_id, stop_name, stop_order, pickup_time, drop_time, distance_meters, latitude, longitude)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        routeId,
+        stop_name,
+        nextOrder,
+        pickup_time || '07:30 AM',
+        drop_time || '04:00 PM',
+        parseInt(distance_meters, 10) || 500,
+        parseFloat(latitude),
+        parseFloat(longitude)
+      ]
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: 'Stop added to route successfully.',
+      stopId: result.lastInsertRowid
+    });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: 'Failed to add stop: ' + err.message });
+  }
+});
+
+// PUT /api/transport/routes/stops/:stopId - Edit ordered stop
+router.put('/routes/stops/:stopId', (req, res) => {
+  if (req.user.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ success: false, error: 'Only Super Admin can manage route stops.' });
+  }
+
+  const stopId = parseInt(req.params.stopId, 10);
+  const { stop_name, stop_order, pickup_time, drop_time, distance_meters, latitude, longitude } = req.body;
+
+  try {
+    db.run(
+      `UPDATE bus_stops
+       SET stop_name = COALESCE(?, stop_name),
+           stop_order = COALESCE(?, stop_order),
+           pickup_time = COALESCE(?, pickup_time),
+           drop_time = COALESCE(?, drop_time),
+           distance_meters = COALESCE(?, distance_meters),
+           latitude = COALESCE(?, latitude),
+           longitude = COALESCE(?, longitude)
+       WHERE id = ?`,
+      [stop_name, stop_order, pickup_time, drop_time, distance_meters, latitude, longitude, stopId]
+    );
+
+    return res.json({ success: true, message: 'Stop updated successfully.' });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: 'Failed to update stop: ' + err.message });
+  }
+});
+
+// DELETE /api/transport/routes/stops/:stopId - Delete stop
+router.delete('/routes/stops/:stopId', (req, res) => {
+  if (req.user.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ success: false, error: 'Only Super Admin can manage route stops.' });
+  }
+
+  const stopId = parseInt(req.params.stopId, 10);
+  try {
+    db.run(`DELETE FROM bus_stops WHERE id = ?`, [stopId]);
+    return res.json({ success: true, message: 'Stop removed from route.' });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: 'Failed to delete stop: ' + err.message });
+  }
+});
+
+// ----------------------------------------------------------------------------
+// ASSIGNMENT MANAGEMENT (Driver, Route, Students)
+// ----------------------------------------------------------------------------
 router.post('/assign', (req, res) => {
   if (req.user.role !== 'SUPER_ADMIN') {
     return res.status(403).json({ success: false, error: 'Only Super Admin can assign transport.' });
@@ -570,6 +779,8 @@ router.post('/assign', (req, res) => {
       }
     }
 
+    auditService.log(req.user.id, req.user.role, 'ASSIGN_TRANSPORT', 'transport', busId.toString(), `Assigned transport to bus ${busId}`);
+
     return res.json({
       success: true,
       message: 'Transport assignment updated successfully.'
@@ -580,145 +791,190 @@ router.post('/assign', (req, res) => {
 });
 
 // ----------------------------------------------------------------------------
-// DEMO LIVE TRACKING SIMULATION CONTROLLER (Requirements 12, 13, 14, 15, 16)
+// DEMO LIVE TRACKING SIMULATOR CONTROLLER (Requirements 4, 5)
 // ----------------------------------------------------------------------------
 
-// POST /api/transport/demo-tracking/start - Start demo tracking for a bus
-router.post('/demo-tracking/start', (req, res) => {
+// Handler for starting demo tracking
+function handleStartTracking(req, res) {
   if (req.user.role !== 'SUPER_ADMIN') {
-    return res.status(403).json({ success: false, error: 'Only Super Admin can control demo tracking simulations.' });
+    return res.status(403).json({ success: false, error: 'Only Super Admin can control DEMO TRACKING.' });
   }
 
-  const { busId, routeId, speedMultiplier } = req.body;
+  const busId = req.params.id ? parseInt(req.params.id, 10) : parseInt(req.body.busId, 10);
+  const routeId = req.body.routeId ? parseInt(req.body.routeId, 10) : null;
+  const speed = parseInt(req.body.speedMultiplier, 10) || parseInt(req.body.speed, 10) || 1;
+
   if (!busId) {
-    return res.status(400).json({ success: false, error: 'Bus ID required.' });
+    return res.status(400).json({ success: false, error: 'Bus ID is required.' });
   }
 
-  const bus = db.get(`SELECT * FROM buses WHERE id = ?`, [busId]);
-  if (!bus) {
-    return res.status(404).json({ success: false, error: 'Bus not found.' });
+  try {
+    const state = demoGpsSimulator.start(busId, routeId, speed);
+    auditService.log(req.user.id, req.user.role, 'DEMO_TRACKING_START', 'transport', busId.toString(), `Started DEMO TRACKING on Bus ${busId} (${speed}x speed)`);
+
+    return res.json({
+      success: true,
+      message: `DEMO TRACKING started at ${speed}x speed. Position is advancing continuously along route stops.`,
+      tracking: state
+    });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: err.message });
   }
+}
 
-  // Find assigned or specified route
-  const assignedRoute = routeId
-    ? db.get(`SELECT * FROM bus_routes WHERE id = ?`, [routeId])
-    : db.get(`SELECT * FROM bus_routes WHERE assigned_bus_id = ?`, [busId]) || db.get(`SELECT * FROM bus_routes LIMIT 1`);
+router.post('/demo-tracking/start', handleStartTracking);
+router.post('/bus/:id/demo/start', handleStartTracking);
+router.post('/buses/:id/demo/start', handleStartTracking);
 
-  if (!assignedRoute) {
-    return res.status(400).json({ success: false, error: 'No route configured for demo tracking.' });
-  }
-
-  const stops = db.query(`SELECT * FROM bus_stops WHERE route_id = ? ORDER BY stop_order ASC`, [assignedRoute.id]);
-  const initialStop = stops.length > 0 ? stops[0] : { stop_name: 'Start', latitude: 11.3530, longitude: 76.7959 };
-  const nextStop = stops.length > 1 ? stops[1] : initialStop;
-
-  const speed = parseInt(speedMultiplier, 10) || 1;
-
-  db.run(
-    `INSERT OR REPLACE INTO bus_tracking_state
-     (bus_id, route_id, driver_id, tracking_mode, is_active, speed_multiplier, current_stop_index, progress_percent, latitude, longitude, current_stop_name, next_stop_name, eta_minutes, status_text, last_updated)
-     VALUES (?, ?, ?, 'DEMO', 1, ?, 0, 0.05, ?, ?, ?, ?, ?, 'En Route (Demo Tracking Active)', CURRENT_TIMESTAMP)`,
-    [
-      busId,
-      assignedRoute.id,
-      bus.driver_id || null,
-      speed,
-      initialStop.latitude,
-      initialStop.longitude,
-      initialStop.stop_name,
-      nextStop.stop_name,
-      assignedRoute.eta_minutes || 15
-    ]
-  );
-
-  auditService.log(req.user.id, req.user.role, 'DEMO_TRACKING_START', 'transport', busId.toString(), `Started Demo Tracking for bus ${bus.bus_number}`);
-
-  return res.json({
-    success: true,
-    message: `Demo Tracking activated for ${bus.bus_number} on ${assignedRoute.name}.`,
-    busId,
-    routeName: assignedRoute.name,
-    speedMultiplier: speed,
-    mode: 'DEMO'
-  });
-});
-
-// POST /api/transport/demo-tracking/stop - Stop demo tracking
-router.post('/demo-tracking/stop', (req, res) => {
+// Handler for pausing demo tracking
+function handlePauseTracking(req, res) {
   if (req.user.role !== 'SUPER_ADMIN') {
-    return res.status(403).json({ success: false, error: 'Only Super Admin can control demo tracking simulations.' });
+    return res.status(403).json({ success: false, error: 'Only Super Admin can control DEMO TRACKING.' });
   }
 
-  const { busId } = req.body;
+  const busId = req.params.id ? parseInt(req.params.id, 10) : parseInt(req.body.busId, 10);
   if (!busId) {
-    return res.status(400).json({ success: false, error: 'Bus ID required.' });
+    return res.status(400).json({ success: false, error: 'Bus ID is required.' });
   }
 
-  db.run(
-    `UPDATE bus_tracking_state
-     SET is_active = 0, status_text = 'Stationary (Demo Paused)', last_updated = CURRENT_TIMESTAMP
-     WHERE bus_id = ?`,
-    [busId]
-  );
+  try {
+    const state = demoGpsSimulator.pause(busId);
+    auditService.log(req.user.id, req.user.role, 'DEMO_TRACKING_PAUSE', 'transport', busId.toString(), `Paused DEMO TRACKING on Bus ${busId}`);
 
-  return res.json({
-    success: true,
-    message: 'Demo Tracking stopped.',
-    busId
-  });
-});
+    return res.json({
+      success: true,
+      message: 'DEMO TRACKING paused. Current coordinates and progress are preserved.',
+      tracking: state
+    });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: err.message });
+  }
+}
 
-// POST /api/transport/demo-tracking/reset - Reset demo tracking to initial stop
-router.post('/demo-tracking/reset', (req, res) => {
+router.post('/demo-tracking/pause', handlePauseTracking);
+router.post('/bus/:id/demo/pause', handlePauseTracking);
+router.post('/buses/:id/demo/pause', handlePauseTracking);
+
+// Handler for resuming demo tracking
+function handleResumeTracking(req, res) {
   if (req.user.role !== 'SUPER_ADMIN') {
-    return res.status(403).json({ success: false, error: 'Only Super Admin can control demo tracking simulations.' });
+    return res.status(403).json({ success: false, error: 'Only Super Admin can control DEMO TRACKING.' });
   }
 
-  const { busId } = req.body;
+  const busId = req.params.id ? parseInt(req.params.id, 10) : parseInt(req.body.busId, 10);
   if (!busId) {
-    return res.status(400).json({ success: false, error: 'Bus ID required.' });
+    return res.status(400).json({ success: false, error: 'Bus ID is required.' });
   }
 
-  const state = db.get(`SELECT * FROM bus_tracking_state WHERE bus_id = ?`, [busId]);
-  if (!state || !state.route_id) {
-    return res.status(400).json({ success: false, error: 'Tracking state not found for this bus.' });
+  try {
+    const state = demoGpsSimulator.resume(busId);
+    auditService.log(req.user.id, req.user.role, 'DEMO_TRACKING_RESUME', 'transport', busId.toString(), `Resumed DEMO TRACKING on Bus ${busId}`);
+
+    return res.json({
+      success: true,
+      message: 'DEMO TRACKING resumed from current position.',
+      tracking: state
+    });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: err.message });
+  }
+}
+
+router.post('/demo-tracking/resume', handleResumeTracking);
+router.post('/bus/:id/demo/resume', handleResumeTracking);
+router.post('/buses/:id/demo/resume', handleResumeTracking);
+
+// Handler for stopping demo tracking
+function handleStopTracking(req, res) {
+  if (req.user.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ success: false, error: 'Only Super Admin can control DEMO TRACKING.' });
   }
 
-  const stops = db.query(`SELECT * FROM bus_stops WHERE route_id = ? ORDER BY stop_order ASC`, [state.route_id]);
-  const firstStop = stops[0] || { stop_name: 'Start', latitude: 11.3530, longitude: 76.7959 };
-  const secondStop = stops[1] || firstStop;
+  const busId = req.params.id ? parseInt(req.params.id, 10) : parseInt(req.body.busId, 10);
+  if (!busId) {
+    return res.status(400).json({ success: false, error: 'Bus ID is required.' });
+  }
 
-  db.run(
-    `UPDATE bus_tracking_state
-     SET progress_percent = 0.0, current_stop_index = 0,
-         latitude = ?, longitude = ?,
-         current_stop_name = ?, next_stop_name = ?,
-         status_text = 'Stationary (Reset to Start)', last_updated = CURRENT_TIMESTAMP
-     WHERE bus_id = ?`,
-    [firstStop.latitude, firstStop.longitude, firstStop.stop_name, secondStop.stop_name, busId]
-  );
+  try {
+    const state = demoGpsSimulator.stop(busId);
+    auditService.log(req.user.id, req.user.role, 'DEMO_TRACKING_STOP', 'transport', busId.toString(), `Stopped DEMO TRACKING on Bus ${busId}`);
 
-  return res.json({
-    success: true,
-    message: 'Demo Tracking reset to route start point.',
-    busId
-  });
-});
+    return res.json({
+      success: true,
+      message: 'DEMO TRACKING stopped.',
+      tracking: state
+    });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: err.message });
+  }
+}
 
-// POST /api/transport/demo-tracking/step - Explicitly step simulation forward
-router.post('/demo-tracking/step', (req, res) => {
-  const { busId } = req.body;
-  const targetBusId = busId || 1;
-  const updated = updateDemoTrackingPosition(targetBusId);
+router.post('/demo-tracking/stop', handleStopTracking);
+router.post('/bus/:id/demo/stop', handleStopTracking);
+router.post('/buses/:id/demo/stop', handleStopTracking);
 
-  return res.json({
-    success: true,
-    state: updated
-  });
-});
+// Handler for resetting demo tracking to first stop
+function handleResetTracking(req, res) {
+  if (req.user.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ success: false, error: 'Only Super Admin can control DEMO TRACKING.' });
+  }
 
+  const busId = req.params.id ? parseInt(req.params.id, 10) : parseInt(req.body.busId, 10);
+  if (!busId) {
+    return res.status(400).json({ success: false, error: 'Bus ID is required.' });
+  }
+
+  try {
+    const state = demoGpsSimulator.reset(busId);
+    auditService.log(req.user.id, req.user.role, 'DEMO_TRACKING_RESET', 'transport', busId.toString(), `Reset DEMO TRACKING on Bus ${busId} to route start point`);
+
+    return res.json({
+      success: true,
+      message: 'DEMO TRACKING reset to the route starting depot.',
+      tracking: state
+    });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: err.message });
+  }
+}
+
+router.post('/demo-tracking/reset', handleResetTracking);
+router.post('/bus/:id/demo/reset', handleResetTracking);
+router.post('/buses/:id/demo/reset', handleResetTracking);
+
+// Handler for configuring demo simulation speed
+function handleSetSpeed(req, res) {
+  if (req.user.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ success: false, error: 'Only Super Admin can control DEMO TRACKING speed.' });
+  }
+
+  const busId = req.params.id ? parseInt(req.params.id, 10) : parseInt(req.body.busId, 10);
+  const speed = parseInt(req.body.speedMultiplier, 10) || parseInt(req.body.speed, 10) || 1;
+
+  if (!busId) {
+    return res.status(400).json({ success: false, error: 'Bus ID is required.' });
+  }
+
+  try {
+    const state = demoGpsSimulator.setSpeed(busId, speed);
+    return res.json({
+      success: true,
+      message: `DEMO TRACKING speed updated to ${speed}x.`,
+      tracking: state
+    });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: err.message });
+  }
+}
+
+router.post('/demo-tracking/speed', handleSetSpeed);
+router.post('/bus/:id/demo/speed', handleSetSpeed);
+router.post('/buses/:id/demo/speed', handleSetSpeed);
+
+// ----------------------------------------------------------------------------
 // GET /api/transport/bus/:id/tracking - Detailed live tracking for a specific bus
-// PARENT BUS SECURITY (Section 15): Parents can ONLY view tracking for buses assigned to their child!
+// PARENT BUS SECURITY: Parents can ONLY view tracking for buses assigned to their child!
+// ----------------------------------------------------------------------------
 router.get('/bus/:id/tracking', (req, res) => {
   const busId = parseInt(req.params.id, 10);
   const role = req.user.role;
@@ -750,11 +1006,14 @@ router.get('/bus/:id/tracking', (req, res) => {
     return res.status(404).json({ success: false, error: 'Bus not found.' });
   }
 
-  const trackingState = updateDemoTrackingPosition(busId);
+  const trackingState = demoGpsSimulator.getState(busId) || db.get(`SELECT * FROM bus_tracking_state WHERE bus_id = ?`, [busId]);
   const gpsStatus = getGpsProviderStatus();
 
   const driver = db.get(`SELECT * FROM drivers WHERE assigned_bus_id = ?`, [busId]);
-  const route = db.get(`SELECT * FROM bus_routes WHERE assigned_bus_id = ? OR id = ?`, [busId, trackingState ? trackingState.route_id : 1]);
+  const route = db.get(
+    `SELECT * FROM bus_routes WHERE assigned_bus_id = ? OR id = ?`,
+    [busId, trackingState && trackingState.route_id ? trackingState.route_id : 1]
+  );
   const stops = route ? db.query(`SELECT * FROM bus_stops WHERE route_id = ? ORDER BY stop_order ASC`, [route.id]) : [];
 
   const isDemoActive = trackingState && trackingState.is_active === 1;
@@ -785,18 +1044,20 @@ router.get('/bus/:id/tracking', (req, res) => {
       stops
     } : null,
     tracking: {
+      busId: bus.id,
+      routeId: route ? route.id : 1,
       trackingMode,
-      trackingModeLabel: trackingMode === 'DEMO' ? 'Demo Tracking' : 'Live GPS',
+      trackingModeLabel: trackingMode === 'DEMO' ? 'DEMO TRACKING' : 'LIVE GPS',
       isDemoActive,
       isGpsConnected: gpsStatus.isConfigured,
-      latitude: trackingState ? trackingState.latitude : (stops[0] ? stops[0].latitude : 11.3530),
-      longitude: trackingState ? trackingState.longitude : (stops[0] ? stops[0].longitude : 76.7959),
-      currentStopName: trackingState ? trackingState.current_stop_name : 'Depot',
-      nextStopName: trackingState ? trackingState.next_stop_name : 'Destination',
-      etaMinutes: trackingState ? trackingState.eta_minutes : (route ? route.eta_minutes : 15),
-      progressPercent: trackingState ? trackingState.progress_percent : 0.0,
+      latitude: trackingState && trackingState.latitude ? trackingState.latitude : (stops[0] ? stops[0].latitude : 11.3530),
+      longitude: trackingState && trackingState.longitude ? trackingState.longitude : (stops[0] ? stops[0].longitude : 76.7959),
+      currentStopName: trackingState && trackingState.current_stop_name ? trackingState.current_stop_name : 'Depot',
+      nextStopName: trackingState && trackingState.next_stop_name ? trackingState.next_stop_name : 'Destination',
+      etaMinutes: trackingState && trackingState.eta_minutes ? trackingState.eta_minutes : (route ? route.eta_minutes : 15),
+      progressPercent: trackingState && trackingState.progress_percent !== undefined ? trackingState.progress_percent : 0.0,
       speedMultiplier: trackingState ? trackingState.speed_multiplier : 1,
-      statusText: trackingState ? trackingState.status_text : 'Stationary',
+      statusText: trackingState && trackingState.status_text ? trackingState.status_text : 'Stationary',
       lastUpdated: (trackingState && trackingState.last_updated) || new Date().toISOString()
     }
   });

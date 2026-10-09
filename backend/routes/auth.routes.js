@@ -485,7 +485,8 @@ function normalizeMobile(phone) {
 }
 
 router.post('/parent/login', authLimiter, (req, res) => {
-  const rawMobile = req.body.mobile || req.body.mobile_number || req.body.parentMobile || req.body.phone;
+  const rawMobile = req.body.mobile || req.body.mobile_number || req.body.parentMobile || req.body.phone ||
+    (/^\d{10}$/.test(String(req.body.admissionNo || '').trim()) ? req.body.admissionNo : null);
   const { admissionNo, password } = req.body;
 
   if (!rawMobile) {

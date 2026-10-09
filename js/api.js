@@ -399,6 +399,10 @@
     },
 
     async loginParent(admissionNo, parentMobile, password = null) {
+      if (!parentMobile && admissionNo && /^\d{10}$/.test(String(admissionNo).replace(/\D/g, ''))) {
+        parentMobile = admissionNo;
+        admissionNo = null;
+      }
       if (isStaticMode) {
         const data = ClientAuth.loginParent(admissionNo, parentMobile, password);
         return this.applyAuthResult(data);
@@ -406,7 +410,7 @@
       try {
         const data = await this.request('/auth/parent/login', {
           method: 'POST',
-          body: JSON.stringify({ admissionNo, parentMobile, password })
+          body: JSON.stringify({ admissionNo, parentMobile, mobile: parentMobile, password })
         });
         return this.applyAuthResult(data);
       } catch (err) {

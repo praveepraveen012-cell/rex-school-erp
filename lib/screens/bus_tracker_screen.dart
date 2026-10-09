@@ -209,7 +209,38 @@ class _BusTrackerScreenState extends State<BusTrackerScreen> {
               ),
             ],
           ),
-        ),
+        // Multi-child Selector (Requirement 6: Support parents with multiple children)
+        if (erp.students.length > 1)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: erp.students.map((student) {
+                  final isSelected = erp.currentStudent.id == student.id;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text("${student.name} (${student.grade})"),
+                      selected: isSelected,
+                      selectedColor: const Color(0xFF1E3A8A),
+                      labelStyle: TextStyle(
+                        color: isSelected ? Colors.white : Colors.black87,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 12,
+                      ),
+                      onSelected: (selected) {
+                        if (selected && !isSelected) {
+                          erp.selectStudent(student);
+                          _fetchTelemetry();
+                        }
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
 
         // Child & Bus Assignment Header Card
         Container(
@@ -592,61 +623,90 @@ class _BusTrackerScreenState extends State<BusTrackerScreen> {
 
                 const SizedBox(height: 14),
 
-                // Start / Stop / Reset Buttons
-                Row(
+                // Start / Pause / Resume / Stop / Reset Buttons
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _isDemoActiveOnAdmin
-                            ? null
-                            : () async {
-                                await ApiService.startDemoTracking(_selectedAdminBusId, speed: _selectedSpeed);
-                                setState(() => _isDemoActiveOnAdmin = true);
-                                _fetchTelemetry();
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Demo Tracking Started! Moving continuously along route stops.")),
-                                  );
-                                }
-                              },
-                        icon: const Icon(Icons.play_arrow_rounded),
-                        label: const Text("Start Demo"),
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF047857), foregroundColor: Colors.white),
-                      ),
+                    ElevatedButton.icon(
+                      onPressed: _isDemoActiveOnAdmin
+                          ? null
+                          : () async {
+                              await ApiService.startDemoTracking(_selectedAdminBusId, speed: _selectedSpeed);
+                              setState(() => _isDemoActiveOnAdmin = true);
+                              _fetchTelemetry();
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("DEMO TRACKING Started! Moving continuously along route stops.")),
+                                );
+                              }
+                            },
+                      icon: const Icon(Icons.play_arrow_rounded),
+                      label: const Text("Start Demo"),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF047857), foregroundColor: Colors.white),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: !_isDemoActiveOnAdmin
-                            ? null
-                            : () async {
-                                await ApiService.stopDemoTracking(_selectedAdminBusId);
-                                setState(() => _isDemoActiveOnAdmin = false);
-                                _fetchTelemetry();
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Demo Tracking Stopped.")),
-                                  );
-                                }
-                              },
-                        icon: const Icon(Icons.pause_rounded),
-                        label: const Text("Stop Demo"),
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626), foregroundColor: Colors.white),
-                      ),
+                    ElevatedButton.icon(
+                      onPressed: !_isDemoActiveOnAdmin
+                          ? null
+                          : () async {
+                              await ApiService.pauseDemoTracking(_selectedAdminBusId);
+                              setState(() => _isDemoActiveOnAdmin = false);
+                              _fetchTelemetry();
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("DEMO TRACKING Paused (Position preserved).")),
+                                );
+                              }
+                            },
+                      icon: const Icon(Icons.pause_circle_outline_rounded),
+                      label: const Text("Pause Demo"),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD97706), foregroundColor: Colors.white),
                     ),
-                    const SizedBox(width: 8),
-                    OutlinedButton.icon(
+                    ElevatedButton.icon(
+                      onPressed: _isDemoActiveOnAdmin
+                          ? null
+                          : () async {
+                              await ApiService.resumeDemoTracking(_selectedAdminBusId);
+                              setState(() => _isDemoActiveOnAdmin = true);
+                              _fetchTelemetry();
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("DEMO TRACKING Resumed from current position.")),
+                                );
+                              }
+                            },
+                      icon: const Icon(Icons.play_circle_outline_rounded),
+                      label: const Text("Resume Demo"),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2563EB), foregroundColor: Colors.white),
+                    ),
+                    ElevatedButton.icon(
                       onPressed: () async {
-                        await ApiService.resetDemoTracking(_selectedAdminBusId);
+                        await ApiService.stopDemoTracking(_selectedAdminBusId);
+                        setState(() => _isDemoActiveOnAdmin = false);
                         _fetchTelemetry();
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Simulation reset to start point.")),
+                            const SnackBar(content: Text("DEMO TRACKING Stopped.")),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.stop_rounded),
+                      label: const Text("Stop Demo"),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626), foregroundColor: Colors.white),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        await ApiService.resetDemoTracking(_selectedAdminBusId);
+                        setState(() => _isDemoActiveOnAdmin = false);
+                        _fetchTelemetry();
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("DEMO TRACKING Reset to route starting depot.")),
                           );
                         }
                       },
                       icon: const Icon(Icons.replay_rounded, size: 16),
-                      label: const Text("Reset"),
+                      label: const Text("Reset Depot"),
                     ),
                   ],
                 ),

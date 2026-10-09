@@ -91,6 +91,14 @@ jobs:
           sed -i 's/signingConfig = signingConfigs.release/signingConfig = signingConfigs.debug/g' android/app/build.gradle || true
           sed -i 's/signingConfig signingConfigs.release/signingConfig signingConfigs.debug/g' android/app/build.gradle || true
 
+          # 8b. Ensure Google Maps SDK API key placeholder and meta-data are present
+          if ! grep -q "MAPS_API_KEY" android/app/build.gradle; then
+            sed -i '/defaultConfig {/a \        manifestPlaceholders = [MAPS_API_KEY: (project.findProperty("MAPS_API_KEY") ?: System.getenv("GOOGLE_MAPS_ANDROID_API_KEY") ?: "AIzaSyRexManagementDemoAndroidKey7788")]' android/app/build.gradle || true
+          fi
+          if ! grep -q "com.google.android.geo.API_KEY" android/app/src/main/AndroidManifest.xml; then
+            sed -i '/<\/application>/i \        <meta-data android:name="com.google.android.geo.API_KEY" android:value="${MAPS_API_KEY}"/>' android/app/src/main/AndroidManifest.xml || true
+          fi
+
           # 9. Verify generated wrapper files and styles exist
           echo "=== Android files verified ==="
           ls -la android/gradlew

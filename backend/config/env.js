@@ -26,7 +26,9 @@ const config = {
   autoSendMinute: parseInt(process.env.AUTO_SEND_MINUTE, 10) || 0,
   whatsappAccessToken: process.env.WHATSAPP_ACCESS_TOKEN || '',
   whatsappPhoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || '',
-  whatsappBusinessAccountId: process.env.WHATSAPP_BUSINESS_ACCOUNT_ID || ''
+  whatsappBusinessAccountId: process.env.WHATSAPP_BUSINESS_ACCOUNT_ID || '',
+  googleMapsWebApiKey: process.env.GOOGLE_MAPS_WEB_API_KEY || process.env.GOOGLE_MAPS_API_KEY || '',
+  googleMapsAndroidApiKey: process.env.GOOGLE_MAPS_ANDROID_API_KEY || ''
 };
 
 module.exports = config;
