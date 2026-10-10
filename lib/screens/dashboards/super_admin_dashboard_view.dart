@@ -333,7 +333,7 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
             ),
             const SizedBox(height: 12),
             GridView.count(
-              crossAxisCount: 3,
+              crossAxisCount: MediaQuery.of(context).size.width > 768 ? 5 : (MediaQuery.of(context).size.width > 480 ? 4 : 3),
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
               shrinkWrap: true,
