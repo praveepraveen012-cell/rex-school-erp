@@ -80,14 +80,19 @@ jobs:
           echo "Starting Flutter iOS release build..."
           flutter build ios --release --no-codesign
           echo "=== iOS built successfully ==="
-          ls -lh build/ios/iphoneos/
+          ls -R build/ios/ || true
 
       - name: Package iOS App for Testing
         run: |
           mkdir -p release-ios
-          cd build/ios/iphoneos
-          zip -r ../../../release-ios/RexManagementApp-iOS-Runner.zip Runner.app
-          cd ../../..
+          APP_PATH=$(find build/ios -type d -name "Runner.app" | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            APP_PATH=$(find build/ios -type d -name "*.app" | head -n 1)
+          fi
+          echo "Found iOS app bundle at: $APP_PATH"
+          APP_DIR=$(dirname "$APP_PATH")
+          APP_NAME=$(basename "$APP_PATH")
+          (cd "$APP_DIR" && zip -r "$GITHUB_WORKSPACE/release-ios/RexManagementApp-iOS-Runner.zip" "$APP_NAME")
           echo "=== Prepared iOS package ==="
           ls -lh release-ios/
 
