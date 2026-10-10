@@ -63,6 +63,13 @@ class RexSchoolERPApp extends StatelessWidget {
               textStyle: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
+          visualDensity: VisualDensity.adaptivePlatformDensity,
+          pageTransitionsTheme: const PageTransitionsTheme(
+            builders: {
+              TargetPlatform.android: ZoomPageTransitionsBuilder(),
+              TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+            },
+          ),
         ),
         // Authentication Gate: Always prompt for login unless already authenticated
         home: ApiService.isAuthenticated ? const MainNavigationScreen() : const LoginScreen(),

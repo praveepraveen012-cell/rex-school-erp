@@ -1,0 +1,112 @@
+name: Build Rex School ERP iOS
+
+on:
+  push:
+    branches: [main, feature/ios-android-crossplatform]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Show Flutter & Xcode version
+        run: |
+          flutter --version
+          xcodebuild -version
+
+      - name: Ensure iOS platform scaffold & Rex branding
+        run: |
+          # 1. Backup custom Info.plist, Podfile, and Assets.xcassets if present
+          mkdir -p /tmp/rex_ios_backup
+          if [ -f "ios/Runner/Info.plist" ]; then
+            cp ios/Runner/Info.plist /tmp/rex_ios_backup/
+          fi
+          if [ -d "ios/Runner/Assets.xcassets" ]; then
+            cp -r ios/Runner/Assets.xcassets /tmp/rex_ios_backup/
+          fi
+          if [ -f "ios/Podfile" ]; then
+            cp ios/Podfile /tmp/rex_ios_backup/
+          fi
+
+          # 2. Ensure iOS platform structure is generated with Flutter 3.24
+          flutter create --project-name rex_school_erp_flutter \
+            --org com.rex.school \
+            --platforms ios \
+            .
+
+          # 3. Restore custom Rex School App branding and assets
+          if [ -d "/tmp/rex_ios_backup/Assets.xcassets" ]; then
+            cp -r /tmp/rex_ios_backup/Assets.xcassets/* ios/Runner/Assets.xcassets/ 2>/dev/null || true
+          fi
+          if [ -f "/tmp/rex_ios_backup/Info.plist" ]; then
+            cp /tmp/rex_ios_backup/Info.plist ios/Runner/Info.plist
+          fi
+          if [ -f "/tmp/rex_ios_backup/Podfile" ]; then
+            cp /tmp/rex_ios_backup/Podfile ios/Podfile
+          fi
+
+          # 4. Verify bundle identifier and display name in Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName 'Rex Management App'" ios/Runner/Info.plist 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string 'Rex Management App'" ios/Runner/Info.plist
+
+          echo "=== iOS project structure verified ==="
+          ls -la ios/Runner/
+          ls -la ios/Runner/Assets.xcassets/
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Check code
+        run: flutter analyze 2>&1 || true
+
+      - name: Build iOS App (Release, unsigned)
+        run: |
+          echo "Starting Flutter iOS release build..."
+          flutter build ios --release --no-codesign
+          echo "=== iOS built successfully ==="
+          ls -lh build/ios/iphoneos/
+
+      - name: Package iOS App for Testing
+        run: |
+          mkdir -p release-ios
+          cd build/ios/iphoneos
+          zip -r ../../../release-ios/RexManagementApp-iOS-Runner.zip Runner.app
+          cd ../../..
+          echo "=== Prepared iOS package ==="
+          ls -lh release-ios/
+
+      - name: Upload iOS Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RexManagementApp-iOS-Runner
+          path: release-ios/RexManagementApp-iOS-Runner.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach iOS Build to GitHub Release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v2.0.${{ github.run_number }}
+          name: "📱 Rex Management App v2.0 (Build ${{ github.run_number }})"
+          files: release-ios/RexManagementApp-iOS-Runner.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

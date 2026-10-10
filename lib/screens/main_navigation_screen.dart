@@ -489,7 +489,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             // Drawer Header - Center Aligned Regal Presentation
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 48, 20, 20),
+              padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 16, 20, 20),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Color(0xFF0F172A), Color(0xFF1E3A8A)],
