@@ -199,7 +199,7 @@ router.get('/payroll/payslip/:id', (req, res) => {
 
   return res.json({
     success: true,
-    school: 'Rex Senior Secondary School, Ootacamund',
+    school: (req.school?.display_name || req.school?.name || 'Grexotix Partner Institution'),
     payslip: {
       payslipRef: payslip.payslip_ref,
       employeeName: payslip.teacher_name,

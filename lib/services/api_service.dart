@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
-/// Production-ready API service connecting Flutter App to the Rex Management Backend
+/// Production-ready API service connecting Flutter App to the Grexotix School Management Backend
 /// Features seamless resilient offline fallback so the mobile app always works even on cellular data
 class ApiService {
   // Configurable base URL: Defaults to production cloud backend, overrideable via env or runtime settings
-  static String baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'https://rex-school-erp.onrender.com/api');
+  static String baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000/api');
 
   static String? _authToken;
   static Map<String, dynamic>? _currentUser;
@@ -56,8 +56,8 @@ class ApiService {
         return {
           'ok': true,
           'latencyMs': stopwatch.elapsedMilliseconds,
-          'service': data['service'] ?? 'Rex School ERP Backend',
-          'version': data['version'] ?? '2.4.0',
+          'service': data['service'] ?? 'Grexotix School Management Platform',
+          'version': data['version'] ?? '2.0.0',
         };
       }
       return {'ok': false, 'error': 'Server responded with status ${res.statusCode}'};

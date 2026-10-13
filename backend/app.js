@@ -27,6 +27,8 @@ const campusRoutes = require('./routes/campus.routes');
 const hrRoutes = require('./routes/hr.routes');
 const intelligenceRoutes = require('./routes/intelligence.routes');
 const aiRoutes = require('./routes/ai.routes');
+const platformRoutes = require('./routes/platform.routes');
+const schoolRoutes = require('./routes/school.routes');
 
 const app = express();
 
@@ -51,8 +53,10 @@ app.use((req, res, next) => {
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
-    service: 'Rex Senior Secondary School Management API',
-    version: '2.4.0',
+    service: 'Grexotix School Management Platform API',
+    brand: 'Product of Grexotix',
+    tagline: 'Empowering Schools with Smart Management',
+    version: '2.5.0-multitenant',
     timestamp: new Date().toISOString(),
     environment: config.nodeEnv
   });
@@ -83,6 +87,8 @@ app.use('/api/campus', campusRoutes);
 app.use('/api/hr', hrRoutes);
 app.use('/api/intelligence', intelligenceRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/platform', platformRoutes);
+app.use('/api/school', schoolRoutes);
 
 // Global Error Handler for API
 app.use('/api', errorHandler);

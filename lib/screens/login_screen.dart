@@ -63,8 +63,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             Expanded(
               child: Text(
                 isOffline
-                    ? "Welcome to Rex Management (Safe Standalone Engine active)"
-                    : "Connected to Rex Management Server (${role.toUpperCase()})",
+                    ? "Welcome to Grexotix School Management (Offline Engine active)"
+                    : "Connected to Grexotix School Management Server (${role.toUpperCase()})",
                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
               ),
             ),
@@ -342,7 +342,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      "Rex Management App",
+                      "Grexotix Platform",
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -360,16 +360,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               ),
 
               // ================================================================
-              // MAGNIFICENT CENTERED REX SCHOOL CREST & PRESENTATION
+              // OFFICIAL GREXOTIX BRANDING HEADER (LOGO ON PURE WHITE)
               // ================================================================
               Center(
                 child: Container(
                   width: double.infinity,
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF1E3A8A), Color(0xFF0F172A)],
+                      colors: [Color(0xFF1E1B4B), Color(0xFF0F172A)],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                     ),
@@ -387,65 +387,55 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Centered Pure White Emblem Badge with Golden Halo
+                      // Official Grexotix Logo on Pure White Container
                       Container(
-                        width: 86,
-                        height: 86,
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
+                          color: const Color(0xFFFFFFFF),
+                          borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(0.25),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
-                            BoxShadow(
-                              color: const Color(0xFFF59E0B).withOpacity(0.38),
-                              blurRadius: 20,
-                              spreadRadius: 2,
-                            ),
                           ],
                         ),
-                        child: Center(
-                          child: Image.asset(
-                            'assets/rex_emblem.png',
-                            height: 62,
-                            width: 62,
-                            fit: BoxFit.contain,
-                            alignment: Alignment.center,
-                            errorBuilder: (ctx, err, stack) => const Icon(
-                              Icons.school,
-                              size: 48,
-                              color: Color(0xFF1E3A8A),
-                            ),
+                        child: Image.asset(
+                          'assets/grexotix_logo.png',
+                          height: 44,
+                          fit: BoxFit.contain,
+                          alignment: Alignment.center,
+                          errorBuilder: (ctx, err, stack) => const Icon(
+                            Icons.school,
+                            size: 44,
+                            color: Color(0xFF7928CA),
                           ),
                         ),
                       ),
                       const SizedBox(height: 14),
                       const Text(
-                        "CHRISTUS REX",
+                        "Grexotix School Management",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Color(0xFFF59E0B),
-                          fontSize: 21,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 2.2,
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.3,
                         ),
                       ),
                       const SizedBox(height: 4),
                       const Text(
-                        "Senior Secondary School, Ootacamund",
+                        "Empowering Schools with Smart Management",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
+                          color: Color(0xFFC084FC),
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.2,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
@@ -453,7 +443,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Text(
-                          "Catholic Diocese of Ootacamund • CBSE #1930000",
+                          "Multi-School SaaS Platform • Product of Grexotix",
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Color(0xFFE2E8F0),

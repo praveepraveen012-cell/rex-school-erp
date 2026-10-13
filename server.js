@@ -19,10 +19,10 @@ const homeworkService = require('./backend/services/homeworkService');
 
 const server = app.listen(config.port, () => {
   console.log('================================================================');
-  console.log(`🚀 Rex Senior Secondary School Management Platform`);
+  console.log(`🚀 Grexotix School Management Platform`);
   console.log(`🌐 Server running at: http://localhost:${config.port}`);
   console.log(`📡 API Base URL:       http://localhost:${config.port}/api`);
-  console.log(`🛡️  Role Access:        Super Admin, Teacher (OTP), Parent`);
+  console.log(`🛡️  Role Access:        Platform Admin, School Super Admin, Teacher (OTP), Parent`);
   console.log(`💾 Database:           SQLite (Relational, Foreign Keys ON)`);
   console.log(`⏰ Timezone:           ${config.schoolTimezone} (5 PM Auto-Send active)`);
   console.log('================================================================');

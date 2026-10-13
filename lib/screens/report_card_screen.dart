@@ -111,22 +111,26 @@ class ReportCardScreen extends StatelessWidget {
               Center(
                 child: Column(
                   children: [
-                    Image.asset(
-                      'assets/rex_emblem.png',
-                      height: 54,
-                      errorBuilder: (ctx, err, stack) => Image.asset(
-                        'assets/logo.png',
-                        height: 54,
-                        errorBuilder: (_, __, ___) => const Icon(
+                    Container(
+                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Image.asset(
+                        'assets/grexotix_logo.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (ctx, err, stack) => const Icon(
                           Icons.school,
-                          size: 48,
-                          color: Color(0xFF1E3A8A),
+                          size: 44,
+                          color: Color(0xFF7928CA),
                         ),
                       ),
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      "REX SENIOR SECONDARY SCHOOL",
+                      "GREXOTIX SMART CAMPUS",
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -135,7 +139,7 @@ class ReportCardScreen extends StatelessWidget {
                       ),
                     ),
                     const Text(
-                      "OOTACAMUND, THE NILGIRIS - 643001, TAMIL NADU",
+                      "AFFILIATED SECONDARY EDUCATION INSTITUTION",
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
@@ -145,7 +149,7 @@ class ReportCardScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     const Text(
-                      "(Affiliated to Central Board of Secondary Education, New Delhi)",
+                      "(Powered by Grexotix School Management Platform)",
                       style: TextStyle(
                         fontSize: 10,
                         fontStyle: FontStyle.italic,
@@ -162,7 +166,7 @@ class ReportCardScreen extends StatelessWidget {
                         border: Border.all(color: const Color(0xFFBFDBFE)),
                       ),
                       child: const Text(
-                        "CBSE AFFILIATION NO. 1930000 • SCHOOL CODE: 55120",
+                        "VERIFIED INSTITUTIONAL WORKSPACE • AY: 2026-27",
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -397,7 +401,7 @@ class ReportCardScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       const Text(
-                        "Rex SSS Ootacamund",
+                        "Verified Institutional Seal",
                         style: TextStyle(fontSize: 9, color: Color(0xFF94A3B8)),
                       ),
                     ],
@@ -405,7 +409,7 @@ class ReportCardScreen extends StatelessWidget {
                   Column(
                     children: const [
                       Text(
-                        "Rev. Fr. Principal, M.A., Ph.D.",
+                        "Authorized Principal Signatory",
                         style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,

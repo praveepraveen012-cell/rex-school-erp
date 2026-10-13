@@ -170,7 +170,7 @@ router.get('/my-bus', (req, res) => {
         driverMobile: assignment.driver_mobile || '9443210045',
         driverLicense: assignment.license_no || 'TN43-2015',
         trackingMode: trackingMode,
-        trackingModeLabel: trackingMode === 'DEMO' ? 'DEMO TRACKING' : 'LIVE GPS',
+        trackingModeLabel: trackingMode === 'DEMO' ? 'Demo Tracking' : 'Live GPS',
         isDemoActive: isDemoActive,
         isGpsConnected: gpsStatus.isConfigured,
         speedMultiplier: trackingState ? trackingState.speed_multiplier : 1,
@@ -815,6 +815,7 @@ function handleStartTracking(req, res) {
     return res.json({
       success: true,
       message: `DEMO TRACKING started at ${speed}x speed. Position is advancing continuously along route stops.`,
+      mode: 'DEMO',
       tracking: state
     });
   } catch (err) {
@@ -825,6 +826,22 @@ function handleStartTracking(req, res) {
 router.post('/demo-tracking/start', handleStartTracking);
 router.post('/bus/:id/demo/start', handleStartTracking);
 router.post('/buses/:id/demo/start', handleStartTracking);
+
+router.post('/demo-tracking/step', (req, res) => {
+  const busId = req.params.id ? parseInt(req.params.id, 10) : parseInt(req.body.busId, 10);
+  if (!busId) {
+    return res.status(400).json({ success: false, error: 'Bus ID is required.' });
+  }
+  const state = db.get(`SELECT * FROM bus_tracking_state WHERE bus_id = ?`, [busId]);
+  const routeId = (state && state.route_id) ? state.route_id : 1;
+  demoGpsSimulator.tick(busId, routeId, 0.05, 15);
+  const updatedState = demoGpsSimulator.getState(busId);
+  return res.json({
+    success: true,
+    state: updatedState,
+    tracking: updatedState
+  });
+});
 
 // Handler for pausing demo tracking
 function handlePauseTracking(req, res) {
@@ -1047,7 +1064,7 @@ router.get('/bus/:id/tracking', (req, res) => {
       busId: bus.id,
       routeId: route ? route.id : 1,
       trackingMode,
-      trackingModeLabel: trackingMode === 'DEMO' ? 'DEMO TRACKING' : 'LIVE GPS',
+      trackingModeLabel: trackingMode === 'DEMO' ? 'Demo Tracking' : 'Live GPS',
       isDemoActive,
       isGpsConnected: gpsStatus.isConfigured,
       latitude: trackingState && trackingState.latitude ? trackingState.latitude : (stops[0] ? stops[0].latitude : 11.3530),

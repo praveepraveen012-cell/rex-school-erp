@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Rex Management App</string>
+	<string>Grexotix School Management</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Rex Management App</string>
+	<string>Grexotix School Management</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -51,10 +51,10 @@
 	<true/>
 	<!-- Privacy Permissions for iOS -->
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Rex Management App requires location access while using the app to show your proximity to assigned school bus stops on the live route map.</string>
+	<string>Grexotix School Management Platform requires location access while using the app to show your proximity to assigned school bus stops on the live route map.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Rex Management App requires camera access to take student profile pictures, scan identity QR codes, and upload assignment submissions.</string>
+	<string>Grexotix School Management Platform requires camera access to take student profile pictures, scan identity QR codes, and upload assignment submissions.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Rex Management App needs access to your photo library to attach documents, circular proofs, and homework files.</string>
+	<string>Grexotix School Management Platform needs access to your photo library to attach documents, circular proofs, and homework files.</string>
 </dict>
 </plist>

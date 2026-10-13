@@ -139,6 +139,17 @@ router.post(['/', '/login'], authLimiter, (req, res) => {
       }
     }
 
+    let school = null;
+    if (user.school_id) {
+      school = db.get(`SELECT id, code, name, display_name, status, logo_url, address, city, phone, email, website FROM schools WHERE id = ?`, [user.school_id]);
+      if (school && school.status === 'SUSPENDED') {
+        return res.status(403).json({
+          success: false,
+          error: 'This school workspace has been suspended. Please contact Grexotix Platform Support.'
+        });
+      }
+    }
+
     auditService.log({
       userId: user.id,
       userRole: user.role,
@@ -153,14 +164,18 @@ router.post(['/', '/login'], authLimiter, (req, res) => {
       message: 'Authenticated successfully.',
       token,
       role: user.role,
+      isPlatformAdmin: user.role === 'PLATFORM_ADMIN',
+      school,
+      schoolId: user.school_id,
       permissions: getRolePermissions(user.role),
       user: {
         id: user.id,
         username: user.username,
         email: user.email,
-        name: teacher ? teacher.name : (parent ? parent.name : (user.username === 'admin' ? 'Rev. Fr. Principal' : user.username)),
+        name: user.role === 'PLATFORM_ADMIN' ? 'Grexotix Platform Admin' : (teacher ? teacher.name : (parent ? parent.name : (school ? `${school.display_name} Administrator` : 'School Administrator'))),
         role: user.role,
-        status: user.status
+        status: user.status,
+        school_id: user.school_id
       },
       ...(teacher ? { teacher } : {}),
       ...(parent ? { parent, students: linkedStudents, children: linkedStudents, activeStudent: linkedStudents[0] } : {})
@@ -280,20 +295,20 @@ router.post('/admin/login', authLimiter, (req, res) => {
     });
   }
 
-  // Strict role check: Must be SUPER_ADMIN
-  if (user.role !== 'SUPER_ADMIN') {
+  // Role check: Must be SUPER_ADMIN or PLATFORM_ADMIN
+  if (user.role !== 'SUPER_ADMIN' && user.role !== 'PLATFORM_ADMIN') {
     auditService.log({
       userId: user.id,
       userRole: user.role,
       action: 'LOGIN_REJECTED_ROLE_MISMATCH',
       module: 'AUTH',
-      details: `User with role ${user.role} attempted Super Admin login`,
+      details: `User with role ${user.role} attempted Admin login`,
       ipAddress: req.ip
     });
 
     return res.status(403).json({
       success: false,
-      error: 'Access denied. Account does not have Super Admin privileges.'
+      error: 'Access denied. Account does not have administrative privileges.'
     });
   }
 
@@ -312,6 +327,17 @@ router.post('/admin/login', authLimiter, (req, res) => {
     });
   }
 
+  let school = null;
+  if (user.school_id) {
+    school = db.get(`SELECT id, code, name, display_name, status, logo_url, address, city, phone, email, website FROM schools WHERE id = ?`, [user.school_id]);
+    if (school && school.status === 'SUSPENDED') {
+      return res.status(403).json({
+        success: false,
+        error: 'This school workspace has been suspended. Please contact Grexotix Platform Support.'
+      });
+    }
+  }
+
   // Update last login
   db.run(`UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?`, [user.id]);
 
@@ -322,23 +348,27 @@ router.post('/admin/login', authLimiter, (req, res) => {
     userRole: user.role,
     action: 'ADMIN_LOGIN_SUCCESS',
     module: 'AUTH',
-    details: 'Super Admin logged in successfully',
+    details: `${user.role} (${user.username}) logged in successfully`,
     ipAddress: req.ip
   });
 
   return res.json({
     success: true,
-    message: 'Super Admin authenticated successfully.',
+    message: `${user.role === 'PLATFORM_ADMIN' ? 'Platform Administrator' : 'School Administrator'} authenticated successfully.`,
     token,
-    role: 'SUPER_ADMIN',
-    permissions: getRolePermissions('SUPER_ADMIN'),
+    role: user.role,
+    isPlatformAdmin: user.role === 'PLATFORM_ADMIN',
+    school,
+    schoolId: user.school_id,
+    permissions: getRolePermissions(user.role),
     user: {
       id: user.id,
       username: user.username,
       email: user.email,
-      name: 'Rev. Fr. Principal',
+      name: user.role === 'PLATFORM_ADMIN' ? 'Grexotix Platform Admin' : (school ? `${school.display_name} Administrator` : 'School Administrator'),
       role: user.role,
-      status: user.status
+      status: user.status,
+      school_id: user.school_id
     }
   });
 });
@@ -414,7 +444,7 @@ router.post(['/teacher/verify-otp', '/teacher/verify'], authLimiter, (req, res) 
 
   // Load teacher & user account
   const teacher = db.get(
-    `SELECT t.*, u.id as user_id, u.role, u.status as user_status
+    `SELECT t.*, u.id as user_id, u.role, u.status as user_status, u.school_id
      FROM teachers t
      JOIN users u ON t.user_id = u.id
      WHERE t.mobile = ?`,
@@ -426,6 +456,16 @@ router.post(['/teacher/verify-otp', '/teacher/verify'], authLimiter, (req, res) 
       success: false,
       error: 'Teacher account verification failed. Account does not match role.'
     });
+  }
+
+  if (teacher.school_id) {
+    const school = db.get(`SELECT status FROM schools WHERE id = ?`, [teacher.school_id]);
+    if (school && school.status === 'SUSPENDED') {
+      return res.status(403).json({
+        success: false,
+        error: 'This school workspace has been suspended. Please contact Grexotix Platform Support.'
+      });
+    }
   }
 
   // Fetch assigned classes
@@ -547,6 +587,18 @@ router.post('/parent/login', authLimiter, (req, res) => {
       success: false,
       error: 'Your parent account has been disabled. Please contact the school administration.'
     });
+  }
+
+  // Check if school is suspended
+  const parentUser = db.get(`SELECT school_id FROM users WHERE id = ?`, [parent.user_id]);
+  if (parentUser && parentUser.school_id) {
+    const school = db.get(`SELECT status FROM schools WHERE id = ?`, [parentUser.school_id]);
+    if (school && school.status === 'SUSPENDED') {
+      return res.status(403).json({
+        success: false,
+        error: 'This school workspace has been suspended. Please contact Grexotix Platform Support.'
+      });
+    }
   }
 
   // If password was provided, verify it (otherwise allow direct mobile authentication)

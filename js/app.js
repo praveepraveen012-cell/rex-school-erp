@@ -28,7 +28,9 @@ const App = {
     const isAuthed = window.RexApi ? window.RexApi.isAuthenticated() : false;
     if (isAuthed) {
       const user = window.RexApi.getUser();
-      if (user && user.role === 'TEACHER') {
+      if (user && user.role === 'PLATFORM_ADMIN') {
+        this.currentRole = 'platform_admin';
+      } else if (user && user.role === 'TEACHER') {
         this.currentRole = 'teacher';
       } else if (user && user.role === 'PARENT') {
         this.currentRole = 'parent';
@@ -186,20 +188,26 @@ const App = {
     const userRoleEl = document.getElementById('current-user-role');
     const userAvatarEl = document.getElementById('current-user-avatar');
 
-    if (role === 'admin') {
-      if (userNameEl) userNameEl.textContent = authUser ? (authUser.name || authUser.username) : "Rev. Fr. Principal";
-      if (userRoleEl) userRoleEl.textContent = "Principal / Super Admin";
-      if (userAvatarEl) userAvatarEl.textContent = "RP";
+    if (role === 'platform_admin' || role === 'PLATFORM_ADMIN') {
+      if (userNameEl) userNameEl.textContent = authUser ? (authUser.name || authUser.username) : "Grexotix Administrator";
+      if (userRoleEl) userRoleEl.textContent = "Platform Administrator";
+      if (userAvatarEl) userAvatarEl.textContent = "GX";
+      if (isUserAction) this.switchView('platform-admin');
+    } else if (role === 'admin') {
+      const schName = authUser?.school ? (authUser.school.display_name || authUser.school.name) : "School Admin";
+      if (userNameEl) userNameEl.textContent = authUser ? (authUser.name || authUser.username) : "School Super Admin";
+      if (userRoleEl) userRoleEl.textContent = `Super Admin (${schName})`;
+      if (userAvatarEl) userAvatarEl.textContent = "SA";
       if (isUserAction) this.switchView('dashboard');
     } else if (role === 'teacher') {
-      if (userNameEl) userNameEl.textContent = authUser ? (authUser.name || authUser.username) : "Mrs. Anitha Kumar";
+      if (userNameEl) userNameEl.textContent = authUser ? (authUser.name || authUser.username) : "Faculty Member";
       if (userRoleEl) userRoleEl.textContent = "Teacher / Faculty";
-      if (userAvatarEl) userAvatarEl.textContent = "AK";
+      if (userAvatarEl) userAvatarEl.textContent = "TC";
       if (isUserAction) this.switchView('attendance');
     } else if (role === 'parent') {
-      if (userNameEl) userNameEl.textContent = authUser ? (authUser.name || authUser.username) : "Mr. Rajesh Sharma";
-      if (userRoleEl) userRoleEl.textContent = "Parent (Aarav & Ananya Sharma)";
-      if (userAvatarEl) userAvatarEl.textContent = "RS";
+      if (userNameEl) userNameEl.textContent = authUser ? (authUser.name || authUser.username) : "Parent / Guardian";
+      if (userRoleEl) userRoleEl.textContent = "Parent Portal";
+      if (userAvatarEl) userAvatarEl.textContent = "PR";
       if (isUserAction) this.switchView('parent-portal');
     }
 
@@ -305,6 +313,8 @@ const App = {
     if (viewId === 'communication') CommunicationModule.render();
     if (viewId === 'parent-portal') this.renderParentPortal();
     if (viewId === 'transport' && window.TransportModule) TransportModule.renderAdminFleet('transport-view-content');
+    if (viewId === 'platform-admin' && window.PlatformModule) PlatformModule.renderPlatformAdminView();
+    if (viewId === 'dashboard' && window.PlatformModule) PlatformModule.checkAndRenderOnboardingBanner();
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   },

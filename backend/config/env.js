@@ -15,7 +15,7 @@ const config = {
   smsEnabled: process.env.SMS_ENABLED !== 'false',
   smsProvider: process.env.SMS_PROVIDER || 'mock',
   smsApiKey: process.env.SMS_API_KEY || '',
-  smsSenderId: process.env.SMS_SENDER_ID || 'REXSCH',
+  smsSenderId: process.env.SMS_SENDER_ID || 'GRXSCH',
   smsWebhookUrl: process.env.SMS_WEBHOOK_URL || '',
   twilioAccountSid: process.env.TWILIO_ACCOUNT_SID || '',
   twilioAuthToken: process.env.TWILIO_AUTH_TOKEN || '',

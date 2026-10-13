@@ -1,5 +1,5 @@
-// Rex Senior Secondary School - PWA Service Worker
-const CACHE_NAME = 'rex-school-v1';
+// Grexotix School Management Platform - PWA Service Worker
+const CACHE_NAME = 'grexotix-school-v1';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

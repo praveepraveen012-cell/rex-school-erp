@@ -83,7 +83,7 @@ class ProximityAlertDialog extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            "Rex SSS Automated Fleet Telemetry System",
+                            "Grexotix Automated Fleet Telemetry System",
                             style: TextStyle(
                               color: Color(0xFFB45309),
                               fontSize: 12,
@@ -258,7 +258,7 @@ class ProximityAlertDialog extends StatelessWidget {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            '"🚨 REX SSS 500m PROXIMITY ALERT: School bus ${route.vehicleNo} is $distanceMeters m away from ${stop.name} (approx. $etaMins mins). Please ensure Aarav Sharma is ready at the pickup boarding point! Driver: ${route.driverName} (${route.driverPhone})."',
+                            '"🚨 GREXOTIX 500m PROXIMITY ALERT: School bus ${route.vehicleNo} is $distanceMeters m away from ${stop.name} (approx. $etaMins mins). Please ensure Aarav Sharma is ready at the pickup boarding point! Driver: ${route.driverName} (${route.driverPhone})."',
                             style: const TextStyle(fontSize: 11, color: Colors.black87, height: 1.4),
                           ),
                         ],

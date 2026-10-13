@@ -77,14 +77,13 @@ class StudentIdCardDialog extends StatelessWidget {
                         child: Row(
                           children: [
                             Container(
-                              width: 38,
-                              height: 38,
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
+                              height: 36,
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                              decoration: BoxDecoration(
                                 color: Colors.white,
-                                shape: BoxShape.circle,
+                                borderRadius: BorderRadius.circular(6),
                               ),
-                              child: Image.asset("assets/rex_emblem.png", errorBuilder: (_, __, ___) => Image.asset("assets/logo.png", errorBuilder: (_, __, ___) => const Icon(Icons.school, color: Color(0xFF1E3A8A)))),
+                              child: Image.asset("assets/grexotix_logo.png", fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Icons.school, color: Color(0xFF7928CA))),
                             ),
                             const SizedBox(width: 10),
                             const Expanded(
@@ -92,7 +91,7 @@ class StudentIdCardDialog extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    "REX SENIOR SECONDARY SCHOOL",
+                                    "SMART CAMPUS STUDENT ID",
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w900,
@@ -101,7 +100,7 @@ class StudentIdCardDialog extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    "Christus Rex, Ootacamund • CBSE #1930000",
+                                    "Grexotix School Management Platform • Verified",
                                     style: TextStyle(color: Colors.white70, fontSize: 10),
                                   ),
                                 ],
@@ -179,7 +178,7 @@ class StudentIdCardDialog extends StatelessWidget {
                                           fontSize: 13,
                                         ),
                                       ),
-                                      Text("Adm No: ${student.id.startsWith('STU-') ? 'REX-2024-${student.id.replaceAll('STU-', '')}' : student.id}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                      Text("Adm No: ${student.id.startsWith('STU-') ? 'GRX-2026-${student.id.replaceAll('STU-', '')}' : student.id}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
                                       Text("Blood Group: ${student.bloodGroup}", style: const TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.bold)),
                                     ],
                                   ),
@@ -218,7 +217,7 @@ class StudentIdCardDialog extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: QrImageView(
-                                    data: "REX-SSS-GATEPASS:${student.id}:${student.rollNo}:2026",
+                                    data: "GRX-GATEPASS:${student.id}:${student.rollNo}:2026",
                                     version: QrVersions.auto,
                                     size: 64,
                                   ),
@@ -238,7 +237,7 @@ class StudentIdCardDialog extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        "Security staff scan this code at Rex Campus Gate to verify authorized pickup for ${student.name}.",
+                                        "Security staff scan this code at campus gate to verify authorized pickup for ${student.name}.",
                                         style: const TextStyle(fontSize: 10, color: Colors.black54, height: 1.3),
                                       ),
                                       const SizedBox(height: 2),
@@ -271,7 +270,7 @@ class StudentIdCardDialog extends StatelessWidget {
                           children: [
                             Text("Issued: 01-Jun-2026", style: TextStyle(fontSize: 10, color: Colors.grey)),
                             Text(
-                              "Rev. Fr. Principal",
+                              "Authorized Signatory",
                               style: TextStyle(
                                 fontFamily: 'serif',
                                 fontStyle: FontStyle.italic,

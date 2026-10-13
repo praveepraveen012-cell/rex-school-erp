@@ -27,7 +27,7 @@ class _BusTrackerScreenState extends State<BusTrackerScreen> {
   bool _isDemoActiveOnAdmin = false;
   double _demoProgress = 0.68;
   String _currentDemoStop = "Charring Cross Junction";
-  String _nextDemoStop = "Rex SSS Main Gate";
+  String _nextDemoStop = "School Campus Main Gate";
   double _currentLat = 11.4116;
   double _currentLng = 76.7088;
   int _currentEta = 12;

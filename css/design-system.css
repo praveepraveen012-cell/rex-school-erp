@@ -169,3 +169,47 @@ img {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
+
+/* ============================================================================
+   Official Grexotix Brand Logo Presentation System
+   Guaranteed Pure White Background (#FFFFFF), Unaltered Aspect Ratio, & Padding
+   ============================================================================ */
+.grexotix-logo-container {
+  background-color: #FFFFFF !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.grexotix-logo-img {
+  height: 44px;
+  width: auto;
+  max-width: 175px;
+  object-fit: contain !important;
+  display: block;
+  background-color: transparent !important;
+}
+
+.grexotix-logo-container.lg {
+  padding: 0.6rem 1.25rem;
+  border-radius: 8px;
+}
+
+.grexotix-logo-container.lg .grexotix-logo-img {
+  height: 58px;
+  max-width: 220px;
+}
+
+.grexotix-logo-container.sm {
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.grexotix-logo-container.sm .grexotix-logo-img {
+  height: 32px;
+  max-width: 130px;
+}
+

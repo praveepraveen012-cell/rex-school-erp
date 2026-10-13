@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rex Senior Secondary School | School ERP & Management Portal</title>
-  <meta name="description" content="Official School Management Portal for Rex Senior Secondary School (Christus Rex, Ootacamund). Features Student Information System, Smart Attendance, Fee Cashier, CBSE Report Cards, and WhatsApp Broadcast Simulator.">
-  <link rel="icon" type="image/png" href="assets/logo.png">
+  <title>Grexotix School Management Platform</title>
+  <meta name="description" content="Grexotix School Management Platform — Empowering Schools with Smart Management. Professional multi-school SaaS platform for independent school administration, smart attendance, digital homework diaries, fee collections with split payments, and campus transit. Product of Grexotix.">
+  <link rel="icon" type="image/png" href="favicon.png">
   
   <!-- Stylesheets -->
   <link rel="stylesheet" href="css/design-system.css">
@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="css/print.css">
   <!-- PWA & Mobile Meta Tags -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#1e3a8a">
+  <meta name="theme-color" content="#7c3aed">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="assets/logo.png">
@@ -32,7 +32,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js')
-          .then(reg => console.log('Rex SSS Service Worker Registered:', reg.scope))
+          .then(reg => console.log('Grexotix School Management Service Worker Registered:', reg.scope))
           .catch(err => console.log('SW registration note:', err));
       });
     }
@@ -55,14 +55,14 @@
        ============================================== -->
   <div id="home-view" style="display: block;">
     <!-- Top Announcement Strip -->
-    <div class="top-announcement-bar">
+    <div class="top-announcement-bar" style="background: linear-gradient(90deg, #5b21b6, #7c3aed, #2563eb);">
       <div class="announcement-text">
-        <span class="announcement-badge">ADMISSIONS 2026-27</span>
-        <span>CBSE Affiliation #1930000 • Admissions Open for Grades LKG to 12 • Christus Rex, Ootacamund</span>
+        <span class="announcement-badge" style="background: #22c55e; color: #000;">MULTI-SCHOOL SAAS</span>
+        <span>✨ Grexotix School Management Platform • Empowering Schools with Smart Management • Product of Grexotix</span>
       </div>
       <div style="display: flex; align-items: center; gap: 1rem;">
-        <span style="font-size: 0.75rem; opacity: 0.9;">📞 Helpline: +91 423 2442220</span>
-        <button type="button" class="btn btn-sm btn-secondary" data-action="book-tour" style="padding: 0.2rem 0.6rem; font-size: 0.7rem; background: rgba(255,255,255,0.2); border: none; color: #fff;">Book Campus Tour</button>
+        <span style="font-size: 0.75rem; opacity: 0.95;">📞 Support: +91 80 4000 1234</span>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="if(window.PlatformModule) window.PlatformModule.openStatusModal()" style="padding: 0.2rem 0.6rem; font-size: 0.7rem; background: rgba(255,255,255,0.22); border: none; color: #fff; font-weight: 700;">🔍 Track Registration</button>
       </div>
     </div>
 
@@ -70,31 +70,35 @@
     <header class="home-navbar">
       <div class="home-nav-container">
         <a href="#" class="home-nav-brand" onclick="window.scrollTo({top:0, behavior:'smooth'}); return false;">
-          <img src="assets/logo.png" alt="Rex Senior Secondary School">
+          <div class="grexotix-logo-container">
+            <img src="assets/grexotix_logo.png" alt="Grexotix Logo" class="grexotix-logo-img">
+          </div>
           <div>
-            <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-primary); line-height: 1.1;">Rex Senior Secondary School</div>
-            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Christus Rex, Ootacamund • Estd. Nilgiris</div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-primary); line-height: 1.1;">Grexotix School Platform</div>
+            <div style="font-size: 0.72rem; color: #7c3aed; font-weight: 700;">Empowering Schools with Smart Management • Product of Grexotix</div>
           </div>
         </a>
 
         <nav class="home-nav-links">
-          <a href="#solutions" class="home-nav-link">Solutions</a>
-          <a href="#sandbox" class="home-nav-link">Live Sandbox</a>
-          <a href="#why-rex" class="home-nav-link">Why Rex SSS</a>
-          <a href="#testimonials" class="home-nav-link">Testimonials</a>
-          <span class="home-nav-link" onclick="HomeModule.setDeviceMode('mobile')">📱 Mobile App</span>
+          <a href="#solutions" class="home-nav-link">Platform Features</a>
+          <a href="#sandbox" class="home-nav-link">Live Fee Engine</a>
+          <a href="#architecture" class="home-nav-link">Multi-School Cloud</a>
+          <a href="#onboarding" class="home-nav-link">Onboarding Guide</a>
+          <a href="#contact" class="home-nav-link">Contact Support</a>
         </nav>
 
         <div class="home-nav-actions">
           <button type="button" class="icon-action-btn theme-toggle-btn" title="Toggle Light/Dark Theme">
             <span class="theme-icon">🌙</span>
           </button>
-          <button type="button" class="btn btn-secondary" data-action="book-tour">Visit Campus</button>
-          <button type="button" id="home-nav-signin-btn" class="btn btn-outline" onclick="window.AuthUI.showLoginModal()" style="font-weight: 700;">
-            Sign In
+          <button type="button" class="btn btn-outline" onclick="if(window.PlatformModule) window.PlatformModule.openStatusModal()" style="font-size: 0.8rem; font-weight: 700;">
+            Track Status
           </button>
-          <button type="button" class="btn btn-primary" onclick="HomeModule.launchERP('dashboard')">
-            Launch ERP Portal &rarr;
+          <button type="button" class="btn btn-primary" onclick="if(window.PlatformModule) window.PlatformModule.openRegistrationModal()" style="background: linear-gradient(135deg, #7c3aed, #5b21b6); border-color: #5b21b6; font-weight: 800; font-size: 0.82rem;">
+            🚀 Register Your School
+          </button>
+          <button type="button" id="home-nav-signin-btn" class="btn btn-secondary" onclick="window.AuthUI.showLoginModal()" style="font-weight: 700; font-size: 0.82rem;">
+            School Login
           </button>
         </div>
       </div>
@@ -104,32 +108,32 @@
     <section class="home-hero-section">
       <div class="home-hero-grid">
         <div>
-          <div class="hero-pill-tag">
-            <span>✨</span> Next-Gen Education Management & Smart Campus
+          <div class="hero-pill-tag" style="background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe;">
+            <span>✨</span> Next-Generation Multi-Tenant School SaaS • Product of Grexotix
           </div>
           <h1 class="hero-headline">
-            Empowering Excellence at <span>Rex Senior Secondary School</span>
+            Empowering Schools with <span>Smart Management</span>
           </h1>
           <p class="hero-description">
-            The premier Nilgiris institution blending academic heritage with 21st-century digital intelligence. Comprehensive WebApp for CBSE management, automated fee cashiers, smart biometric attendance, and instant parent communication.
+            A unified, multi-school digital operating platform built by Grexotix. Every registered school accesses its own isolated workspace with customized branding, smart attendance, digital homework diaries, automated fee cashiers with split payments, and live GPS bus tracking.
           </p>
 
           <div class="hero-actions-row">
-            <button type="button" class="btn btn-primary btn-lg" onclick="HomeModule.launchERP('dashboard')" style="font-size: 1rem; padding: 0.85rem 1.75rem;">
-              Launch ERP Management &rarr;
+            <button type="button" class="btn btn-primary btn-lg" onclick="if(window.PlatformModule) window.PlatformModule.openRegistrationModal()" style="font-size: 1rem; padding: 0.85rem 1.75rem; background: linear-gradient(135deg, #7c3aed, #5b21b6); border-color: #5b21b6; font-weight: 800;">
+              🚀 Register Your School &rarr;
             </button>
-            <button type="button" class="btn btn-secondary btn-lg" onclick="HomeModule.setDeviceMode('mobile')" style="font-size: 1rem; padding: 0.85rem 1.5rem;">
-              📱 Mobile App View
+            <button type="button" class="btn btn-secondary btn-lg" onclick="window.AuthUI.showLoginModal()" style="font-size: 1rem; padding: 0.85rem 1.5rem; font-weight: 700;">
+              🔑 School Login
             </button>
-            <button type="button" class="btn btn-outline btn-lg" data-action="book-tour" style="font-size: 0.95rem;">
-              Book Campus Tour
+            <button type="button" class="btn btn-outline btn-lg" onclick="if(window.PlatformModule) window.PlatformModule.openStatusModal()" style="font-size: 0.95rem;">
+              🔍 Track Status
             </button>
           </div>
 
           <div class="hero-feature-pills">
             <div class="hero-feature-item">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-              <span>CBSE Affiliated #1930000</span>
+              <span>Multi-Tenant School Isolation</span>
             </div>
             <div class="hero-feature-item">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -137,7 +141,7 @@
             </div>
             <div class="hero-feature-item">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-              <span>Instant Fee Receipts</span>
+              <span>Split-Fee Cashier (30% Rule)</span>
             </div>
             <div class="hero-feature-item">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -152,63 +156,63 @@
             <div class="hero-card-header">
               <div class="hero-card-title">
                 <span style="width: 10px; height: 10px; border-radius: 50%; background: #22c55e; display: inline-block; box-shadow: 0 0 8px #22c55e;"></span>
-                <span>Rex SSS Live Campus Pulse</span>
+                <span>Grexotix Multi-Tenant Cloud</span>
               </div>
-              <span class="badge badge-present" style="font-size: 0.7rem;">Active AY 2026-27</span>
+              <span class="badge" style="background: #7c3aed; color: #fff; font-size: 0.7rem;">Multi-School SaaS</span>
             </div>
 
             <div class="hero-card-body">
               <div class="mini-pulse-grid">
                 <div class="mini-pulse-item">
-                  <div class="mini-pulse-label">Attendance Today</div>
-                  <div class="mini-pulse-val" style="color: #16a34a;">96.4%</div>
-                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">1,234 Present • 46 Absent</div>
+                  <div class="mini-pulse-label">Data Architecture</div>
+                  <div class="mini-pulse-val" style="color: #7c3aed;">100% Isolated</div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">Tenant Scoped DB</div>
                 </div>
                 <div class="mini-pulse-item">
-                  <div class="mini-pulse-label">Active Enrollment</div>
-                  <div class="mini-pulse-val" style="color: var(--primary);">1,280</div>
-                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">LKG to Grade 12</div>
+                  <div class="mini-pulse-label">Supported Roles</div>
+                  <div class="mini-pulse-val" style="color: var(--primary);">4 Levels</div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">Platform, Admin, Faculty, Parent</div>
                 </div>
                 <div class="mini-pulse-item">
-                  <div class="mini-pulse-label">Digital Collections</div>
-                  <div class="mini-pulse-val" style="color: #0284c7;">₹ 8.4 L</div>
-                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">Term II Settled Online</div>
+                  <div class="mini-pulse-label">Fee Governance</div>
+                  <div class="mini-pulse-val" style="color: #0284c7;">30% Rule</div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">Minimum Split Enforcement</div>
                 </div>
                 <div class="mini-pulse-item">
-                  <div class="mini-pulse-label">Scheduled Classes</div>
-                  <div class="mini-pulse-val" style="color: #7c3aed;">42 Slots</div>
-                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">Period 2 in Session</div>
+                  <div class="mini-pulse-label">Digital ID Passes</div>
+                  <div class="mini-pulse-val" style="color: #16a34a;">Dynamic QR</div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">Campus Gate Pass Ready</div>
                 </div>
               </div>
 
               <!-- Mini live event ticker -->
               <div style="background: var(--bg-subtle); border-radius: var(--radius-sm); padding: 0.85rem; border: 1px solid var(--border-subtle);">
-                <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Live Campus Stream</div>
+                <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Platform Operations Stream</div>
                 <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.75rem;">
                   <div style="display: flex; align-items: center; gap: 0.4rem;">
                     <span style="color: #16a34a;">●</span>
-                    <span style="font-weight: 600;">Grade 10-A:</span>
-                    <span style="color: var(--text-secondary);">Physics Practical underway with Mrs. Sunita Rao</span>
+                    <span style="font-weight: 600;">School Onboarding:</span>
+                    <span style="color: var(--text-secondary);">Independent workspace initialized with dedicated Super Admin</span>
                   </div>
                   <div style="display: flex; align-items: center; gap: 0.4rem;">
                     <span style="color: #0284c7;">●</span>
                     <span style="font-weight: 600;">Fee Cashier:</span>
-                    <span style="color: var(--text-secondary);">Digitally signed receipt #REX-2026-089 generated</span>
+                    <span style="color: var(--text-secondary);">Digitally verifiable receipt with QR generated</span>
                   </div>
                   <div style="display: flex; align-items: center; gap: 0.4rem;">
                     <span style="color: #f59e0b;">●</span>
-                    <span style="font-weight: 600;">Transport:</span>
-                    <span style="color: var(--text-secondary);">Bus Route #4 (Charring Cross) arrived on campus</span>
+                    <span style="font-weight: 600;">Security:</span>
+                    <span style="color: var(--text-secondary);">Strict tenant scoping verified on all API requests</span>
                   </div>
                 </div>
               </div>
 
               <div style="display: flex; gap: 0.75rem;">
-                <button type="button" class="btn btn-primary" onclick="HomeModule.launchERP('dashboard')" style="flex: 1; font-size: 0.85rem;">
-                  Open Live Dashboard &rarr;
+                <button type="button" class="btn btn-primary" onclick="if(window.PlatformModule) window.PlatformModule.openRegistrationModal()" style="flex: 1; font-size: 0.85rem; background: #7c3aed; border-color: #7c3aed;">
+                  Register Your School &rarr;
                 </button>
-                <button type="button" class="btn btn-secondary pwa-install-trigger" style="font-size: 0.85rem;">
-                  📲 Install WebApp
+                <button type="button" class="btn btn-secondary" onclick="window.AuthUI.showLoginModal()" style="font-size: 0.85rem;">
+                  Sign In
                 </button>
               </div>
             </div>
@@ -217,42 +221,42 @@
       </div>
     </section>
 
-    <!-- Stats Counter Numbers Strip -->
-    <div class="stats-counter-strip">
+    <!-- SaaS Core Capabilities Strip -->
+    <div class="stats-counter-strip" style="background: linear-gradient(90deg, #1e1b4b, #2e1065, #1e3a8a);">
       <div class="stats-counter-container">
         <div class="stat-counter-box">
-          <h3>1,280+</h3>
-          <p>Enrolled Students</p>
+          <h3 style="color: #c084fc;">Multi-School</h3>
+          <p>Tenant Isolated Workspaces</p>
         </div>
         <div class="stat-counter-box">
-          <h3>100%</h3>
-          <p>CBSE Pass Percentage</p>
+          <h3 style="color: #60a5fa;">30% Rule</h3>
+          <p>Enforced Split Payments</p>
         </div>
         <div class="stat-counter-box">
-          <h3>98.6%</h3>
-          <p>Attendance Accuracy</p>
+          <h3 style="color: #4ade80;">Smart RFID</h3>
+          <p>Automated Attendance Engine</p>
         </div>
         <div class="stat-counter-box">
-          <h3>₹ 1.2 Cr+</h3>
-          <p>Digital Fees Handled</p>
+          <h3 style="color: #facc15;">Digital Diary</h3>
+          <p>Homework 5 PM Review Lock</p>
         </div>
         <div class="stat-counter-box">
-          <h3>45+</h3>
-          <p>Expert Faculty Mentors</p>
+          <h3 style="color: #38bdf8;">GPS Transit</h3>
+          <p>Waypoint Fleet Telemetry</p>
         </div>
         <div class="stat-counter-box">
-          <h3>50+ Yrs</h3>
-          <p>Educational Heritage</p>
+          <h3 style="color: #f472b6;">QR Passes</h3>
+          <p>Student & Staff Digital Cards</p>
         </div>
       </div>
     </div>
 
-    <!-- Solutions Showcase Section (NeverSkip 4-Pillars) -->
+    <!-- Solutions Showcase Section -->
     <section class="solutions-showcase-section" id="solutions">
       <div class="section-title-centered">
         <div class="section-pill-badge">Connected Ecosystem</div>
         <h2 class="section-heading-lg">Engineered for Every Stakeholder in Modern Schooling</h2>
-        <p class="section-desc-sub">Inspired by NeverSkip's unified architecture, Rex Senior Secondary School bridges administrators, faculty, parents, and students through seamless real-time coordination.</p>
+        <p class="section-desc-sub">Grexotix School Management Platform bridges platform administrators, institutional leadership, faculty, parents, and students through seamless real-time coordination.</p>
       </div>
 
       <!-- Solution Nav Tabs -->
@@ -276,7 +280,7 @@
         <div>
           <h3 style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary); margin-bottom: 1rem;">Complete Digital Command Center</h3>
           <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.5rem;">
-            Eliminate paperwork and streamline complex operations. From online student admission registrations to automated fee reconciliations, Rex Senior Secondary School empowers administration with infallible audit records.
+            Eliminate paperwork and streamline complex operations. From online student admission registrations to automated fee reconciliations, Grexotix School Management Platform empowers administration with infallible audit records.
           </p>
 
           <div class="solution-feature-list">
@@ -284,7 +288,7 @@
               <div class="sol-feature-icon">💳</div>
               <div>
                 <h4>Automated Multi-Head Fee Cashier</h4>
-                <p>Tuition, smart-class, lab, bus, and meals billing with auto-generated official receipts bearing Rex SSS digital crest & cashier seals.</p>
+                <p>Tuition, smart-class, lab, bus, and meals billing with auto-generated official receipts bearing verified school crests & cashier seals.</p>
               </div>
             </div>
             <div class="sol-feature-item">
@@ -298,7 +302,7 @@
               <div class="sol-feature-icon">🔒</div>
               <div>
                 <h4>Role-Based Access Control</h4>
-                <p>Separate security views and privileges for Principal/Super Admin, Grade Mentors, Cashiers, and Parents.</p>
+                <p>Separate security views and privileges for Platform Admin, School Super Admin, Grade Mentors, Cashiers, and Parents.</p>
               </div>
             </div>
           </div>
@@ -310,7 +314,7 @@
 
         <div style="background: var(--bg-surface); border: 1px solid var(--border-medium); border-radius: var(--radius-xl); padding: 1.5rem; box-shadow: var(--shadow-lg);">
           <div style="font-weight: 800; font-size: 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
-            <span>Rex SSS Fee Cashier Terminal</span>
+            <span>School Fee Cashier Terminal</span>
             <span class="badge badge-present">Online Mode</span>
           </div>
           <div style="padding: 1rem; background: var(--bg-subtle); border-radius: var(--radius-md); margin-bottom: 1rem;">
@@ -318,7 +322,7 @@
               <span>Student: Aarav Sharma</span>
               <span style="color: #16a34a;">Status: Cleared</span>
             </div>
-            <div style="font-size: 0.75rem; color: var(--text-muted);">Receipt #REX-2026-089 • Grade 10-A • Term II Fees</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Receipt #GRX-2026-089 • Grade 10-A • Term II Fees</div>
             <div style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary); margin-top: 0.5rem;">₹ 28,000.00</div>
           </div>
           <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5;">
@@ -433,13 +437,13 @@
             <span class="badge badge-present">WhatsApp Ready</span>
           </div>
           <div style="padding: 1rem; background: #eef2ff; border-radius: var(--radius-md); border-left: 4px solid #2563eb; margin-bottom: 1rem;">
-            <div style="font-weight: 700; font-size: 0.82rem; color: #1e3a8a;">*REX SENIOR SECONDARY SCHOOL*</div>
+            <div style="font-weight: 700; font-size: 0.82rem; color: #1e3a8a;">*GREXOTIX SMART CAMPUS GATE*</div>
             <div style="font-size: 0.75rem; color: #1e293b; margin-top: 0.3rem; line-height: 1.4;">
               Dear Parent, your ward <strong>Aarav Sharma</strong> (10-A) has safely arrived at campus today at 08:24 AM via Smart RFID Gate 1.
             </div>
           </div>
           <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5;">
-            Over 99.2% of Rex Senior Secondary School parents actively monitor attendance and settle fees through the mobile interface.
+            Over 99.2% of registered school parents actively monitor attendance and settle fees through the mobile interface.
           </div>
           <button type="button" class="btn btn-sm btn-outline" onclick="HomeModule.setDeviceMode('mobile')" style="margin-top: 1rem; width: 100%;">Test Drive Native Mobile View</button>
         </div>
@@ -448,9 +452,9 @@
       <!-- Tab 4: Campus Safety & Transport -->
       <div class="solution-tab-pane" id="sol-pane-safety">
         <div>
-          <h3 style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary); margin-bottom: 1rem;">Uncompromised Student Safety & Nilgiris Transit</h3>
+          <h3 style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary); margin-bottom: 1rem;">Uncompromised Student Safety & Fleet Transit</h3>
           <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.5rem;">
-            Navigating the hilly terrain of Ootacamund demands precision safety. Rex Senior Secondary School deploys RFID campus turnstiles and GPS fleet tracking to ensure peace of mind for every family.
+            Ensuring daily student safety demands precision technology. Grexotix School Management Platform deploys RFID campus turnstiles, 500m proximity geofencing, and live GPS bus tracking for complete operational security.
           </p>
 
           <div class="solution-feature-list">
@@ -458,21 +462,21 @@
               <div class="sol-feature-icon">🛡️</div>
               <div>
                 <h4>Smart RFID Gate Punch & Biometrics</h4>
-                <p>Instant attendance logging upon campus entry with immediate WhatsApp absentee alerts triggered at 08:45 AM daily.</p>
+                <p>Instant attendance logging upon campus entry with immediate automated absentee alerts triggered on schedule.</p>
               </div>
             </div>
             <div class="sol-feature-item">
               <div class="sol-feature-icon">🚌</div>
               <div>
-                <h4>Live Nilgiris Fleet GPS Tracking</h4>
-                <p>Real-time vehicle status across Ooty, Coonoor, and Kotagiri routes with estimated arrival times at parent stops.</p>
+                <h4>Live School Fleet GPS Tracking</h4>
+                <p>Real-time vehicle telemetry across all school transit routes with estimated arrival times at designated student stops.</p>
               </div>
             </div>
             <div class="sol-feature-item">
               <div class="sol-feature-icon">🚨</div>
               <div>
                 <h4>Instant Emergency Broadcast</h4>
-                <p>One-touch multi-channel broadcasts for hill weather advisories, sudden rain closures, or special bus rerouting.</p>
+                <p>One-touch multi-channel notifications for severe weather advisories, sudden campus closures, or route detours.</p>
               </div>
             </div>
           </div>
@@ -511,8 +515,8 @@
       <div class="sandbox-container">
         <div class="section-title-centered">
           <div class="section-pill-badge">Live Interactive Playground</div>
-          <h2 class="section-heading-lg">Try the Rex SSS Digital Modules Live</h2>
-          <p class="section-desc-sub">Experience the speed, accuracy, and elegance of Rex Senior Secondary School's cloud platform directly in your browser.</p>
+          <h2 class="section-heading-lg">Try Grexotix School Modules Live</h2>
+          <p class="section-desc-sub">Experience the speed, accuracy, and elegance of Grexotix School Management Platform directly in your browser.</p>
         </div>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 2rem;">
@@ -563,7 +567,7 @@
                 <strong id="calc-res-tuition" style="color: var(--text-primary);">₹ 28,000</strong>
               </div>
               <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.35rem; color: var(--text-secondary);">
-                <span>Nilgiris Bus Transport:</span>
+                <span>School Bus Transport:</span>
                 <strong id="calc-res-transport" style="color: var(--text-primary);">₹ 6,500</strong>
               </div>
               <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.5rem; color: var(--text-secondary);">
@@ -608,14 +612,14 @@
 
               <div>
                 <label class="form-label" style="font-size: 0.78rem;">Bus Route / Transit Stop</label>
-                <input type="text" id="wa-sim-bus" class="form-control" value="Route #4 (Charring Cross)">
+                <input type="text" id="wa-sim-bus" class="form-control" value="Route #4 (Central Campus)">
               </div>
             </div>
 
             <!-- WhatsApp Message Bubble Preview -->
             <div style="background: #e2f7cb; border-radius: var(--radius-md); padding: 1rem; border: 1px solid #b2df8a; margin-bottom: 1rem; position: relative;">
               <div style="font-size: 0.7rem; color: #075e54; font-weight: 800; margin-bottom: 0.35rem; display: flex; justify-content: space-between;">
-                <span>REX SENIOR SECONDARY SCHOOL</span>
+                <span>GREXOTIX SMART CAMPUS</span>
                 <span>08:25 AM ✓✓</span>
               </div>
               <div id="wa-sim-preview" style="font-size: 0.78rem; color: #111; line-height: 1.45;">
@@ -687,32 +691,42 @@
       </div>
     </section>
 
-    <!-- Why Rex Senior Secondary School Section -->
-    <section class="solutions-showcase-section" id="why-rex" style="padding-top: 2rem;">
+    <!-- Multi-School Architecture & Tenant Isolation Section -->
+    <section class="solutions-showcase-section" id="architecture" style="padding-top: 2rem;">
       <div class="section-title-centered">
-        <div class="section-pill-badge">The Rex Advantage</div>
-        <h2 class="section-heading-lg">Why Families Choose Rex Senior Secondary School</h2>
-        <p class="section-desc-sub">Rooted in Christian values, Christus Rex provides an inspiring sanctuary in Ootacamund where students excel intellectually, spiritually, and culturally.</p>
+        <div class="section-pill-badge">Multi-Tenant Architecture</div>
+        <h2 class="section-heading-lg">Engineered for Multi-School Scale & Complete Data Isolation</h2>
+        <p class="section-desc-sub">Grexotix School Management Platform is architected from the ground up to support multiple independent educational institutions on a secure, unified SaaS foundation.</p>
       </div>
 
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.75rem;">
         <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.75rem;">
           <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--primary-50); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1.25rem;">
-            ⛰️
+            🏛️
           </div>
-          <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text-primary);">Pristine Nilgiris Campus</h3>
+          <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text-primary);">Independent School Workspaces</h3>
           <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
-            Nestled in the serene hills of Ootacamund, our campus offers a calm, pollution-free environment conducive to rigorous academic focus and athletic distinction.
+            Each onboarded school operates in its own isolated environment with dedicated academic years, custom classes, custom fee schedules, and independent institutional branding.
           </p>
         </div>
 
         <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.75rem;">
           <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--primary-50); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1.25rem;">
-            🔬
+            🔒
           </div>
-          <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text-primary);">Advanced STEM & CBSE Labs</h3>
+          <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text-primary);">Server-Side Tenant Isolation</h3>
           <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
-            Modern physics, chemistry, biology, robotics, and computer labs that enable experiential learning and prepare students for competitive national examinations.
+            Zero data leakage. Every API request and query is bound to the authenticated school identity. One school's administrators, teachers, or parents can never view another school's records.
+          </p>
+        </div>
+
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.75rem;">
+          <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--primary-50); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1.25rem;">
+            👥
+          </div>
+          <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text-primary);">Strict Role Governance</h3>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+            Clear operational boundaries between Grexotix Platform Admins (school review & activation), School Super Admins (institutional control), Teaching Faculty, and Parents.
           </p>
         </div>
 
@@ -720,72 +734,94 @@
           <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--primary-50); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1.25rem;">
             📱
           </div>
-          <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text-primary);">100% Digital Transparency</h3>
+          <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text-primary);">Cross-Platform Ecosystem</h3>
           <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
-            Never miss an update. Parents enjoy instant visibility into daily attendance, test performance, homework, and fee receipts through our responsive WebApp and mobile app.
-          </p>
-        </div>
-
-        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.75rem;">
-          <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--primary-50); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1.25rem;">
-            🕊️
-          </div>
-          <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text-primary);">Holistic Moral Formation</h3>
-          <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
-            Guided by dedicated educators, we instill discipline, empathy, leadership, and integrity so our students emerge as compassionate citizens of tomorrow.
+            Consistent, responsive experience across responsive Desktop WebApp, native Android APK, and iOS with synchronized real-time RFID and GPS tracking.
           </p>
         </div>
       </div>
     </section>
 
-    <!-- Nilgiris Community Testimonials -->
-    <section class="solutions-showcase-section" id="testimonials" style="padding-top: 1rem;">
+    <!-- Guided School Onboarding Section -->
+    <section class="solutions-showcase-section" id="onboarding" style="padding-top: 1rem;">
       <div class="section-title-centered">
-        <div class="section-pill-badge">Community Voices</div>
-        <h2 class="section-heading-lg">Trusted by Generations of Nilgiris Parents</h2>
+        <div class="section-pill-badge">Seamless Onboarding</div>
+        <h2 class="section-heading-lg">Four Simple Steps to Modernize Your School</h2>
+        <p class="section-desc-sub">Empowering educational institutions of any scale to transition from paper registers to enterprise cloud management in minutes.</p>
       </div>
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem;">
-        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.75rem; box-shadow: var(--shadow-sm);">
-          <div style="display: flex; gap: 0.25rem; color: #f59e0b; margin-bottom: 1rem;">★★★★★</div>
-          <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.25rem;">
-            "The new WebApp and mobile portal for Rex Senior Secondary School has transformed our experience as parents. Getting attendance notifications and paying Term fees with instant digitally signed receipts on WhatsApp is so convenient."
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem;">
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.5rem; border-top: 4px solid var(--primary);">
+          <div style="font-size: 0.8rem; font-weight: 800; color: var(--primary); margin-bottom: 0.5rem;">STEP 1</div>
+          <h4 style="font-weight: 800; font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text-primary);">Register Your School</h4>
+          <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5;">
+            Submit official school details, contact numbers, campus size, and authorized representative credentials via our self-service form.
           </p>
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <div style="width: 42px; height: 42px; border-radius: 50%; background: #2563eb; color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 0.9rem;">RS</div>
-            <div>
-              <div style="font-weight: 700; font-size: 0.9rem;">Rajesh Sharma</div>
-              <div style="font-size: 0.75rem; color: var(--text-muted);">Parent of Aarav (Grade 10-A) • Ooty</div>
-            </div>
-          </div>
         </div>
 
-        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.75rem; box-shadow: var(--shadow-sm);">
-          <div style="display: flex; gap: 0.25rem; color: #f59e0b; margin-bottom: 1rem;">★★★★★</div>
-          <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.25rem;">
-            "Teaching at Rex Senior Secondary School is made so much easier with this platform. Smart attendance and automatic CBSE report card generation save our department days of administrative effort every semester."
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.5rem; border-top: 4px solid #7928ca;">
+          <div style="font-size: 0.8rem; font-weight: 800; color: #7928ca; margin-bottom: 0.5rem;">STEP 2</div>
+          <h4 style="font-weight: 800; font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text-primary);">Fast Platform Review</h4>
+          <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5;">
+            Authorized Grexotix Platform Administrators inspect registration requests and verify legitimate school institutional credentials.
           </p>
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <div style="width: 42px; height: 42px; border-radius: 50%; background: #059669; color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 0.9rem;">SR</div>
-            <div>
-              <div style="font-weight: 700; font-size: 0.9rem;">Mrs. Sunita Rao</div>
-              <div style="font-size: 0.75rem; color: var(--text-muted);">Senior Science Faculty & Grade 10-A Mentor</div>
-            </div>
-          </div>
         </div>
 
-        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.75rem; box-shadow: var(--shadow-sm);">
-          <div style="display: flex; gap: 0.25rem; color: #f59e0b; margin-bottom: 1rem;">★★★★★</div>
-          <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.25rem;">
-            "Living in Coonoor while our daughter studies at Rex, the live bus transit GPS alerts and real-time exam marksheets give us absolute peace of mind. Christus Rex continues to lead the Nilgiris."
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.5rem; border-top: 4px solid #16a34a;">
+          <div style="font-size: 0.8rem; font-weight: 800; color: #16a34a; margin-bottom: 0.5rem;">STEP 3</div>
+          <h4 style="font-weight: 800; font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text-primary);">Workspace Provisioning</h4>
+          <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5;">
+            Upon approval, an isolated workspace is instantly provisioned. The school representative receives immediate activation credentials.
           </p>
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <div style="width: 42px; height: 42px; border-radius: 50%; background: #7c3aed; color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 0.9rem;">PV</div>
-            <div>
-              <div style="font-weight: 700; font-size: 0.9rem;">Priya & Dr. Venkatraman</div>
-              <div style="font-size: 0.75rem; color: var(--text-muted);">Parents of Diya (Grade 12 Science)</div>
-            </div>
-          </div>
+        </div>
+
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.5rem; border-top: 4px solid #f59e0b;">
+          <div style="font-size: 0.8rem; font-weight: 800; color: #f59e0b; margin-bottom: 0.5rem;">STEP 4</div>
+          <h4 style="font-weight: 800; font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text-primary);">Data Import & Go Live</h4>
+          <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5;">
+            Configure academic year, create classes, enroll students, set up fee heads, and connect parents through web and mobile apps.
+          </p>
+        </div>
+      </div>
+
+      <div style="text-align: center; display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+        <button type="button" class="btn btn-primary" onclick="PlatformModule.openRegistrationModal()" style="padding: 0.85rem 1.75rem; font-size: 1rem;">
+          🚀 Register Your School Now
+        </button>
+        <button type="button" class="btn btn-outline" onclick="PlatformModule.openStatusModal()" style="padding: 0.85rem 1.75rem; font-size: 1rem;">
+          🔍 Check Registration Status
+        </button>
+      </div>
+    </section>
+
+    <!-- Contact & Company Support Section -->
+    <section class="solutions-showcase-section" id="contact" style="padding-top: 1rem; padding-bottom: 3rem;">
+      <div class="section-title-centered">
+        <div class="section-pill-badge">Grexotix Support</div>
+        <h2 class="section-heading-lg">Enterprise Support & Advisory</h2>
+        <p class="section-desc-sub">Our dedicated deployment and engineering specialists assist educational institutions throughout registration and active management.</p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.5rem; text-align: center;">
+          <div style="font-size: 2rem; margin-bottom: 0.75rem;">✉️</div>
+          <h4 style="font-weight: 800; color: var(--text-primary); margin-bottom: 0.35rem;">Email Support</h4>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Official help desk & onboarding inquiries</p>
+          <a href="mailto:support@grexotix.com" style="color: var(--primary); font-weight: 700; text-decoration: none;">support@grexotix.com</a>
+        </div>
+
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.5rem; text-align: center;">
+          <div style="font-size: 2rem; margin-bottom: 0.75rem;">📞</div>
+          <h4 style="font-weight: 800; color: var(--text-primary); margin-bottom: 0.35rem;">Platform Helpline</h4>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Monday – Saturday, 8:00 AM – 7:00 PM IST</p>
+          <span style="color: var(--primary); font-weight: 700;">+91 80 4000 1234</span>
+        </div>
+
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.5rem; text-align: center;">
+          <div style="font-size: 2rem; margin-bottom: 0.75rem;">🏢</div>
+          <h4 style="font-weight: 800; color: var(--text-primary); margin-bottom: 0.35rem;">Technology Center</h4>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Product of Grexotix</p>
+          <span style="color: var(--text-secondary); font-size: 0.85rem;">Grexotix Technologies Pvt Ltd • Bengaluru HQ</span>
         </div>
       </div>
     </section>
@@ -793,55 +829,55 @@
     <!-- Home Footer -->
     <footer class="home-footer">
       <div class="footer-container">
-        <div class="footer-col">
-          <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-            <img src="assets/logo.png" alt="Rex Logo" style="height: 48px; object-fit: contain;">
-            <div>
-              <div style="font-size: 1.05rem; font-weight: 800; color: #ffffff;">Rex Senior Secondary School</div>
-              <div style="font-size: 0.75rem; color: #94a3b8;">Christus Rex, Ootacamund</div>
+        <div class="footer-col" style="flex: 1.4;">
+          <div style="margin-bottom: 1rem;">
+            <!-- Official Grexotix Logo on Pure White Container -->
+            <div class="grexotix-logo-container" style="background: #ffffff; padding: 6px 14px; border-radius: 8px; display: inline-block; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">
+              <img src="assets/grexotix_logo.png" alt="Grexotix Logo" class="grexotix-logo-img" style="height: 38px; object-fit: contain;">
             </div>
+            <div style="font-size: 1.05rem; font-weight: 800; color: #ffffff; margin-top: 0.5rem;">Grexotix School Management Platform</div>
+            <div style="font-size: 0.78rem; color: #c084fc; font-weight: 600;">Empowering Schools with Smart Management</div>
           </div>
-          <p style="font-size: 0.82rem; line-height: 1.6; margin-bottom: 1rem;">
-            CBSE Affiliated Senior Secondary Institution (#1930000). Dedicated to Christian character formation, intellectual vigor, and community stewardship across The Nilgiris.
+          <p style="font-size: 0.82rem; line-height: 1.6; margin-bottom: 1rem; color: #cbd5e1;">
+            A professional multi-school SaaS platform delivering sovereign cloud workspaces for independent educational institutions. Streamline SIS, academics, smart attendance, fee cashiers, and parent engagement.
           </p>
-          <div style="font-size: 0.8rem; color: #cbd5e1;">
-            📍 Christus Rex, Church Hill Road, Ootacamund, The Nilgiris - 643001<br>
-            📞 Phone: +91 423 2442220 | ✉️ office@rexschool.edu.in
+          <div style="font-size: 0.78rem; color: #94a3b8;">
+            📍 Grexotix Technologies Pvt Ltd • Bengaluru & Global Deployment<br>
+            ✉️ Contact: support@grexotix.com | 📞 Helpline: +91 80 4000 1234
           </div>
         </div>
 
         <div class="footer-col">
-          <h4>ERP Management</h4>
+          <h4>Platform Solutions</h4>
           <div class="footer-links-list">
-            <a href="#" onclick="HomeModule.launchERP('dashboard'); return false;">Principal Dashboard</a>
-            <a href="#" onclick="HomeModule.launchERP('students'); return false;">Students Directory (SIS)</a>
+            <a href="#" onclick="HomeModule.launchERP('dashboard'); return false;">Principal Command Center</a>
+            <a href="#" onclick="HomeModule.launchERP('students'); return false;">Student 360 Information (SIS)</a>
             <a href="#" onclick="HomeModule.launchERP('attendance'); return false;">Smart RFID Attendance</a>
             <a href="#" onclick="HomeModule.launchERP('fees'); return false;">Fee Cashier & Ledger</a>
-            <a href="#" onclick="HomeModule.launchERP('exams'); return false;">CBSE Report Cards</a>
-            <a href="#" onclick="HomeModule.launchERP('timetable'); return false;">Timetable & Substitution</a>
-            <a href="#" onclick="HomeModule.launchERP('communication'); return false;">WhatsApp Broadcasts</a>
+            <a href="#" onclick="HomeModule.launchERP('exams'); return false;">CBSE Report Cards & Grading</a>
+            <a href="#" onclick="HomeModule.launchERP('timetable'); return false;">Timetable Engine</a>
+            <a href="#" onclick="HomeModule.launchERP('transport'); return false;">Bus Fleet & GPS Geofence</a>
           </div>
         </div>
 
         <div class="footer-col">
-          <h4>Academics & Admissions</h4>
+          <h4>School Onboarding</h4>
           <div class="footer-links-list">
-            <a href="#" data-action="book-tour">Admissions 2026-27</a>
-            <a href="#solutions">CBSE Curriculum Standards</a>
-            <a href="#solutions">Science & Computer Laboratories</a>
-            <a href="#sandbox">Live Fee Structure</a>
-            <a href="#" data-action="book-tour">Nilgiris Transport Routes</a>
-            <a href="#" onclick="HomeModule.setDeviceMode('mobile'); return false;">Parent Mobile App Guide</a>
+            <a href="#" onclick="PlatformModule.openRegistrationModal(); return false;" style="color: #c084fc; font-weight: 700;">Register Your School &rarr;</a>
+            <a href="#" onclick="PlatformModule.openStatusModal(); return false;">Track Application Status</a>
+            <a href="#onboarding">4-Step Onboarding Guide</a>
+            <a href="#architecture">Multi-Tenant Architecture</a>
+            <a href="#contact">Contact Support & Sales</a>
           </div>
         </div>
 
         <div class="footer-col">
-          <h4>Digital Portal</h4>
+          <h4>Access Portals</h4>
           <div class="footer-links-list">
-            <a href="#" onclick="HomeModule.launchERP('parent-portal'); return false;">Parent & Student Login</a>
-            <a href="#" onclick="HomeModule.launchERP('dashboard'); return false;">Staff & Mentor Access</a>
+            <a href="#" onclick="HomeModule.launchERP('parent-portal'); return false;">School Portal Login</a>
+            <a href="#" onclick="AuthUI.openModal('admin'); return false;">Platform Administrator Login</a>
             <a href="#" class="pwa-install-trigger">Install PWA on Device</a>
-            <a href="#" data-action="book-tour">Book Campus Tour</a>
+            <a href="#" onclick="HomeModule.setDeviceMode('mobile'); return false;">Mobile App Simulation</a>
             <a href="#" onclick="window.scrollTo({top:0, behavior:'smooth'}); return false;">Return to Top ↑</a>
           </div>
         </div>
@@ -849,10 +885,10 @@
 
       <div class="footer-bottom-strip">
         <div>
-          © 2026 Rex Senior Secondary School (Christus Rex, Ootacamund). All rights reserved.
+          © 2026 Grexotix School Management Platform. Product of Grexotix. All rights reserved.
         </div>
         <div>
-          Designed & Deployed with NeverSkip EdTech Architecture • CBSE Affiliation No. 1930000
+          Powered by Grexotix Cloud Architecture • Multi-Tenant Enterprise Release
         </div>
       </div>
     </footer>
@@ -1107,9 +1143,11 @@
   <div class="app-container" style="display: none;">
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
-      <div class="sidebar-header">
-        <a href="#" class="school-logo" onclick="App.switchView('dashboard'); return false;">
-          <img src="assets/logo.png" alt="Rex Senior Secondary School" class="school-logo-img">
+      <div class="sidebar-header" style="background: #ffffff; padding: 10px 14px; border-bottom: 1px solid var(--border-subtle);">
+        <a href="#" class="school-logo" onclick="App.switchView('dashboard'); return false;" style="display: flex; align-items: center; justify-content: center;">
+          <div class="grexotix-logo-container sm" style="background: #ffffff; padding: 2px 6px; border-radius: 6px;">
+            <img src="assets/grexotix_logo.png" alt="Grexotix Platform" class="grexotix-logo-img" style="height: 32px; object-fit: contain;">
+          </div>
         </a>
       </div>
 
@@ -1197,6 +1235,18 @@
           </div>
         </div>
 
+        <!-- Platform Admin Section (Visible only for platform_admin role) -->
+        <div class="nav-section" id="platform-admin-nav-section" style="display: none;">
+          <div class="nav-section-title">Grexotix Platform Admin</div>
+          <div class="nav-item" data-view="platform-admin" id="nav-item-platform-admin">
+            <div class="nav-item-left">
+              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+              <span style="font-weight: 700; color: #7928ca;">Platform Admin Console</span>
+            </div>
+            <span class="badge badge-warning" style="font-size: 0.65rem;">Platform</span>
+          </div>
+        </div>
+
         <!-- Grexotix Digital Operating System -->
         <div class="nav-section">
           <div class="nav-section-title">Grexotix Operating OS</div>
@@ -1237,17 +1287,19 @@
       <!-- Sidebar Footer -->
       <div class="sidebar-footer">
         <div class="school-card-compact">
-          <img src="assets/logo.png" alt="Rex Logo" style="width: 32px; height: 32px; object-fit: contain;">
+          <div class="grexotix-logo-container sm" style="width: 32px; height: 32px; background: #ffffff; border-radius: 6px; display: flex; align-items: center; justify-content: center; padding: 2px;">
+            <img src="assets/app_icon_512.png" alt="School Icon" style="width: 28px; height: 28px; object-fit: contain;">
+          </div>
           <div class="school-card-details">
-            <div class="school-card-title">Rex Senior Secondary School</div>
+            <div class="school-card-title" id="sidebar-school-name">Grexotix Cloud Workspace</div>
             <div class="school-card-status">
               <span class="status-dot-pulse"></span>
-              <span>Rex SSS Cloud Active</span>
+              <span id="sidebar-school-badge">Tenant Active</span>
             </div>
           </div>
         </div>
         <div style="margin-top: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
-          <button class="btn btn-sm btn-secondary" id="reset-demo-btn" style="width: 100%; font-size: 0.72rem; padding: 0.35rem 0.5rem;" title="Reset all changes to factory seed data">
+          <button class="btn btn-sm btn-secondary" id="reset-demo-btn" style="width: 100%; font-size: 0.72rem; padding: 0.35rem 0.5rem;" title="Reset demo modifications to baseline">
             🔄 Reset Demo Data
           </button>
         </div>
@@ -1265,15 +1317,15 @@
 
           <div class="global-search-container">
             <svg class="search-icon-inside" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            <input type="text" id="global-search-input" class="global-search-input" placeholder="Search Rex SSS students, roll numbers, circulars...">
+            <input type="text" id="global-search-input" class="global-search-input" placeholder="Search students, roll numbers, circulars, receipts...">
             <span class="search-shortcut-badge">Ctrl K</span>
           </div>
         </div>
 
         <div class="topbar-right">
           <!-- Academic Year Tag -->
-                    <button class="btn btn-sm btn-secondary" onclick="HomeModule.returnToHome()" style="font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; gap: 0.35rem;" title="Return to Rex SSS Home WebApp">
-            🏠 Home WebApp
+          <button class="btn btn-sm btn-secondary" onclick="HomeModule.returnToHome()" style="font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; gap: 0.35rem;" title="Return to Public Landing Page">
+            🏠 Public Portal
           </button>
           <div class="academic-badge">
             <span>📅 AY 2026-27</span>
@@ -1321,7 +1373,7 @@
           <div class="page-header">
             <div class="page-title-group">
               <h1 class="page-title">
-                <span>Rex SSS Pulse</span>
+                <span id="dashboard-title-heading">Institutional Command Center</span>
                 <span class="badge badge-present" style="font-size: 0.72rem;">Live Sync</span>
               </h1>
               <p class="page-subtitle">Real-time institutional performance, daily student attendance, and financial recovery.</p>
@@ -1827,6 +1879,13 @@
             <!-- Injected by transport.js TransportModule.renderAdminFleet() -->
           </div>
         </section>
+
+        <!-- 10. PLATFORM ADMIN VIEW (Multi-School Provisioning & Approvals) -->
+        <section id="platform-admin-view" class="page-view">
+          <div id="platform-admin-content">
+            <!-- Injected by platform.js PlatformModule.renderPlatformAdminView() -->
+          </div>
+        </section>
       </main>
     </div>
   </div>
@@ -2203,6 +2262,7 @@
   <script src="js/communication.js?v=3"></script>
   <script src="js/transport.js?v=3"></script>
   <script src="js/home.js?v=3"></script>
+  <script src="js/platform.js?v=4"></script>
   <script src="js/app.js?v=3"></script>
 </body>
 </html>

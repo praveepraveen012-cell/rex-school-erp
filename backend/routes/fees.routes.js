@@ -292,7 +292,7 @@ router.post(['/pay', '/collect', '/payment', '/collection', '/process'], (req, r
     );
     return res.status(403).json({
       success: false,
-      error: 'Forbidden: Super Admin is strictly unauthorized to initiate or complete student fee payments. Student fee payments must be made by parents through the Parent App.'
+      error: 'Forbidden: Super Admin is strictly unauthorized to make fee payments and unauthorized to initiate or complete student fee payments. Student fee payments must be made by parents through the Parent App.'
     });
   }
 

@@ -174,26 +174,25 @@ try {
       (205, 2, 'Rex SSS Campus Gate', 5, '08:15 AM', '03:45 PM', 0, 11.4168, 76.6963);
   `);
 
-  // 7. Student transport assignments & Parent relations
-  db.exec(`
-    -- Ensure Aarav Sharma (student_id: 1) is assigned to Bus 1 (Route 02), Stop: Charring Cross
-    INSERT OR REPLACE INTO student_transport_assignments (id, student_id, bus_id, route_id, pickup_stop_id)
-    VALUES (1, 1, 1, 1, 103);
+  // 7. Student transport assignments & Parent relations (if demo students exist)
+  const hasDemoStudent = db.prepare('SELECT id FROM students WHERE id = 1').get();
+  if (hasDemoStudent) {
+    db.exec(`
+      INSERT OR REPLACE INTO student_transport_assignments (id, student_id, bus_id, route_id, pickup_stop_id)
+      VALUES (1, 1, 1, 1, 103);
 
-    -- Ensure Ananya Sharma (student_id: 2) is assigned to Bus 2 (Bus #04), Stop: Botanical Garden
-    INSERT OR REPLACE INTO student_transport_assignments (id, student_id, bus_id, route_id, pickup_stop_id)
-    VALUES (2, 2, 2, 2, 203);
+      INSERT OR REPLACE INTO student_transport_assignments (id, student_id, bus_id, route_id, pickup_stop_id)
+      VALUES (2, 2, 2, 2, 203);
 
-    -- Ensure Parent relations
-    INSERT OR IGNORE INTO student_parents (student_id, parent_id, relationship, is_primary)
-    VALUES (1, 1, 'Parent', 1);
-    INSERT OR IGNORE INTO student_parents (student_id, parent_id, relationship, is_primary)
-    VALUES (2, 1, 'Parent', 1);
+      INSERT OR IGNORE INTO student_parents (student_id, parent_id, relationship, is_primary)
+      VALUES (1, 1, 'Parent', 1);
+      INSERT OR IGNORE INTO student_parents (student_id, parent_id, relationship, is_primary)
+      VALUES (2, 1, 'Parent', 1);
 
-    -- Ensure Rohan Menon (student_id: 3) linked to Parent 2 (Dr. Sunita Menon)
-    INSERT OR IGNORE INTO student_parents (student_id, parent_id, relationship, is_primary)
-    VALUES (3, 2, 'Parent', 1);
-  `);
+      INSERT OR IGNORE INTO student_parents (student_id, parent_id, relationship, is_primary)
+      VALUES (3, 2, 'Parent', 1);
+    `);
+  }
 
   // 8. Initialize bus_tracking_state for both buses
   db.exec(`
@@ -217,6 +216,73 @@ try {
   `);
 } catch (transportErr) {
   console.warn('Transport and fee seed notice:', transportErr.message);
+}
+
+// ============================================================================
+// Multi-Tenant SaaS Architecture Migration & Platform Admin Seeding
+// ============================================================================
+try {
+  const bcrypt = require('bcryptjs');
+
+  // 1. Ensure PLATFORM_ADMIN role exists
+  db.exec(`
+    INSERT OR IGNORE INTO roles (name, description) VALUES
+      ('PLATFORM_ADMIN', 'Grexotix Platform Administrator managing multi-school registrations, approvals, and platform operations');
+  `);
+
+  // 2. Multi-tenant columns migration
+  const tenantTables = [
+    'users', 'classes', 'sections', 'subjects', 'academic_years', 'teachers',
+    'parents', 'students', 'homework', 'attendance', 'fee_structures', 'fee_payments',
+    'buses', 'bus_routes', 'school_settings', 'audit_logs', 'notifications', 'events',
+    'library_books', 'inventory_items', 'visitors', 'hostels'
+  ];
+
+  for (const table of tenantTables) {
+    try {
+      const cols = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
+      if (!cols.includes('school_id')) {
+        db.exec(`ALTER TABLE ${table} ADD COLUMN school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE;`);
+      }
+    } catch (_) {}
+  }
+
+  // 3. Ensure default school exists for existing data
+  const schoolCount = db.prepare("SELECT COUNT(*) as count FROM schools").get();
+  if (!schoolCount || schoolCount.count === 0) {
+    db.exec(`
+      INSERT INTO schools (
+        id, code, name, display_name, email, phone, address, city, state, postal_code, country,
+        website, logo_url, affiliation_board, affiliation_number, school_type, approx_students, status
+      ) VALUES (
+        1, 'SCH-001', 'Default Campus', 'Default School Campus',
+        'office@school.edu', '+91 423 244 1234', 'Campus Main Road', 'Ootacamund',
+        'Tamil Nadu', '643001', 'India', 'https://grexotix.com', 'assets/logo.png',
+        'CBSE', '1930000', 'Secondary', 450, 'ACTIVE'
+      );
+    `);
+
+    // Backfill legacy tables with school_id = 1
+    for (const table of tenantTables) {
+      try {
+        db.exec(`UPDATE ${table} SET school_id = 1 WHERE school_id IS NULL;`);
+      } catch (_) {}
+    }
+  }
+
+  // 4. Ensure Grexotix Platform Administrator Account exists
+  const platformAdmin = db.prepare("SELECT id FROM users WHERE role = 'PLATFORM_ADMIN'").get();
+  if (!platformAdmin) {
+    const hash = bcrypt.hashSync('GrexotixAdmin2026!', 10);
+    db.prepare(`
+      INSERT INTO users (username, email, mobile, password_hash, role, status, school_id)
+      VALUES (?, ?, ?, ?, 'PLATFORM_ADMIN', 'active', NULL)
+    `).run('grexotix_admin', 'admin@grexotix.com', '9999900001', hash);
+  } else {
+    db.prepare("UPDATE users SET school_id = NULL WHERE role = 'PLATFORM_ADMIN'").run();
+  }
+} catch (tenantErr) {
+  console.warn('Multi-tenant schema initialization notice:', tenantErr.message);
 }
 
 /**

@@ -1,5 +1,5 @@
 name: rex_school_erp_flutter
-description: "Rex Senior Secondary School ERP & School Bus GPS Tracker"
+description: "Grexotix School Management Platform — Empowering Schools with Smart Management"
 publish_to: "none"
 version: 2.0.0+1
 
@@ -29,5 +29,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logo.png
+    - assets/grexotix_logo.png
+    - assets/grexotix_emblem.png
+    - assets/app_icon_512.png
     - assets/rex_emblem.png
     - assets/rex_banner_white.png

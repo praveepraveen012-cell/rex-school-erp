@@ -292,11 +292,30 @@ router.get('/id-cards/:type/:id', (req, res) => {
       }
     }
 
+    // Resolve school branding dynamically
+    const school = (student.school_id ? db.get('SELECT * FROM schools WHERE id = ?', [student.school_id]) : null) ||
+                   (req.schoolId ? db.get('SELECT * FROM schools WHERE id = ?', [req.schoolId]) : null) ||
+                   db.get('SELECT * FROM schools WHERE id = 1') || {
+                     name: 'Grexotix Academy',
+                     display_name: 'Grexotix Academy',
+                     affiliation_board: 'CBSE',
+                     affiliation_number: '1930000',
+                     address: 'Campus Address',
+                     city: '',
+                     logo_url: '/assets/grexotix_logo.png'
+                   };
+
+    const schoolName = school.display_name || school.name || 'Grexotix Academy';
+    const affiliationText = school.affiliation_number 
+      ? `${school.affiliation_board || 'Affiliation'} #${school.affiliation_number}` 
+      : (school.affiliation_board || 'Recognized Institution');
+
     return res.json({
       success: true,
       cardType: 'STUDENT_DIGITAL_ID',
-      school: 'Rex Senior Secondary School',
-      affiliation: 'CBSE Affiliation #1930000',
+      school: schoolName,
+      affiliation: affiliationText,
+      schoolLogo: school.logo_url || '/assets/grexotix_logo.png',
       idCard: {
         id: student.id,
         name: `${student.first_name} ${student.last_name}`.trim(),
@@ -312,11 +331,11 @@ router.get('/id-cards/:type/:id', (req, res) => {
         parentName: student.parent_name || req.parent?.name || 'Parent / Guardian',
         parentMobile: student.parent_mobile,
         emergencyContact: student.emergency_contact || student.parent_mobile,
-        address: student.address || 'Ootacamund, Nilgiris',
+        address: student.address || school.address || 'Campus Address',
         academicYear: student.academic_year || '2026-2027',
         validAcademicYear: student.academic_year || '2026-2027',
         photoUrl: student.photo_url || null,
-        qrPayload: `REX-STU:${student.admission_no}:${student.first_name}_${student.last_name}`,
+        qrPayload: `GRX-STU:${school.code || 'SCH'}:${student.admission_no}:${student.first_name}_${student.last_name}`,
         barcodeValue: student.admission_no
       }
     });
@@ -328,10 +347,21 @@ router.get('/id-cards/:type/:id', (req, res) => {
     const teacher = db.get(`SELECT * FROM teachers WHERE id = ?`, [id]);
     if (!teacher) return res.status(404).json({ success: false, error: 'Staff member not found.' });
 
+    const school = (teacher.school_id ? db.get('SELECT * FROM schools WHERE id = ?', [teacher.school_id]) : null) ||
+                   (req.schoolId ? db.get('SELECT * FROM schools WHERE id = ?', [req.schoolId]) : null) ||
+                   db.get('SELECT * FROM schools WHERE id = 1') || {
+                     name: 'Grexotix Academy',
+                     display_name: 'Grexotix Academy',
+                     logo_url: '/assets/grexotix_logo.png'
+                   };
+
+    const schoolName = school.display_name || school.name || 'Grexotix Academy';
+
     return res.json({
       success: true,
       cardType: 'STAFF_DIGITAL_ID',
-      school: 'Rex Senior Secondary School',
+      school: schoolName,
+      schoolLogo: school.logo_url || '/assets/grexotix_logo.png',
       idCard: {
         id: teacher.id,
         name: teacher.name,
@@ -340,7 +370,7 @@ router.get('/id-cards/:type/:id', (req, res) => {
         designation: teacher.qualification ? `Faculty (${teacher.qualification})` : 'Senior Teacher',
         mobile: teacher.mobile,
         email: teacher.email,
-        qrPayload: `REX-EMP:${teacher.employee_id}:${teacher.name}`,
+        qrPayload: `GRX-EMP:${school.code || 'SCH'}:${teacher.employee_id}:${teacher.name}`,
         barcodeValue: teacher.employee_id
       }
     });

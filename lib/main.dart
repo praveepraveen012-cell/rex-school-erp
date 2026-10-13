@@ -9,11 +9,11 @@ import 'screens/main_navigation_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const RexSchoolERPApp());
+  runApp(const GrexotixSchoolERPApp());
 }
 
-class RexSchoolERPApp extends StatelessWidget {
-  const RexSchoolERPApp({super.key});
+class GrexotixSchoolERPApp extends StatelessWidget {
+  const GrexotixSchoolERPApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +23,7 @@ class RexSchoolERPApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AppState()),
       ],
       child: MaterialApp(
-        title: 'Rex Management App',
+        title: 'Grexotix School Management Platform',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,

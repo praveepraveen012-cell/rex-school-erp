@@ -14,16 +14,16 @@ class _ContactDirectoryScreenState extends State<ContactDirectoryScreen> {
   @override
   Widget build(BuildContext context) {
     final contacts = [
-      {'name': 'Fr. Thomas Antony', 'role': 'Principal', 'type': 'Admin', 'phone': '+91 98765 00001', 'email': 'principal@rex.edu', 'available': true},
-      {'name': 'Sr. Mary Josephine', 'role': 'Vice Principal', 'type': 'Admin', 'phone': '+91 98765 00002', 'email': 'vp@rex.edu', 'available': true},
-      {'name': 'Mr. Rajan Pillai', 'role': 'HOD - Science', 'type': 'Teacher', 'phone': '+91 98765 00003', 'email': 'science@rex.edu', 'available': false},
-      {'name': 'Mrs. Anitha Kumar', 'role': 'HOD - Mathematics', 'type': 'Teacher', 'phone': '+91 98765 00004', 'email': 'maths@rex.edu', 'available': true},
-      {'name': 'Mr. David Raj', 'role': 'HOD - Commerce', 'type': 'Teacher', 'phone': '+91 98765 00005', 'email': 'commerce@rex.edu', 'available': true},
-      {'name': 'Mrs. Susheela Nair', 'role': 'English Teacher', 'type': 'Teacher', 'phone': '+91 98765 00006', 'email': 'english@rex.edu', 'available': false},
-      {'name': 'Office', 'role': 'School Office', 'type': 'Office', 'phone': '+91 423 244 1234', 'email': 'office@rex.edu', 'available': true},
-      {'name': 'Accounts', 'role': 'Fee & Accounts', 'type': 'Office', 'phone': '+91 423 244 1235', 'email': 'accounts@rex.edu', 'available': true},
-      {'name': 'Library', 'role': 'School Library', 'type': 'Office', 'phone': '+91 423 244 1236', 'email': 'library@rex.edu', 'available': false},
-      {'name': 'Transport Office', 'role': 'Bus & Transport', 'type': 'Transport', 'phone': '+91 98765 00010', 'email': 'transport@rex.edu', 'available': true},
+      {'name': 'Dr. Thomas Antony', 'role': 'Principal', 'type': 'Admin', 'phone': '+91 98765 00001', 'email': 'principal@grexotix.school', 'available': true},
+      {'name': 'Mrs. Mary Josephine', 'role': 'Vice Principal', 'type': 'Admin', 'phone': '+91 98765 00002', 'email': 'vp@grexotix.school', 'available': true},
+      {'name': 'Mr. Rajan Pillai', 'role': 'HOD - Science', 'type': 'Teacher', 'phone': '+91 98765 00003', 'email': 'science@grexotix.school', 'available': false},
+      {'name': 'Mrs. Anitha Kumar', 'role': 'HOD - Mathematics', 'type': 'Teacher', 'phone': '+91 98765 00004', 'email': 'maths@grexotix.school', 'available': true},
+      {'name': 'Mr. David Raj', 'role': 'HOD - Commerce', 'type': 'Teacher', 'phone': '+91 98765 00005', 'email': 'commerce@grexotix.school', 'available': true},
+      {'name': 'Mrs. Susheela Nair', 'role': 'English Faculty', 'type': 'Teacher', 'phone': '+91 98765 00006', 'email': 'english@grexotix.school', 'available': false},
+      {'name': 'School Office', 'role': 'Institutional Admin', 'type': 'Office', 'phone': '+91 80 4000 1234', 'email': 'office@grexotix.school', 'available': true},
+      {'name': 'Accounts Desk', 'role': 'Fee Cashier & Ledger', 'type': 'Office', 'phone': '+91 80 4000 1235', 'email': 'accounts@grexotix.school', 'available': true},
+      {'name': 'Campus Library', 'role': 'Resource Center', 'type': 'Office', 'phone': '+91 80 4000 1236', 'email': 'library@grexotix.school', 'available': false},
+      {'name': 'Fleet Transport', 'role': 'Bus Route Coordinator', 'type': 'Transport', 'phone': '+91 98765 00010', 'email': 'transport@grexotix.school', 'available': true},
     ];
 
     final filtered = contacts.where((c) {

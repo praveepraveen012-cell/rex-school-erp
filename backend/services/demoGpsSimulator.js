@@ -1,5 +1,5 @@
 /**
- * Rex Senior Secondary School - Backend Demo GPS Simulator Engine
+ * Grexotix School Management Platform - Authoritative GPS Fleet Engine
  * Authoritative GPS Simulator for Demo Bus Tracking
  * Provides gradual waypoint progression, persistence, pause/resume, and multi-client sync.
  */

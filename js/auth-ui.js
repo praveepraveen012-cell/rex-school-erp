@@ -71,18 +71,28 @@
           if (userRoleEl) userRoleEl.textContent = "Guest Access";
           if (userAvatarEl) userAvatarEl.textContent = "??";
         } else {
-          let roleColor = '#1E3A8A';
+          let roleColor = '#2563eb';
           let roleLabel = 'Super Admin';
-          let avatarInitials = 'RP';
+          let avatarInitials = 'SA';
 
-          if (user.role === 'TEACHER') {
+          if (user.role === 'PLATFORM_ADMIN') {
+            roleColor = '#7c3aed';
+            roleLabel = 'Platform Admin';
+            avatarInitials = 'GX';
+          } else if (user.role === 'TEACHER') {
             roleColor = '#059669';
             roleLabel = 'Teacher / Faculty';
-            avatarInitials = 'AK';
+            avatarInitials = 'TC';
           } else if (user.role === 'PARENT') {
-            roleColor = '#7C3AED';
+            roleColor = '#0284c7';
             roleLabel = 'Parent';
-            avatarInitials = 'RS';
+            avatarInitials = 'PR';
+          }
+
+          // Show/Hide Platform Admin item in sidebar
+          const platNav = document.getElementById('nav-item-platform-admin');
+          if (platNav) {
+            platNav.style.display = (user.role === 'PLATFORM_ADMIN') ? 'flex' : 'none';
           }
 
           // Student switcher for multi-child parents
@@ -113,12 +123,19 @@
             }
           }
 
+          const schoolTag = user.school ? `
+            <span class="rex-school-tag" style="background: rgba(255,255,255,0.18); color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; margin-left: 4px;" title="Connected to ${user.school.display_name}">
+              🏫 ${user.school.display_name || user.school.name}
+            </span>
+          ` : '';
+
           badgeContainer.innerHTML = `
             <div class="rex-user-pill">
               <span class="rex-role-tag" style="background:${roleColor}">
                 ${roleLabel}
               </span>
               <span class="rex-user-name">${user.name || user.username || user.email}</span>
+              ${schoolTag}
               ${studentSwitcherHtml}
               <button type="button" class="rex-btn-switch" onclick="window.AuthUI.showLoginModal()" title="Switch Account / Role">
                 <i class="fas fa-exchange-alt"></i> Switch
@@ -183,7 +200,12 @@
 
     routeToDashboard() {
       const role = window.RexApi.getRole();
-      if (role === 'TEACHER') {
+      if (role === 'PLATFORM_ADMIN') {
+        if (window.App) {
+          window.App.applyRole('platform_admin', false);
+          window.App.switchView('platform-admin');
+        }
+      } else if (role === 'TEACHER') {
         if (window.App) {
           window.App.applyRole('teacher', false);
           window.App.switchView('attendance');
@@ -215,12 +237,16 @@
 
       modal.innerHTML = `
         <div class="rex-modal-card">
-          <div class="rex-modal-header">
+          <div class="rex-modal-header" style="background:#fff; border-bottom:1px solid var(--border-subtle); padding: 1.25rem 1.5rem;">
             <div class="rex-modal-title-group">
-              <img src="assets/rex_emblem.png" alt="Rex Logo" class="rex-modal-logo" onerror="this.src='assets/logo.png'">
-              <div>
-                <h3>Rex Management App</h3>
-                <p>Official School Management System • Authenticate via Role</p>
+              <div class="grexotix-logo-container sm" style="background:#ffffff; border:1px solid #e2e8f0; padding:4px 8px; border-radius:6px;">
+                <img src="assets/grexotix_logo.png" alt="Grexotix Logo" class="grexotix-logo-img" style="height:34px; object-fit:contain;">
+              </div>
+              <div style="margin-left: 0.75rem;">
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #1e1b4b;">Grexotix School Platform</h3>
+                <p style="margin: 0.15rem 0 0 0; font-size: 0.75rem; color: #64748b; font-weight: 600;">
+                  Empowering Schools with Smart Management • Product of Grexotix
+                </p>
               </div>
             </div>
             <button type="button" class="rex-modal-close" onclick="window.AuthUI.hideLoginModal()" title="Close">&times;</button>
@@ -229,7 +255,7 @@
           <!-- Role Selection Tabs -->
           <div class="rex-role-tabs">
             <button type="button" class="rex-tab-btn ${this.currentTab === 'admin' ? 'active' : ''}" onclick="window.AuthUI.switchTab('admin')">
-              <i class="fas fa-shield-alt"></i> Super Admin
+              <i class="fas fa-shield-alt"></i> School Admin
             </button>
             <button type="button" class="rex-tab-btn ${this.currentTab === 'teacher' ? 'active' : ''}" onclick="window.AuthUI.switchTab('teacher')">
               <i class="fas fa-chalkboard-teacher"></i> Teacher
@@ -237,19 +263,22 @@
             <button type="button" class="rex-tab-btn ${this.currentTab === 'parent' ? 'active' : ''}" onclick="window.AuthUI.switchTab('parent')">
               <i class="fas fa-user-friends"></i> Parent
             </button>
+            <button type="button" class="rex-tab-btn ${this.currentTab === 'platform' ? 'active' : ''}" onclick="window.AuthUI.switchTab('platform')">
+              <i class="fas fa-crown"></i> Platform Admin
+            </button>
           </div>
 
           <div class="rex-modal-body">
             <!-- Inline Error Banner -->
             <div id="auth-error-banner" class="rex-auth-error-banner" style="display: none;"></div>
 
-            <!-- TAB 1: SUPER ADMIN -->
+            <!-- TAB 1: SCHOOL SUPER ADMIN -->
             <div id="tab-admin" class="rex-tab-pane ${this.currentTab === 'admin' ? 'active' : ''}">
               <div class="rex-login-banner admin">
                 <i class="fas fa-user-shield" style="font-size: 1.5rem;"></i>
                 <div>
-                  <strong>Super Admin Sign In</strong>
-                  <div>Administrative controls, student directory, fee ledgers & fleet tracking</div>
+                  <strong>School Super Admin Sign In</strong>
+                  <div>Institutional workspace management, admissions, fee cashiers & staff controls</div>
                 </div>
               </div>
               <form id="admin-login-form" onsubmit="window.AuthUI.handleAdminLogin(event)">
@@ -262,10 +291,10 @@
                   <input type="password" id="admin-pass" required placeholder="••••••••" value="AdminPassword123!" autocomplete="current-password">
                 </div>
                 <div class="rex-demo-hint">
-                  <i class="fas fa-info-circle"></i> Default Seed Credentials: <code>admin</code> / <code>AdminPassword123!</code>
+                  <i class="fas fa-info-circle"></i> Default Institutional Credentials: <code>admin</code> / <code>AdminPassword123!</code>
                 </div>
                 <button type="submit" class="rex-btn-primary admin" id="btn-admin-submit">
-                  <i class="fas fa-sign-in-alt"></i> Sign In as Super Admin
+                  <i class="fas fa-sign-in-alt"></i> Sign In to School Workspace
                 </button>
               </form>
             </div>
@@ -303,7 +332,7 @@
                       </div>
                     </div>
                     <div class="rex-demo-hint">
-                      <i class="fas fa-info-circle"></i> Seeded Faculty Mobile: <code>9876500004</code> (Mrs. Anitha Kumar)
+                      <i class="fas fa-info-circle"></i> Faculty Mobile: <code>9876500004</code>
                     </div>
                     <button type="submit" class="rex-btn-primary teacher" id="btn-teacher-send">
                       <i class="fas fa-paper-plane"></i> Send OTP Code
@@ -336,7 +365,7 @@
                 <form onsubmit="window.AuthUI.handleTeacherPasswordLogin(event)">
                   <div class="rex-form-group">
                     <label for="teacher-email">Teacher Email / Username *</label>
-                    <input type="text" id="teacher-email" required placeholder="maths@rex.edu" value="maths@rex.edu">
+                    <input type="text" id="teacher-email" required placeholder="maths@grexotix.edu" value="maths@grexotix.edu">
                   </div>
                   <div class="rex-form-group">
                     <label for="teacher-pass">Password *</label>
@@ -368,15 +397,48 @@
                 </div>
                 <div class="rex-form-group">
                   <label for="parent-adm">Student Admission Number (Optional for Multi-child)</label>
-                  <input type="text" id="parent-adm" placeholder="REX-2024-001" value="REX-2024-001">
+                  <input type="text" id="parent-adm" placeholder="GRX-2024-001" value="GRX-2024-001">
                 </div>
                 <div class="rex-demo-hint">
-                  <i class="fas fa-info-circle"></i> Seeded Parent: <code>9876543210</code> (Aarav & Ananya Sharma)
+                  <i class="fas fa-info-circle"></i> Registered Parent Mobile: <code>9876543210</code>
                 </div>
                 <button type="submit" class="rex-btn-primary parent" id="btn-parent-submit">
                   <i class="fas fa-sign-in-alt"></i> Enter Parent Portal
                 </button>
               </form>
+            </div>
+
+            <!-- TAB 4: PLATFORM ADMIN -->
+            <div id="tab-platform" class="rex-tab-pane ${this.currentTab === 'platform' ? 'active' : ''}">
+              <div class="rex-login-banner" style="background: linear-gradient(135deg, #7c3aed, #5b21b6); color: #fff; padding: 0.85rem 1rem; border-radius: 6px; display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
+                <i class="fas fa-crown" style="font-size: 1.5rem;"></i>
+                <div>
+                  <strong>Grexotix Platform Administrator</strong>
+                  <div style="font-size: 0.75rem; opacity: 0.9;">Platform school registrations, tenant activations & multi-school metrics</div>
+                </div>
+              </div>
+              <form id="platform-login-form" onsubmit="window.AuthUI.handlePlatformLogin(event)">
+                <div class="rex-form-group">
+                  <label for="platform-user">Platform Email or Username *</label>
+                  <input type="text" id="platform-user" required placeholder="admin@grexotix.com" value="admin@grexotix.com" autocomplete="username">
+                </div>
+                <div class="rex-form-group">
+                  <label for="platform-pass">Password *</label>
+                  <input type="password" id="platform-pass" required placeholder="••••••••" value="GrexotixAdmin2026!" autocomplete="current-password">
+                </div>
+                <div class="rex-demo-hint">
+                  <i class="fas fa-info-circle"></i> Platform Administrator: <code>admin@grexotix.com</code> / <code>GrexotixAdmin2026!</code>
+                </div>
+                <button type="submit" class="rex-btn-primary" id="btn-platform-submit" style="background: linear-gradient(135deg, #7c3aed, #6d28d9); border-color: #6d28d9; width: 100%;">
+                  <i class="fas fa-sign-in-alt"></i> Access Platform Console
+                </button>
+              </form>
+            </div>
+
+            <!-- Registration Callout Footer -->
+            <div style="text-align: center; margin-top: 1.25rem; padding-top: 0.85rem; border-top: 1px dashed var(--border-subtle); font-size: 0.78rem; color: #64748b;">
+              New School Institution? <a href="#" onclick="window.AuthUI.hideLoginModal(); if(window.PlatformModule) window.PlatformModule.openRegistrationModal(); return false;" style="color: #7c3aed; font-weight: 700;">Register Your School &rarr;</a>
+              &bull; <a href="#" onclick="window.AuthUI.hideLoginModal(); if(window.PlatformModule) window.PlatformModule.openStatusModal(); return false;" style="color: #2563eb; font-weight: 600;">Track Status</a>
             </div>
           </div>
         </div>
@@ -451,19 +513,61 @@
 
       try {
         const res = await window.RexApi.loginAdmin(user, pass);
-        window.RexApi.showToast('Super Admin authenticated successfully!', 'success');
         this.hideLoginModal();
         this.renderUserBadge();
 
-        if (window.App) {
-          window.App.applyRole('admin', false);
-          window.App.switchView('dashboard');
+        if (res.user && res.user.role === 'PLATFORM_ADMIN') {
+          window.RexApi.showToast('Grexotix Platform Admin authenticated!', 'success');
+          if (window.App) {
+            window.App.applyRole('platform_admin', false);
+            window.App.switchView('platform-admin');
+          }
+        } else {
+          window.RexApi.showToast('School Super Admin authenticated successfully!', 'success');
+          if (window.App) {
+            window.App.applyRole('admin', false);
+            window.App.switchView('dashboard');
+          }
         }
       } catch (err) {
         this.showError(err.message || 'Invalid email/username or password.');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In as Super Admin';
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In to School Workspace';
+      }
+    },
+
+    async handlePlatformLogin(e) {
+      e.preventDefault();
+      this.clearError();
+
+      const user = document.getElementById('platform-user').value.trim();
+      const pass = document.getElementById('platform-pass').value.trim();
+
+      if (!user || !pass) {
+        this.showError('Please enter both platform username/email and password.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-platform-submit');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
+
+      try {
+        const res = await window.RexApi.loginAdmin(user, pass);
+        this.hideLoginModal();
+        this.renderUserBadge();
+
+        window.RexApi.showToast('Grexotix Platform Admin authenticated!', 'success');
+        if (window.App) {
+          window.App.applyRole('platform_admin', false);
+          window.App.switchView('platform-admin');
+        }
+      } catch (err) {
+        this.showError(err.message || 'Invalid Platform Admin credentials.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Access Platform Console';
       }
     },
 

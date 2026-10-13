@@ -608,6 +608,69 @@
     },
 
     // ------------------------------------------------------------------------
+    // Grexotix Multi-Tenant Platform Operations
+    // ------------------------------------------------------------------------
+    async getPlatformInfo() {
+      return await this.request('/platform/info');
+    },
+
+    async registerSchool(registrationData) {
+      return await this.request('/platform/register', {
+        method: 'POST',
+        body: JSON.stringify(registrationData)
+      });
+    },
+
+    async getRegistrationStatus(referenceCode) {
+      return await this.request(`/platform/registration-status/${encodeURIComponent(referenceCode)}`);
+    },
+
+    async getPlatformRegistrations(status = 'ALL', search = '') {
+      let q = `/platform/registrations?status=${encodeURIComponent(status)}`;
+      if (search) q += `&search=${encodeURIComponent(search)}`;
+      return await this.request(q);
+    },
+
+    async getRegistrationDetails(id) {
+      return await this.request(`/platform/registrations/${id}`);
+    },
+
+    async approveSchoolRegistration(id, notes = '') {
+      return await this.request(`/platform/registrations/${id}/approve`, {
+        method: 'POST',
+        body: JSON.stringify({ notes })
+      });
+    },
+
+    async rejectSchoolRegistration(id, reason = '') {
+      return await this.request(`/platform/registrations/${id}/reject`, {
+        method: 'POST',
+        body: JSON.stringify({ reason })
+      });
+    },
+
+    async getPlatformSchools() {
+      return await this.request('/platform/schools');
+    },
+
+    async suspendSchool(id, reason = '') {
+      return await this.request(`/platform/schools/${id}/suspend`, {
+        method: 'POST',
+        body: JSON.stringify({ reason })
+      });
+    },
+
+    async reactivateSchool(id) {
+      return await this.request(`/platform/schools/${id}/reactivate`, {
+        method: 'POST'
+      });
+    },
+
+    async getPlatformAnalytics() {
+      return await this.request('/platform/analytics');
+    },
+
+    // ------------------------------------------------------------------------
     // UI Notification Toast
     // ------------------------------------------------------------------------
     showToast(message, type = 'info') {
@@ -675,4 +738,5 @@
   };
 
   window.RexApi = Api;
+  window.GrexotixApi = Api;
 })(window);

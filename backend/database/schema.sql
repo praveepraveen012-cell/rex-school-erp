@@ -1,8 +1,69 @@
 -- ============================================================================
--- Normalized Relational Database Schema for Rex Senior Secondary School ERP
+-- Normalized Relational Database Schema for Grexotix School Management Platform
+-- Multi-Tenant SaaS Architecture: Product of Grexotix
 -- ============================================================================
 
 PRAGMA foreign_keys = ON;
+
+-- 0. PLATFORM SCHOOLS & MULTI-TENANCY
+CREATE TABLE IF NOT EXISTS schools (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  email TEXT UNIQUE,
+  phone TEXT,
+  address TEXT,
+  city TEXT,
+  state TEXT,
+  postal_code TEXT,
+  country TEXT DEFAULT 'India',
+  website TEXT,
+  logo_url TEXT,
+  affiliation_board TEXT,
+  affiliation_number TEXT,
+  school_type TEXT,
+  approx_students INTEGER DEFAULT 0,
+  campuses_count INTEGER DEFAULT 1,
+  status TEXT DEFAULT 'ACTIVE' CHECK(status IN ('PENDING_APPROVAL', 'APPROVED', 'ACTIVE', 'SUSPENDED', 'REJECTED')),
+  subscription_plan TEXT DEFAULT 'ENTERPRISE',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS school_registrations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  registration_ref TEXT UNIQUE NOT NULL,
+  school_name TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  school_email TEXT NOT NULL,
+  school_phone TEXT NOT NULL,
+  address TEXT NOT NULL,
+  city TEXT NOT NULL,
+  state TEXT NOT NULL,
+  postal_code TEXT NOT NULL,
+  country TEXT NOT NULL,
+  website TEXT,
+  affiliation_board TEXT,
+  affiliation_number TEXT,
+  school_type TEXT,
+  approx_students TEXT,
+  campuses_count INTEGER DEFAULT 1,
+  desired_modules TEXT,
+  preferred_language TEXT DEFAULT 'English',
+  rep_name TEXT NOT NULL,
+  rep_designation TEXT NOT NULL,
+  rep_email TEXT NOT NULL,
+  rep_phone TEXT NOT NULL,
+  rep_password_hash TEXT NOT NULL,
+  status TEXT DEFAULT 'PENDING_APPROVAL' CHECK(status IN ('PENDING_APPROVAL', 'APPROVED', 'ACTIVE', 'REJECTED', 'SUSPENDED')),
+  review_notes TEXT,
+  reviewed_by INTEGER REFERENCES users(id),
+  reviewed_at DATETIME,
+  school_id INTEGER REFERENCES schools(id),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 
 -- 1. ROLES
 CREATE TABLE IF NOT EXISTS roles (
@@ -746,7 +807,7 @@ CREATE TABLE IF NOT EXISTS module_configurations (
   online_exams_enabled INTEGER DEFAULT 1,
   visitors_enabled INTEGER DEFAULT 1,
   multi_campus_enabled INTEGER DEFAULT 1,
-  active_campus_name TEXT DEFAULT 'Rex Senior Secondary Main Campus, Ootacamund',
+  active_campus_name TEXT DEFAULT 'Main Campus',
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

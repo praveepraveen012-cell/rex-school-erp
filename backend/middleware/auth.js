@@ -19,7 +19,7 @@ function authenticate(req, res, next) {
   try {
     const decoded = jwt.verify(token, config.jwtSecret);
     const user = db.get(
-      `SELECT id, username, email, mobile, role, status FROM users WHERE id = ?`,
+      `SELECT id, username, email, mobile, role, status, school_id FROM users WHERE id = ?`,
       [decoded.userId]
     );
 
@@ -44,8 +44,22 @@ function authenticate(req, res, next) {
       });
     }
 
-    // Attach basic user
+    // Attach basic user & tenant isolation context
     req.user = user;
+    req.schoolId = user.school_id || (user.role === 'PLATFORM_ADMIN' ? null : 1);
+
+    if (user.school_id) {
+      const school = db.get(`SELECT id, code, name, display_name, status, logo_url FROM schools WHERE id = ?`, [user.school_id]);
+      if (school && school.status === 'SUSPENDED') {
+        return res.status(403).json({
+          success: false,
+          error: 'This school workspace has been suspended by Grexotix Platform Administration. Please contact support@grexotix.com.'
+        });
+      }
+      req.school = school;
+    } else {
+      req.school = null;
+    }
 
     // Load Teacher profile if applicable
     if (user.role === 'TEACHER') {

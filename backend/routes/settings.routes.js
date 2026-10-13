@@ -8,8 +8,26 @@ const auditService = require('../services/auditService');
 // ----------------------------------------------------------------------------
 // GET /api/settings - Public or authenticated school settings
 // ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// GET /api/settings - Public or authenticated school settings
+// ----------------------------------------------------------------------------
 router.get('/', (req, res) => {
-  const settings = db.get(`SELECT * FROM school_settings LIMIT 1`);
+  let schoolId = req.query.schoolId ? parseInt(req.query.schoolId, 10) : null;
+  const schoolCode = req.query.schoolCode;
+
+  if (schoolCode) {
+    const sch = db.get(`SELECT id FROM schools WHERE code = ?`, [schoolCode]);
+    if (sch) schoolId = sch.id;
+  }
+
+  let settings = null;
+  if (schoolId) {
+    settings = db.get(`SELECT * FROM school_settings WHERE school_id = ?`, [schoolId]);
+  }
+  if (!settings) {
+    settings = db.get(`SELECT * FROM school_settings ORDER BY id ASC LIMIT 1`);
+  }
+
   if (!settings) {
     return res.status(404).json({ success: false, error: 'School settings not configured.' });
   }
@@ -32,7 +50,8 @@ router.put('/', authenticate, requireSuperAdmin, (req, res) => {
     phone, email, website, logoUrl, academicYear, timings, config
   } = req.body;
 
-  const current = db.get(`SELECT id FROM school_settings LIMIT 1`);
+  const targetSchoolId = req.user.school_id || 1;
+  const current = db.get(`SELECT id FROM school_settings WHERE school_id = ?`, [targetSchoolId]);
   const configJson = typeof config === 'object' ? JSON.stringify(config) : undefined;
 
   if (current) {
@@ -55,6 +74,18 @@ router.put('/', authenticate, requireSuperAdmin, (req, res) => {
         schoolName, affiliationNo, schoolCode, address,
         phone, email, website, logoUrl, academicYear, timings, configJson,
         current.id
+      ]
+    );
+  } else {
+    db.run(
+      `INSERT INTO school_settings (
+        school_id, school_name, affiliation_no, school_code, address,
+        phone, email, website, logo_url, academic_year, timings, config_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        targetSchoolId, schoolName || 'School Campus', affiliationNo, schoolCode, address,
+        phone, email, website, logoUrl || 'assets/logo.png', academicYear || '2026-2027',
+        timings || '08:30 AM - 03:45 PM', configJson || '{}'
       ]
     );
   }
@@ -89,7 +120,7 @@ router.get('/modules', (req, res) => {
       online_exams_enabled: 1,
       visitors_enabled: 1,
       multi_campus_enabled: 1,
-      active_campus_name: 'Rex Senior Secondary Main Campus, Ootacamund'
+      active_campus_name: req.school?.display_name ? `${req.school.display_name} Main Campus` : 'Main Campus'
     }
   });
 });
@@ -134,7 +165,7 @@ router.put('/modules', authenticate, requireSuperAdmin, (req, res) => {
     onlineExamsEnabled !== undefined ? (onlineExamsEnabled ? 1 : 0) : 1,
     visitorsEnabled !== undefined ? (visitorsEnabled ? 1 : 0) : 1,
     multiCampusEnabled !== undefined ? (multiCampusEnabled ? 1 : 0) : 1,
-    activeCampusName || 'Rex Senior Secondary Main Campus, Ootacamund'
+    activeCampusName || (req.school?.display_name ? `${req.school.display_name} Main Campus` : 'Main Campus')
   ]);
 
   return res.json({ success: true, message: 'Module configurations updated successfully.' });

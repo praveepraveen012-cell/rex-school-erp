@@ -1,4 +1,4 @@
-name: Build Rex School ERP APK
+name: Build Grexotix School Management Platform APK
 
 on:
   push:
@@ -34,7 +34,7 @@ jobs:
       - name: Show Flutter version
         run: flutter --version
 
-      - name: Generate complete Android scaffold with Rex branding
+      - name: Generate complete Android scaffold with Grexotix branding
         run: |
           # 1. Backup AndroidManifest and complete res/ (styles, drawable, mipmaps)
           mkdir -p /tmp/rex_backup
@@ -76,8 +76,8 @@ jobs:
             cp /tmp/rex_backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           fi
 
-          # 6. Ensure app label is Rex Management App and launcher icons are linked
-          sed -i 's/android:label="[^"]*"/android:label="Rex Management App"/' android/app/src/main/AndroidManifest.xml
+          # 6. Ensure app label is Grexotix School ERP and launcher icons are linked
+          sed -i 's/android:label="[^"]*"/android:label="Grexotix School ERP"/' android/app/src/main/AndroidManifest.xml
           if ! grep -q "android:roundIcon" android/app/src/main/AndroidManifest.xml; then
             sed -i 's/android:icon="@mipmap\/ic_launcher"/android:icon="@mipmap\/ic_launcher" android:roundIcon="@mipmap\/ic_launcher_round"/' android/app/src/main/AndroidManifest.xml
           fi
@@ -130,69 +130,51 @@ jobs:
       - name: Prepare APK for Release
         run: |
           mkdir -p release-apk
-          cp build/app/outputs/flutter-apk/app-release.apk release-apk/RexManagementApp-v2.0.apk
+          cp build/app/outputs/flutter-apk/app-release.apk release-apk/GrexotixSchoolManagement-v2.5.apk
           echo "=== Prepared APK for release ==="
           ls -lh release-apk/
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: RexManagementApp-v2.0-APK
-          path: release-apk/RexManagementApp-v2.0.apk
+          name: GrexotixSchoolManagement-v2.5-APK
+          path: release-apk/GrexotixSchoolManagement-v2.5.apk
           if-no-files-found: error
           retention-days: 30
 
       - name: Create GitHub Release with APK
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.0.${{ github.run_number }}
-          name: "📱 Rex Management App v2.0 (Build ${{ github.run_number }})"
+          tag_name: v2.5.${{ github.run_number }}
+          name: "📱 Grexotix School Management Platform (Build ${{ github.run_number }})"
           body: |
-            ## 📱 Rex Management App v2.0
+            ## 📱 Grexotix School Management Platform v2.5
             
-            **Christus Rex Senior Secondary School, Ootacamund, Nilgiris**
-            *(Catholic Diocese of Ootacamund • CBSE Affiliation)*
+            **Empowering Schools with Smart Management**
+            *(Product of Grexotix • Multi-School Sovereign SaaS Operating System)*
             
             ---
             
             ### ⬇️ Download the App:
-            Tap **`RexManagementApp-v2.0.apk`** below under the **Assets** section.
+            Tap **`GrexotixSchoolManagement-v2.5.apk`** below under the **Assets** section.
             
             > 💡 **Quick Installation Guide:**
-            > 1. Download `RexManagementApp-v2.0.apk` onto your phone.
+            > 1. Download `GrexotixSchoolManagement-v2.5.apk` onto your phone.
             > 2. Open the downloaded file from notifications or your Downloads folder.
             > 3. When asked, choose **"Allow from this source"** or enable unknown apps for your browser.
-            > 4. Tap **Install** and launch **Rex Management App**!
+            > 4. Tap **Install** and launch **Grexotix School Management Platform**!
             
             ---
             
             ### ✨ What's New in this Release:
-            - 🏷️ **App Name Updated**: Officially titled **Rex Management App**
-            - 🏫 **Official School App Icon**: Rex School gold emblem launcher icon on pure white
-            - 🎨 **White Background Header**: Crisp, high-contrast white logo container on home dashboard
-            - 🏠 **Split-Screen Dashboard**: Feature Grid + Live Message Center Feed
-            - 📋 **Notice Board**: Categorized announcements with search & pin
-            - 👥 **Staff Room**: Directory of 72 teachers with one-tap Call/Email
-            - 📅 **Day-wise Timetable**: Interactive periods Monday to Friday
-            - 🎓 **Admission Portal**: Enquiries, applications, and admitted students
-            - 📹 **Live Class Center**: Live, upcoming, and recorded study sessions
-            - 📝 **Assignment Desk**: Subject tasks and submission statuses
-            - 📖 **Class Diary**: Daily homework logs by date
-            - 📚 **Content Library**: Study material PDFs and curated videos
-            - 📊 **Evaluation & Results**: CBSE marks, grades, and report cards
-            - 🏛️ **Virtual Office**: Online requests for TC, Bonafide, Certificates
-            - 👨‍👩‍👧‍👦 **School Strength**: 1,010 students statistical overview
-            - 🖼️ **Lounge**: Campus life and event photo gallery
-            - 🗓️ **Academic Calendar**: Month-by-month school calendar
-            - 📞 **Contact Directory**: Complete staff and department contacts
-            - 💬 **Feedback Desk**: Star ratings and suggestions
-            - 🔔 **Message Center**: Official school announcements & notices
-            - 🚌 **Bus GPS Tracker**: Real-time school bus tracking with 500m alert
-            - 📄 **CBSE Digital Report Card**: Term exams, scholastic & co-scholastic grades
-            - 💰 **Fee Management**: Detailed term breakdown & online payment records
-            - ✅ **Digital Attendance**: Daily attendance percentage & leave logs
-            - 🏖️ **Leave Desk**: Easy online leave applications
-          files: release-apk/RexManagementApp-v2.0.apk
+            - 🏷️ **Grexotix Multi-Tenant Platform**: Complete SaaS rebrand with official Grexotix emblem
+            - 🏫 **Pure White Logo Standard**: Pristine `#FFFFFF` logo presentation with original aspect ratios
+            - 🆔 **Digital Student ID & Gate Pass**: Dynamic scannable QR payload (`GRX-STU:`) with multi-child switcher
+            - 🔒 **Parent Homework Restriction**: Strict security boundary forbidding parents from homework management
+            - 💳 **30% Minimum Split-Payment**: Enforcement on tuition fees with real-time outstanding ledger
+            - 🚌 **Fleet GPS Tracking & Telemetry**: Live transit monitoring with 500m proximity alerts
+            - 👥 **Campus Operations**: HR payroll, staff attendance, library catalog, visitor logging
+          files: release-apk/GrexotixSchoolManagement-v2.5.apk
           draft: false
           prerelease: false
         env:

@@ -1,11 +1,11 @@
 {
-  "name": "Rex Senior Secondary School",
-  "short_name": "Rex SSS",
-  "description": "Official WebApp and Mobile Portal for Christus Rex Senior Secondary School, Ootacamund",
+  "name": "Grexotix School Management Platform",
+  "short_name": "Grexotix School",
+  "description": "Grexotix School Management Platform — Empowering Schools with Smart Management. Product of Grexotix.",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#1e3a8a",
+  "background_color": "#ffffff",
+  "theme_color": "#7c3aed",
   "orientation": "portrait-primary",
   "icons": [
     {

@@ -701,7 +701,7 @@ async function testMessaging({ mobile, message = null, simulatedTime = null }) {
   const settings = getAutomationSettings();
   const testContent = message && message.trim()
     ? message.trim()
-    : 'School Management App test message from Christus Rex Senior Secondary School.';
+    : 'Test notification from Grexotix School Management Platform.';
 
   const result = await sendWhatsAppNotification({
     recipient: mobile,

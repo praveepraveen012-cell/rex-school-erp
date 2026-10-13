@@ -26,14 +26,14 @@ function seedDatabase() {
         school_name, affiliation_no, school_code, address, phone, email, website, logo_url, academic_year, timings, config_json
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        'Rex Senior Secondary School',
+        'Grexotix Model Demonstration School',
         'CBSE #1930000',
-        '55120',
-        'Christus Rex, Catholic Diocese of Ootacamund, Nilgiris - 643001, Tamil Nadu',
-        '+91 423 244 1234',
-        'office@rex.edu',
-        'https://rex.edu',
-        'assets/rex_emblem.png',
+        'GRX-001',
+        'Grexotix Educational Technology Center, Tech Corridor',
+        '+91 80 4000 1234',
+        'campus@grexotix.com',
+        'https://grexotix.com',
+        'assets/grexotix_logo.png',
         '2026-2027',
         '08:30 AM - 03:45 PM',
         JSON.stringify({
@@ -745,7 +745,7 @@ function seedDatabase() {
     INSERT OR IGNORE INTO module_configurations (
       id, library_enabled, inventory_enabled, hostel_enabled, transport_enabled, hr_enabled, payroll_enabled, ai_assistant_enabled, online_exams_enabled, visitors_enabled, multi_campus_enabled, active_campus_name
     ) VALUES (
-      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 'Rex Senior Secondary Main Campus, Ootacamund'
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 'Grexotix Demonstration Campus'
     )
   `);
 

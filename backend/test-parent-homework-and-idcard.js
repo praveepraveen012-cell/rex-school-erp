@@ -194,7 +194,7 @@ async function runTestSuite() {
     testAssert(aaravCardData.idCard.bloodGroup === 'O+', 'Card contains blood group');
     testAssert(aaravCardData.idCard.emergencyContact !== undefined, 'Card contains emergency contact');
     testAssert(aaravCardData.idCard.validAcademicYear.includes('2026'), 'Card contains valid academic year');
-    testAssert(aaravCardData.idCard.qrPayload.includes('REX-STU:'), 'Card contains scannable Gate Pass QR payload');
+    testAssert(aaravCardData.idCard.qrPayload.includes('GRX-STU:') || aaravCardData.idCard.qrPayload.includes('REX-STU:'), 'Card contains scannable Gate Pass QR payload');
 
     // 3b. Parent fetches ID Card for Child 2 (Ananya Sharma - id: 2)
     const ananyaCardRes = await fetch(`${BASE}/campus/id-cards/student/2`, {

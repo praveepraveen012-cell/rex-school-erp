@@ -339,12 +339,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         title: Row(
           children: [
             Container(
-              width: 32,
               height: 32,
-              padding: const EdgeInsets.all(3),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
               decoration: BoxDecoration(
                 color: Colors.white,
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(6),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.2),
@@ -352,18 +351,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   ),
                 ],
               ),
-              child: Center(
-                child: Image.asset(
-                  'assets/rex_emblem.png',
-                  height: 24,
-                  width: 24,
-                  fit: BoxFit.contain,
-                  alignment: Alignment.center,
-                  errorBuilder: (ctx, err, stack) => const Icon(
-                    Icons.school,
-                    color: Color(0xFF1E3A8A),
-                    size: 20,
-                  ),
+              child: Image.asset(
+                'assets/grexotix_logo.png',
+                height: 22,
+                fit: BoxFit.contain,
+                alignment: Alignment.center,
+                errorBuilder: (ctx, err, stack) => const Icon(
+                  Icons.school,
+                  color: Color(0xFF7928CA),
+                  size: 20,
                 ),
               ),
             ),
@@ -374,10 +370,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 children: [
                   Text(
                     role == 'SUPER_ADMIN'
-                        ? "Rex Admin Desk"
+                        ? "Grexotix Admin Desk"
                         : role == 'TEACHER'
-                            ? "Rex Faculty App"
-                            : "Rex Parent Portal",
+                            ? "Grexotix Faculty App"
+                            : "Grexotix Parent Portal",
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
@@ -386,7 +382,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     ),
                   ),
                   const Text(
-                    "CBSE Affiliation #1930000 • Nilgiris",
+                    "Powered by Grexotix • Smart School OS",
                     style: TextStyle(
                       fontSize: 10,
                       color: Colors.white70,
@@ -503,60 +499,50 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 children: [
                   Center(
                     child: Container(
-                      width: 68,
-                      height: 68,
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
+                        color: const Color(0xFFFFFFFF),
+                        borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.25),
                             blurRadius: 10,
                             offset: const Offset(0, 3),
                           ),
-                          BoxShadow(
-                            color: const Color(0xFFF59E0B).withOpacity(0.35),
-                            blurRadius: 14,
-                            spreadRadius: 1,
-                          ),
                         ],
                       ),
-                      child: Center(
-                        child: Image.asset(
-                          'assets/rex_emblem.png',
-                          height: 50,
-                          width: 50,
-                          fit: BoxFit.contain,
-                          alignment: Alignment.center,
-                          errorBuilder: (ctx, err, stack) => const Icon(
-                            Icons.school,
-                            size: 38,
-                            color: Color(0xFF1E3A8A),
-                          ),
+                      child: Image.asset(
+                        'assets/grexotix_logo.png',
+                        height: 38,
+                        fit: BoxFit.contain,
+                        alignment: Alignment.center,
+                        errorBuilder: (ctx, err, stack) => const Icon(
+                          Icons.school,
+                          size: 38,
+                          color: Color(0xFF7928CA),
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    "Rex Management App",
+                    "Grexotix School Management",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontSize: 15,
                       letterSpacing: -0.2,
                     ),
                   ),
                   const SizedBox(height: 2),
                   const Text(
-                    "Christus Rex Senior Secondary School",
+                    "Empowering Schools with Smart Management",
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Color(0xFFF59E0B),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                      color: Color(0xFFC084FC),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -568,16 +554,26 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     ),
                     child: Text(
                       role == 'SUPER_ADMIN'
-                          ? "Super Admin • Full Authority"
+                          ? "School Workspace • Super Admin"
                           : role == 'TEACHER'
-                              ? "Teaching Faculty • Science Dept"
-                              : "Parent Portal • Registered Guardian",
+                              ? "School Workspace • Faculty"
+                              : "Parent Portal • Linked Ward",
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Color(0xFFFCD34D),
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    "Product of Grexotix",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],

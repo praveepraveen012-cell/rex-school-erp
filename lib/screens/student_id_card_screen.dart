@@ -278,29 +278,26 @@ class _StudentIdCardScreenState extends State<StudentIdCardScreen> {
                       child: Row(
                         children: [
                           Container(
-                            width: 38,
-                            height: 38,
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
+                            height: 36,
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                            decoration: BoxDecoration(
                               color: Colors.white,
-                              shape: BoxShape.circle,
+                              borderRadius: BorderRadius.circular(6),
                             ),
                             child: Image.asset(
-                              "assets/rex_emblem.png",
-                              errorBuilder: (_, __, ___) => Image.asset(
-                                "assets/logo.png",
-                                errorBuilder: (_, __, ___) => const Icon(Icons.school, color: Color(0xFF1E3A8A), size: 22),
-                              ),
+                              "assets/grexotix_logo.png",
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => const Icon(Icons.school, color: Color(0xFF7928CA), size: 22),
                             ),
                           ),
                           const SizedBox(width: 10),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "REX SENIOR SECONDARY SCHOOL",
-                                  style: TextStyle(
+                                  (card['schoolName'] ?? 'GREXOTIX SMART CAMPUS').toString().toUpperCase(),
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w900,
                                     fontSize: 12,
@@ -308,8 +305,8 @@ class _StudentIdCardScreenState extends State<StudentIdCardScreen> {
                                   ),
                                 ),
                                 Text(
-                                  "Christus Rex, Ootacamund • CBSE #1930000",
-                                  style: TextStyle(color: Colors.white70, fontSize: 10),
+                                  card['schoolTagline'] ?? card['schoolAddress'] ?? "Smart Campus • Powered by Grexotix",
+                                  style: const TextStyle(color: Colors.white70, fontSize: 10),
                                 ),
                               ],
                             ),
@@ -466,7 +463,7 @@ class _StudentIdCardScreenState extends State<StudentIdCardScreen> {
                                     ),
                                     const SizedBox(height: 3),
                                     Text(
-                                      "Security personnel scan this digital code at Rex Main Gate for authorized student handover.",
+                                      "Security personnel scan this digital code at campus gate for authorized student handover.",
                                       style: TextStyle(fontSize: 10, color: Colors.grey[700], height: 1.3),
                                     ),
                                     const SizedBox(height: 3),
@@ -505,7 +502,7 @@ class _StudentIdCardScreenState extends State<StudentIdCardScreen> {
                         children: [
                           Text("Issued: 01-Jun-2026", style: TextStyle(fontSize: 10, color: Colors.grey)),
                           Text(
-                            "Rev. Fr. Principal",
+                            "Authorized Signatory",
                             style: TextStyle(
                               fontFamily: 'serif',
                               fontStyle: FontStyle.italic,
