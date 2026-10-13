@@ -51,9 +51,7 @@
 	<true/>
 	<!-- Privacy Permissions for iOS -->
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Rex Management App requires location access to show student proximity to assigned school bus stops and live route telemetry.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Rex Management App uses background location to alert parents when their child's school bus is within 500 meters of their stop.</string>
+	<string>Rex Management App requires location access while using the app to show your proximity to assigned school bus stops on the live route map.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Rex Management App requires camera access to take student profile pictures, scan identity QR codes, and upload assignment submissions.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

@@ -84,7 +84,7 @@ jobs:
 
           # 7. Ensure network, location, and vibration permissions exist in AndroidManifest
           if ! grep -q "ACCESS_FINE_LOCATION" android/app/src/main/AndroidManifest.xml; then
-            sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>\n    <uses-permission android:name="android.permission.VIBRATE"/>' android/app/src/main/AndroidManifest.xml
+            sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>\n    <uses-permission android:name="android.permission.VIBRATE"/>' android/app/src/main/AndroidManifest.xml
           fi
 
           # 8. Configure release build to use debug signing key so APK can be installed immediately

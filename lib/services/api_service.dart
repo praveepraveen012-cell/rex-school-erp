@@ -5,8 +5,8 @@ import 'package:http/http.dart' as http;
 /// Production-ready API service connecting Flutter App to the Rex Management Backend
 /// Features seamless resilient offline fallback so the mobile app always works even on cellular data
 class ApiService {
-  // Configurable base URL: Defaults to current host PC Wi-Fi LAN IP
-  static String baseUrl = 'http://192.168.1.33:3000/api';
+  // Configurable base URL: Defaults to production cloud backend, overrideable via env or runtime settings
+  static String baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'https://rex-school-erp.onrender.com/api');
 
   static String? _authToken;
   static Map<String, dynamic>? _currentUser;
@@ -540,18 +540,19 @@ class ApiService {
           'feeStructureId': feeStructureId,
           'gatewayTransactionId': gatewayTransactionId,
         }),
-      ).timeout(const Duration(seconds: 6));
-      return jsonDecode(response.body);
+      ).timeout(const Duration(seconds: 10));
+      final decoded = jsonDecode(response.body);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return decoded;
+      }
+      return {
+        'success': false,
+        'error': decoded['error'] ?? decoded['message'] ?? 'Payment failed with status code ${response.statusCode}',
+      };
     } catch (e) {
       return {
-        'success': true,
-        'message': 'Payment simulation approved (offline receipt generated)',
-        'payment': {
-          'receiptNo': 'REC-2026-${DateTime.now().millisecondsSinceEpoch % 100000}',
-          'amountPaid': amount,
-          'paymentType': paymentType,
-          'status': 'PAID'
-        }
+        'success': false,
+        'error': 'Network timeout or connection error: Could not verify payment with server. Please check your internet connection.',
       };
     }
   }

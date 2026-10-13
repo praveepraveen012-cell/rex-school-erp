@@ -600,7 +600,19 @@ class _FeesScreenState extends State<FeesScreen> {
                             paymentMode: paymentMode,
                           );
 
-                          // Update local ERP ledger state
+                          if (res['success'] != true) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(res['error'] ?? res['message'] ?? 'Payment failed. Please verify and try again.'),
+                                  backgroundColor: const Color(0xFFDC2626),
+                                ),
+                              );
+                            }
+                            return;
+                          }
+
+                          // Update local ERP ledger state upon verified success
                           erp.recordFeePayment(student.id, payAmount, paymentMode);
                           setState(() {});
 

@@ -207,16 +207,51 @@ class _ParentDashboardViewState extends State<ParentDashboardView> {
                     : () async {
                         final amt = double.tryParse(amountCtrl.text) ?? 0.0;
                         if (amt <= 0) return;
+
+                        final minSplit = (pendingAmount * 0.30).roundToDouble();
+                        if (pendingAmount > 0 && amt < minSplit && amt < pendingAmount) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("Split payment requires at least 30% of outstanding balance (min ₹${minSplit.toInt()})."),
+                              backgroundColor: const Color(0xFFDC2626),
+                            ),
+                          );
+                          return;
+                        }
+                        if (pendingAmount > 0 && amt > pendingAmount) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("Amount cannot exceed total outstanding balance of ₹${pendingAmount.toInt()}."),
+                              backgroundColor: const Color(0xFFDC2626),
+                            ),
+                          );
+                          return;
+                        }
+
                         setModalState(() => isProcessing = true);
 
+                        final paymentType = (pendingAmount > 0 && amt >= pendingAmount) ? 'FULL' : 'SPLIT';
                         final res = await ApiService.payFees(
                           studentId: studentId,
                           amount: amt,
+                          paymentType: paymentType,
                           paymentMode: paymentMode,
                         );
 
                         if (ctx.mounted) {
                           Navigator.pop(ctx);
+                          if (res['success'] != true) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(res['error'] ?? res['message'] ?? 'Payment verification failed. Please try again.'),
+                                  backgroundColor: const Color(0xFFDC2626),
+                                ),
+                              );
+                            }
+                            return;
+                          }
+
                           _loadParentData();
                           showDialog(
                             context: context,
@@ -229,7 +264,7 @@ class _ParentDashboardViewState extends State<ParentDashboardView> {
                                 ],
                               ),
                               content: Text(
-                                "Tuition fee payment of ₹$amt has been verified by the server.\n\nOfficial Receipt: ${res['payment']?['receiptNo'] ?? 'REC-2026-98124'}\nTimestamp: Just now.",
+                                "Tuition fee payment of ₹$amt has been verified by the server.\n\nOfficial Receipt: ${res['payment']?['receiptNo'] ?? 'REC-2026-CONFIRMED'}\nTimestamp: Just now.",
                               ),
                               actions: [
                                 TextButton(onPressed: () => Navigator.pop(dCtx), child: const Text("Done")),
