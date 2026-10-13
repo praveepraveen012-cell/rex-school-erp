@@ -47,6 +47,7 @@ import 'hr_management_screen.dart';
 import 'management_intelligence_screen.dart';
 import 'question_bank_screen.dart';
 import 'settings_modules_screen.dart';
+import 'student_id_card_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -897,7 +898,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       title: "Digital Student ID Card",
                       onTap: () {
                         Navigator.pop(context);
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => const CampusOperationsScreen(initialTab: 4)));
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentIdCardScreen()));
                       },
                     ),
                   ],

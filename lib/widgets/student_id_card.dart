@@ -179,8 +179,7 @@ class StudentIdCardDialog extends StatelessWidget {
                                           fontSize: 13,
                                         ),
                                       ),
-                                      const SizedBox(height: 4),
-                                      const Text("Adm No: REX-2024-1049", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                      Text("Adm No: ${student.id.startsWith('STU-') ? 'REX-2024-${student.id.replaceAll('STU-', '')}' : student.id}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
                                       Text("Blood Group: ${student.bloodGroup}", style: const TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.bold)),
                                     ],
                                   ),
@@ -239,8 +238,8 @@ class StudentIdCardDialog extends StatelessWidget {
                                       ),
                                       SizedBox(height: 2),
                                       Text(
-                                        "Security staff scan this code at Rex Campus Gate to verify authorized pickup for Aarav Sharma.",
-                                        style: TextStyle(fontSize: 10, color: Colors.black54, height: 1.3),
+                                        "Security staff scan this code at Rex Campus Gate to verify authorized pickup for ${student.name}.",
+                                        style: const TextStyle(fontSize: 10, color: Colors.black54, height: 1.3),
                                       ),
                                       SizedBox(height: 2),
                                       Text(

@@ -500,7 +500,7 @@ class _CampusOperationsScreenState extends State<CampusOperationsScreen> with Si
               const SizedBox(height: 14),
 
               Text(
-                card['studentName'] ?? '',
+                card['studentName'] ?? card['name'] ?? '',
                 style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white),
               ),
               const SizedBox(height: 4),
@@ -508,15 +508,15 @@ class _CampusOperationsScreenState extends State<CampusOperationsScreen> with Si
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(color: const Color(0xFFF59E0B), borderRadius: BorderRadius.circular(12)),
                 child: Text(
-                  "Adm No: ${card['admissionNo']}",
+                  "Adm No: ${card['admissionNo'] ?? 'REX-2024-001'}",
                   style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
                 ),
               ),
               const SizedBox(height: 14),
 
-              _buildIdCardRow("Class & Section", "${card['class']} - ${card['section']}"),
-              _buildIdCardRow("Emergency Contact", "${card['emergencyContact']}"),
-              _buildIdCardRow("Valid Through", "${card['validAcademicYear']}"),
+              _buildIdCardRow("Class & Section", card['classSection'] ?? "${card['class']} - ${card['section']}"),
+              _buildIdCardRow("Emergency Contact", "${card['emergencyContact'] ?? card['parentMobile'] ?? ''}"),
+              _buildIdCardRow("Valid Through", "${card['validAcademicYear'] ?? card['academicYear'] ?? '2026-2027'}"),
               const SizedBox(height: 14),
 
               Container(

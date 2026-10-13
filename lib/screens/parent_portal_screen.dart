@@ -7,6 +7,7 @@ import '../widgets/student_id_card.dart';
 import '../widgets/metric_card.dart';
 import 'homework_screen.dart';
 import 'leave_screen.dart';
+import 'student_id_card_screen.dart';
 
 class ParentPortalScreen extends StatelessWidget {
   const ParentPortalScreen({super.key});
@@ -105,9 +106,9 @@ class ParentPortalScreen extends StatelessWidget {
                     children: [
                       ElevatedButton.icon(
                         onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (_) => StudentIdCardDialog(student: aarav),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const StudentIdCardScreen()),
                           );
                         },
                         icon: const Icon(Icons.badge, size: 16),

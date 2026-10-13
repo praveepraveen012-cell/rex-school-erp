@@ -151,8 +151,8 @@ router.get('/', (req, res) => {
 // ----------------------------------------------------------------------------
 router.post('/', (req, res) => {
   const role = req.user.role;
-  if (role === 'PARENT') {
-    return res.status(403).json({ success: false, error: 'Parents cannot assign homework.' });
+  if (role !== 'TEACHER' && role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ success: false, error: 'Unauthorized: Parents cannot assign or create homework.' });
   }
 
   const { classId, sectionId, subjectId, title, description, assignedDate, dueDate, attachmentUrl } = req.body;
@@ -220,8 +220,8 @@ router.post('/', (req, res) => {
 // ----------------------------------------------------------------------------
 router.put('/:id', (req, res) => {
   const role = req.user.role;
-  if (role === 'PARENT') {
-    return res.status(403).json({ success: false, error: 'Parents cannot modify or edit homework assignments.' });
+  if (role !== 'TEACHER' && role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ success: false, error: 'Unauthorized: Parents cannot modify or edit homework assignments.' });
   }
 
   const { id } = req.params;
@@ -297,8 +297,8 @@ router.put('/:id', (req, res) => {
 // ----------------------------------------------------------------------------
 router.delete('/:id', (req, res) => {
   const role = req.user.role;
-  if (role === 'PARENT') {
-    return res.status(403).json({ success: false, error: 'Parents cannot delete homework assignments.' });
+  if (role !== 'TEACHER' && role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ success: false, error: 'Unauthorized: Parents cannot delete homework assignments.' });
   }
 
   const { id } = req.params;

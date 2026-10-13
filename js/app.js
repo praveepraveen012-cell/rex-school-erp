@@ -551,9 +551,11 @@ const App = {
               <h3 class="card-title" style="font-size: 1.1rem; margin: 0;">📖 Digital Homework & Daily Diary</h3>
               <p class="card-subtitle" style="margin: 0.15rem 0 0 0;">Interactive completion tracker for Class 10-A</p>
             </div>
+            ${(this.currentRole === 'teacher' || this.currentRole === 'admin') ? `
             <button type="button" class="btn btn-sm btn-primary" onclick="App.openHomeworkModal()">
               + New Homework
             </button>
+            ` : ''}
           </div>
 
           <div class="card-body" style="padding: 1rem; flex: 1;">
@@ -586,7 +588,8 @@ const App = {
                       <span>Due: <strong>${hw.dueDate}</strong></span>
                     </div>
 
-                    <!-- Workflow Actions Row (Req 2, 9, 10, 11, 12, 13) -->
+                    <!-- Workflow Actions Row (Strictly Teachers & Admin only; Parents see completion status) -->
+                    ${(this.currentRole === 'teacher' || this.currentRole === 'admin') ? `
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.6rem; padding-top: 0.45rem; border-top: 1px dashed var(--border-subtle); font-size: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
                       <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                         ${isSent ? `
@@ -619,6 +622,12 @@ const App = {
                         `}
                       </div>
                     </div>
+                    ` : `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.6rem; padding-top: 0.45rem; border-top: 1px dashed var(--border-subtle); font-size: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+                      <span style="color: var(--text-muted); font-size: 0.75rem;">Status: <strong style="color: ${hw.status === 'Completed' ? '#10b981' : '#f59e0b'};">${hw.status === 'Completed' ? '✓ Completed' : '⏳ Pending'}</strong></span>
+                      <span style="font-size: 0.72rem; color: #2563eb; cursor: pointer; font-weight: 700;" onclick="App.toggleHomework('${hw.id}')">${hw.status === 'Completed' ? '↩ Mark as Pending' : '✓ Mark as Completed'}</span>
+                    </div>
+                    `}
                   </div>
                 </div>
               `;}).join('')}
@@ -893,6 +902,10 @@ const App = {
   },
 
   openHomeworkModal() {
+    if (this.currentRole === 'parent' || this.currentRole === 'student') {
+      this.showToast('Unauthorized: Parents cannot create or assign homework.', 'error');
+      return;
+    }
     let modal = document.getElementById('new-homework-modal');
     if (modal) modal.classList.add('open');
   },
@@ -904,6 +917,10 @@ const App = {
 
   submitHomework(e) {
     if (e) e.preventDefault();
+    if (this.currentRole === 'parent' || this.currentRole === 'student') {
+      this.showToast('Unauthorized: Parents cannot create or assign homework.', 'error');
+      return;
+    }
     const subject = document.getElementById('hw-subject')?.value || 'Mathematics';
     const title = document.getElementById('hw-title')?.value || 'Worksheet';
     const description = document.getElementById('hw-desc')?.value || 'Complete workbook exercises.';

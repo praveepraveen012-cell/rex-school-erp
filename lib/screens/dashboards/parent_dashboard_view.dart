@@ -12,6 +12,7 @@ import '../report_card_screen.dart';
 import '../notice_board_screen.dart';
 import '../ai_assistant_screen.dart';
 import '../campus_operations_screen.dart';
+import '../student_id_card_screen.dart';
 
 class ParentDashboardView extends StatefulWidget {
   const ParentDashboardView({super.key});
@@ -465,6 +466,25 @@ class _ParentDashboardViewState extends State<ParentDashboardView> {
                             const SizedBox(height: 2),
                             Text("Class $childClass • Roll No. $rollNo", style: const TextStyle(color: Colors.white70, fontSize: 12)),
                             Text("Admission: $admissionNo", style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                            const SizedBox(height: 6),
+                            InkWell(
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StudentIdCardScreen(initialStudentId: (activeStudent['id'] as num?)?.toInt()))),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF59E0B),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.badge, size: 12, color: Color(0xFF0F172A)),
+                                    SizedBox(width: 4),
+                                    Text("🪪 View ID Card", style: TextStyle(color: Color(0xFF0F172A), fontSize: 10, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -833,7 +853,7 @@ class _ParentDashboardViewState extends State<ParentDashboardView> {
               children: [
                 _buildShortcutTile(icon: Icons.assignment_outlined, label: "Report Card", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportCardScreen()))),
                 _buildShortcutTile(icon: Icons.calendar_today_outlined, label: "Attendance", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceScreen()))),
-                _buildShortcutTile(icon: Icons.badge_outlined, label: "ID Card", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CampusOperationsScreen(initialTab: 4)))),
+                _buildShortcutTile(icon: Icons.badge_outlined, label: "ID Card", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentIdCardScreen()))),
                 _buildShortcutTile(icon: Icons.campaign_outlined, label: "Circulars", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NoticeBoardScreen()))),
                 _buildShortcutTile(icon: Icons.alt_route_outlined, label: "Bus Route", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BusTrackerScreen()))),
               ],
