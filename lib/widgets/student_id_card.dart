@@ -224,11 +224,11 @@ class StudentIdCardDialog extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(width: 12),
-                                const Expanded(
+                                Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
+                                      const Text(
                                         "VALID PARENT PICKUP GATE PASS",
                                         style: TextStyle(
                                           fontWeight: FontWeight.w900,
@@ -236,13 +236,13 @@ class StudentIdCardDialog extends StatelessWidget {
                                           color: Color(0xFF1E3A8A),
                                         ),
                                       ),
-                                      SizedBox(height: 2),
+                                      const SizedBox(height: 2),
                                       Text(
                                         "Security staff scan this code at Rex Campus Gate to verify authorized pickup for ${student.name}.",
                                         style: const TextStyle(fontSize: 10, color: Colors.black54, height: 1.3),
                                       ),
-                                      SizedBox(height: 2),
-                                      Text(
+                                      const SizedBox(height: 2),
+                                      const Text(
                                         "● Active Academic Session 2026-27",
                                         style: TextStyle(fontSize: 9, color: Color(0xFF16A34A), fontWeight: FontWeight.bold),
                                       ),
