@@ -227,6 +227,7 @@ async function runTestSuite() {
 
   } finally {
     server.close();
+    process.exit(0);
   }
 }
 
