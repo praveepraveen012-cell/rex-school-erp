@@ -7,36 +7,45 @@ const smsService = require('../services/smsService');
 
 router.use(authenticate);
 
+// Role guard: Platform Admin does not manage individual school attendance
+router.use((req, res, next) => {
+  if (req.user && req.user.role === 'PLATFORM_ADMIN') {
+    return res.status(403).json({
+      success: false,
+      error: 'Access denied: Platform administrators do not manage individual school daily attendance.'
+    });
+  }
+  next();
+});
+
+// Role guard: Parents can only view attendance; reject any mutation attempts
+router.use((req, res, next) => {
+  if (req.user && req.user.role === 'PARENT') {
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied: Parents cannot modify attendance records.'
+      });
+    }
+  }
+  next();
+});
+
 // ----------------------------------------------------------------------------
 // GET /api/attendance - Query attendance by class, section, date or student
 // ----------------------------------------------------------------------------
 router.get('/', (req, res) => {
   const { classId, sectionId, date, studentId, month } = req.query;
+  const schoolId = req.schoolId || (req.user && req.user.school_id) || 1;
 
   // 1. Parent Access: Can ONLY view attendance of linked child
   if (req.user.role === 'PARENT') {
-    if (!req.parent) {
-      return res.status(403).json({ success: false, error: 'No parent profile found.' });
+    if (!req.parent || !req.parent.students || req.parent.students.length === 0) {
+      return res.status(403).json({ success: false, error: 'No parent profile or linked children found.' });
     }
 
-    let targetStudentId = studentId;
-    if (!targetStudentId) {
-      // Default to first linked child
-      const firstChild = db.get(
-        `SELECT student_id FROM student_parents WHERE parent_id = ? LIMIT 1`,
-        [req.parent.id]
-      );
-      if (!firstChild) {
-        return res.json({ success: true, records: [], summary: { total: 0, present: 0, absent: 0, percentage: 100 } });
-      }
-      targetStudentId = firstChild.student_id;
-    }
-
-    // Verify parent owns this student
-    const isLinked = db.get(
-      `SELECT * FROM student_parents WHERE parent_id = ? AND student_id = ?`,
-      [req.parent.id, targetStudentId]
-    );
+    let targetStudentId = studentId ? parseInt(studentId, 10) : req.parent.students[0].id;
+    const isLinked = req.parent.students.find(s => s.id === targetStudentId);
 
     if (!isLinked) {
       return res.status(403).json({
@@ -76,6 +85,8 @@ router.get('/', (req, res) => {
     return res.json({
       success: true,
       studentId: targetStudentId,
+      studentName: `${isLinked.first_name} ${isLinked.last_name}`,
+      className: `${isLinked.class_name || ''}-${isLinked.section_name || ''}`,
       summary: { total, present, absent, late, percentage },
       records
     });
@@ -83,10 +94,13 @@ router.get('/', (req, res) => {
 
   // 2. Teacher Access: Check class/section assignment
   if (req.user.role === 'TEACHER') {
+    if (!req.teacher) {
+      return res.status(403).json({ success: false, error: 'Teacher profile not found.' });
+    }
+    const assignments = req.teacher.assignments || [];
     if (classId && sectionId) {
-      const isAssigned = db.get(
-        `SELECT id FROM teacher_assignments WHERE teacher_id = ? AND class_id = ? AND section_id = ?`,
-        [req.teacher.id, classId, sectionId]
+      const isAssigned = assignments.some(
+        a => a.class_id === parseInt(classId, 10) && a.section_id === parseInt(sectionId, 10)
       );
       if (!isAssigned) {
         return res.status(403).json({
@@ -94,10 +108,18 @@ router.get('/', (req, res) => {
           error: 'Access denied. You are not assigned to this class and section.'
         });
       }
+    } else if (classId) {
+      const isAssignedClass = assignments.some(a => a.class_id === parseInt(classId, 10));
+      if (!isAssignedClass) {
+        return res.status(403).json({
+          success: false,
+          error: 'Access denied. You are not assigned to this class.'
+        });
+      }
     }
   }
 
-  // 3. Teacher / Super Admin query
+  // 3. Teacher / Super Admin query (Tenant isolated)
   let sql = `
     SELECT a.*, s.first_name, s.last_name, s.roll_no, s.admission_no,
            c.name as class_name, sec.name as section_name, t.name as marked_by_teacher_name
@@ -106,9 +128,19 @@ router.get('/', (req, res) => {
     JOIN classes c ON a.class_id = c.id
     JOIN sections sec ON a.section_id = sec.id
     LEFT JOIN teachers t ON a.marked_by_teacher_id = t.id
-    WHERE 1=1
+    WHERE (c.school_id = ? OR ? = 1)
   `;
-  const params = [];
+  const params = [schoolId, schoolId];
+
+  // If teacher and no class/section filter, restrict to assigned sections
+  if (req.user.role === 'TEACHER' && !classId && !sectionId) {
+    const assignments = req.teacher?.assignments || [];
+    const secIds = assignments.map(a => a.section_id);
+    if (secIds.length > 0) {
+      sql += ` AND a.section_id IN (${secIds.map(() => '?').join(',')})`;
+      params.push(...secIds);
+    }
+  }
 
   if (classId) {
     sql += ` AND a.class_id = ?`;
@@ -303,6 +335,124 @@ router.post('/', (req, res) => {
     message: `Attendance for ${records.length} students recorded successfully.`,
     absentCount: absentStudentIds.length,
     smsDispatchedCount
+  });
+});
+
+// ----------------------------------------------------------------------------
+// POST /api/attendance/mark-all-present - Mark entire class present
+// ----------------------------------------------------------------------------
+router.post('/mark-all-present', (req, res) => {
+  if (req.user.role === 'PARENT' || req.user.role === 'PLATFORM_ADMIN') {
+    return res.status(403).json({
+      success: false,
+      error: 'Access denied: Parents and platform administrators cannot mark attendance.'
+    });
+  }
+
+  const { classId, sectionId, date } = req.body;
+  if (!classId || !sectionId || !date) {
+    return res.status(400).json({ success: false, error: 'classId, sectionId, and date are required.' });
+  }
+
+  if (req.user.role === 'TEACHER') {
+    const isAssigned = (req.teacher?.assignments || []).some(
+      a => a.class_id === parseInt(classId, 10) && a.section_id === parseInt(sectionId, 10)
+    );
+    if (!isAssigned) {
+      return res.status(403).json({
+        success: false,
+        error: 'Permission denied. You are not authorized to mark attendance for this class.'
+      });
+    }
+  }
+
+  const students = db.query(
+    `SELECT id FROM students WHERE class_id = ? AND section_id = ? AND status = 'active'`,
+    [classId, sectionId]
+  );
+
+  const teacherId = req.teacher ? req.teacher.id : null;
+  db.transaction(() => {
+    for (const s of students) {
+      db.run(
+        `INSERT INTO attendance (student_id, class_id, section_id, date, status, marked_by_teacher_id, updated_at)
+         VALUES (?, ?, ?, ?, 'present', ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(student_id, date) DO UPDATE SET
+           status = 'present',
+           marked_by_teacher_id = excluded.marked_by_teacher_id,
+           updated_at = CURRENT_TIMESTAMP`,
+        [s.id, classId, sectionId, date, teacherId]
+      );
+    }
+  });
+
+  return res.json({
+    success: true,
+    message: `All ${students.length} students marked present.`,
+    count: students.length
+  });
+});
+
+// ----------------------------------------------------------------------------
+// POST /api/attendance/dispatch-alerts - Dispatch Absent alerts via WhatsApp/SMS
+// ----------------------------------------------------------------------------
+router.post(['/dispatch-alerts', '/dispatch-absent-alerts'], (req, res) => {
+  if (req.user.role === 'PARENT' || req.user.role === 'PLATFORM_ADMIN') {
+    return res.status(403).json({
+      success: false,
+      error: 'Access denied: Parents and platform administrators cannot dispatch attendance alerts.'
+    });
+  }
+
+  const { classId, sectionId, date } = req.body;
+  if (!classId || !sectionId || !date) {
+    return res.status(400).json({ success: false, error: 'classId, sectionId, and date are required.' });
+  }
+
+  if (req.user.role === 'TEACHER') {
+    const isAssigned = (req.teacher?.assignments || []).some(
+      a => a.class_id === parseInt(classId, 10) && a.section_id === parseInt(sectionId, 10)
+    );
+    if (!isAssigned) {
+      return res.status(403).json({
+        success: false,
+        error: 'Permission denied. You are not authorized to dispatch alerts for this class.'
+      });
+    }
+  }
+
+  const absentStudents = db.query(
+    `SELECT s.id, s.first_name, s.last_name, s.roll_no, c.name as class_name, sec.name as section_name,
+            COALESCE(p.mobile, s.parent_mobile) as parent_mobile
+     FROM attendance a
+     JOIN students s ON a.student_id = s.id
+     JOIN classes c ON a.class_id = c.id
+     JOIN sections sec ON a.section_id = sec.id
+     LEFT JOIN parents p ON s.parent_id = p.id
+     WHERE a.class_id = ? AND a.section_id = ? AND a.date = ? AND a.status = 'absent'`,
+    [classId, sectionId, date]
+  );
+
+  let sent = 0;
+  for (const st of absentStudents) {
+    if (st.parent_mobile) {
+      smsService.sendAbsenteeAlert({
+        mobile: st.parent_mobile,
+        studentName: `${st.first_name} ${st.last_name}`.trim(),
+        rollNo: st.roll_no,
+        className: st.class_name,
+        sectionName: st.section_name,
+        date
+      });
+      sent++;
+    }
+  }
+
+  return res.json({
+    success: true,
+    message: `Dispatched absent alerts to ${sent} parents.`,
+    sentCount: sent,
+    absentCount: absentStudents.length
   });
 });
 

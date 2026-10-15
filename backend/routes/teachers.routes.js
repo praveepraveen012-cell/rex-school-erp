@@ -12,6 +12,10 @@ router.use(authenticate);
 // GET /api/teachers - List all teachers (Admin) or self (Teacher)
 // ----------------------------------------------------------------------------
 router.get('/', (req, res) => {
+  if (req.user.role === 'PARENT') {
+    return res.status(403).json({ success: false, error: 'Access denied: Parents cannot access staff directory.' });
+  }
+
   // If teacher, return only own record
   if (req.user.role === 'TEACHER') {
     if (!req.teacher) {
@@ -48,6 +52,10 @@ router.get('/', (req, res) => {
 // GET /api/teachers/:id - Get teacher by ID
 // ----------------------------------------------------------------------------
 router.get('/:id', (req, res) => {
+  if (req.user.role === 'PARENT') {
+    return res.status(403).json({ success: false, error: 'Access denied: Parents cannot access staff directory.' });
+  }
+
   const teacherId = parseInt(req.params.id, 10);
 
   // Teacher isolation: can only view own profile

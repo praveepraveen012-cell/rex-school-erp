@@ -274,23 +274,43 @@ router.get('/bus/:id', (req, res) => {
     return res.status(404).json({ success: false, error: 'Bus not found.' });
   }
 
+  // Parent isolation: Parent can only view bus if linked child is assigned to it, and can only see their own children
+  if (req.user.role === 'PARENT') {
+    if (!req.parent || !req.parent.students || req.parent.students.length === 0) {
+      return res.status(403).json({ success: false, error: 'Access denied: No linked children found.' });
+    }
+    const studentIds = req.parent.students.map(s => s.id);
+    const hasChildOnBus = db.get(
+      `SELECT id FROM student_transport_assignments WHERE bus_id = ? AND student_id IN (${studentIds.join(',')})`,
+      [busId]
+    );
+    if (!hasChildOnBus) {
+      return res.status(403).json({ success: false, error: 'Access denied: You do not have permission to view this bus.' });
+    }
+  }
+
   const driver = db.get(`SELECT * FROM drivers WHERE assigned_bus_id = ?`, [busId]);
   const route = db.get(`SELECT * FROM bus_routes WHERE assigned_bus_id = ? OR id = 1`, [busId]);
   const stops = route
     ? db.query(`SELECT * FROM bus_stops WHERE route_id = ? ORDER BY stop_order ASC`, [route.id])
     : [];
 
-  const assignedStudents = db.query(
-    `SELECT s.id, s.admission_no, s.first_name, s.last_name, c.name as class_name, sec.name as section_name,
+  let assignedStudentsSql = `SELECT s.id, s.admission_no, s.first_name, s.last_name, c.name as class_name, sec.name as section_name,
             bs.stop_name as pickup_stop_name, bs.pickup_time, bs.drop_time
      FROM student_transport_assignments sta
      JOIN students s ON sta.student_id = s.id
      LEFT JOIN classes c ON s.class_id = c.id
      LEFT JOIN sections sec ON s.section_id = sec.id
      LEFT JOIN bus_stops bs ON sta.pickup_stop_id = bs.id
-     WHERE sta.bus_id = ?`,
-    [busId]
-  );
+     WHERE sta.bus_id = ?`;
+  const studentQueryParams = [busId];
+
+  if (req.user.role === 'PARENT') {
+    const studentIds = req.parent.students.map(s => s.id);
+    assignedStudentsSql += ` AND sta.student_id IN (${studentIds.join(',')})`;
+  }
+
+  const assignedStudents = db.query(assignedStudentsSql, studentQueryParams);
 
   const trackingState = demoGpsSimulator.getState(busId) || db.get(`SELECT * FROM bus_tracking_state WHERE bus_id = ?`, [busId]);
 

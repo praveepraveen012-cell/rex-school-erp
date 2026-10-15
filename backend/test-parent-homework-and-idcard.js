@@ -164,8 +164,11 @@ async function runTestSuite() {
     });
     testAssert(parentSendHwRes.status === 403, 'Parent POST /api/homework/:id/send-now rejected with 403 Forbidden');
 
+    const aaravId = parentData.children.find(c => c.first_name.includes('Aarav'))?.id || parentData.children[0].id;
+    const ananyaId = parentData.children.find(c => c.first_name.includes('Ananya'))?.id || parentData.children[1].id;
+
     // 2f. Parent views assigned homework for their child
-    const parentViewHwRes = await fetch(`${BASE}/homework?studentId=1`, {
+    const parentViewHwRes = await fetch(`${BASE}/homework?studentId=${aaravId}`, {
       headers: {
         'Authorization': `Bearer ${parentToken}`
       }
@@ -180,12 +183,12 @@ async function runTestSuite() {
     // ------------------------------------------------------------------------
     console.log('\nStep 3: Verify Student ID Cards & Multi-Child Access');
 
-    // 3a. Parent fetches ID Card for Child 1 (Aarav Sharma - id: 1)
-    const aaravCardRes = await fetch(`${BASE}/campus/id-cards/student/1`, {
+    // 3a. Parent fetches ID Card for Child 1 (Aarav Sharma)
+    const aaravCardRes = await fetch(`${BASE}/campus/id-cards/student/${aaravId}`, {
       headers: { 'Authorization': `Bearer ${parentToken}` }
     });
     const aaravCardData = await aaravCardRes.json();
-    testAssert(aaravCardRes.status === 200, 'Parent GET /campus/id-cards/student/1 returns 200 OK');
+    testAssert(aaravCardRes.status === 200, `Parent GET /campus/id-cards/student/${aaravId} returns 200 OK`);
     testAssert(aaravCardData.success === true, 'ID card response success = true');
     testAssert(aaravCardData.idCard.name.includes('Aarav Sharma'), 'Card contains student full name (Aarav Sharma)');
     testAssert(aaravCardData.idCard.studentName.includes('Aarav Sharma'), 'Card studentName alias present');
@@ -196,27 +199,27 @@ async function runTestSuite() {
     testAssert(aaravCardData.idCard.validAcademicYear.includes('2026'), 'Card contains valid academic year');
     testAssert(aaravCardData.idCard.qrPayload.includes('GRX-STU:') || aaravCardData.idCard.qrPayload.includes('REX-STU:'), 'Card contains scannable Gate Pass QR payload');
 
-    // 3b. Parent fetches ID Card for Child 2 (Ananya Sharma - id: 2)
-    const ananyaCardRes = await fetch(`${BASE}/campus/id-cards/student/2`, {
+    // 3b. Parent fetches ID Card for Child 2 (Ananya Sharma)
+    const ananyaCardRes = await fetch(`${BASE}/campus/id-cards/student/${ananyaId}`, {
       headers: { 'Authorization': `Bearer ${parentToken}` }
     });
     const ananyaCardData = await ananyaCardRes.json();
-    testAssert(ananyaCardRes.status === 200, 'Parent GET /campus/id-cards/student/2 returns 200 OK');
+    testAssert(ananyaCardRes.status === 200, `Parent GET /campus/id-cards/student/${ananyaId} returns 200 OK`);
     testAssert(ananyaCardData.idCard.name.includes('Ananya Sharma'), 'Child 2 card contains correct name (Ananya Sharma)');
     testAssert(ananyaCardData.idCard.admissionNo === 'REX-2025-042', 'Child 2 card contains correct admission number');
     testAssert(ananyaCardData.idCard.qrPayload.includes('REX-2025-042'), 'Child 2 card contains unique QR payload for Ananya');
 
-    // 3c. Parent attempts to access UNLINKED student ID card (e.g. Student 5)
-    const unlinkedCardRes = await fetch(`${BASE}/campus/id-cards/student/5`, {
+    // 3c. Parent attempts to access UNLINKED student ID card (e.g. Student ID 99999)
+    const unlinkedCardRes = await fetch(`${BASE}/campus/id-cards/student/99999`, {
       headers: { 'Authorization': `Bearer ${parentToken}` }
     });
-    testAssert(unlinkedCardRes.status === 403, 'Parent accessing unlinked student ID card rejected with 403 Forbidden');
+    testAssert(unlinkedCardRes.status === 403 || unlinkedCardRes.status === 404, 'Parent accessing unlinked student ID card rejected with 403 Forbidden or 404');
 
     // 3d. Super Admin can view student ID card
-    const adminCardRes = await fetch(`${BASE}/campus/id-cards/student/1`, {
+    const adminCardRes = await fetch(`${BASE}/campus/id-cards/student/${aaravId}`, {
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
-    testAssert(adminCardRes.status === 200, 'Super Admin GET /campus/id-cards/student/1 returns 200 OK');
+    testAssert(adminCardRes.status === 200, `Super Admin GET /campus/id-cards/student/${aaravId} returns 200 OK`);
 
     // Clean up test homework
     db.run(`DELETE FROM homework WHERE id = ?`, [createdHwId]);

@@ -112,163 +112,183 @@ router.get('/', (req, res) => {
 
   // 2. SUPER ADMIN ACCESS - School-wide fee overview & filterable student ledgers
   if (role === 'SUPER_ADMIN') {
-    const { search, student, parent, classId, sectionId, status } = req.query;
-
-    let studentsQuery = `
-      SELECT s.id, s.first_name, s.last_name, s.admission_no, s.class_id, s.section_id,
-             c.name as class_name, sec.name as section_name,
-             p.id as parent_id, p.name as parent_name, p.mobile as parent_mobile
-      FROM students s
-      JOIN classes c ON s.class_id = c.id
-      JOIN sections sec ON s.section_id = sec.id
-      LEFT JOIN parents p ON s.parent_id = p.id
-      WHERE s.status = 'active'
-    `;
-    const params = [];
-
-    if (classId) {
-      studentsQuery += ` AND s.class_id = ?`;
-      params.push(classId);
-    }
-    if (sectionId) {
-      studentsQuery += ` AND s.section_id = ?`;
-      params.push(sectionId);
-    }
-    const studentSearch = search || student;
-    if (studentSearch) {
-      studentsQuery += ` AND (s.first_name LIKE ? OR s.last_name LIKE ? OR s.admission_no LIKE ?)`;
-      params.push(`%${studentSearch}%`, `%${studentSearch}%`, `%${studentSearch}%`);
-    }
-    if (parent) {
-      studentsQuery += ` AND (p.name LIKE ? OR p.mobile LIKE ?)`;
-      params.push(`%${parent}%`, `%${parent}%`);
-    }
-    studentsQuery += ` ORDER BY s.admission_no ASC`;
-
-    const allStudents = db.query(studentsQuery, params);
-
-    // Map class fee structures
-    const classFeesMap = {};
-    const classStructures = db.query(`SELECT class_id, SUM(total_amount) as total FROM fee_structures GROUP BY class_id`);
-    classStructures.forEach(cs => {
-      classFeesMap[cs.class_id] = cs.total;
-    });
-
-    let overallTotalFees = 0;
-    let overallTotalCollected = 0;
-    let overallTotalOutstanding = 0;
-    let paidCount = 0;
-    let unpaidCount = 0;
-    let partialCount = 0;
-
-    const studentRecords = [];
-
-    for (const st of allStudents) {
-      const studentTotalFee = classFeesMap[st.class_id] || 50000;
-
-      const payments = db.query(
-        `SELECT fp.*, fs.term_name 
-         FROM fee_payments fp 
-         LEFT JOIN fee_structures fs ON fp.fee_structure_id = fs.id 
-         WHERE fp.student_id = ? AND fp.status = 'PAID'
-         ORDER BY fp.paid_at DESC`,
-        [st.id]
-      );
-
-      const paidAmount = payments.reduce((sum, p) => sum + p.amount_paid, 0);
-      const outstanding = Math.max(0, studentTotalFee - paidAmount);
-      const minSplit = Math.round(outstanding * 0.30);
-
-      let studentStatus = 'UNPAID';
-      if (outstanding === 0) {
-        studentStatus = 'PAID';
-      } else if (paidAmount > 0) {
-        studentStatus = 'PARTIALLY_PAID';
-      }
-
-      overallTotalFees += studentTotalFee;
-      overallTotalCollected += paidAmount;
-      overallTotalOutstanding += outstanding;
-
-      if (studentStatus === 'PAID') paidCount++;
-      else if (studentStatus === 'UNPAID') unpaidCount++;
-      else partialCount++;
-
-      // Apply status filter if specified
-      if (status && status !== 'ALL') {
-        const normalizedFilter = status.toUpperCase();
-        if (normalizedFilter === 'PAID' && studentStatus !== 'PAID') continue;
-        if (normalizedFilter === 'UNPAID' && studentStatus !== 'UNPAID') continue;
-        if ((normalizedFilter === 'PARTIAL' || normalizedFilter === 'PARTIALLY_PAID') && studentStatus !== 'PARTIALLY_PAID') continue;
-      }
-
-      const lastPayment = payments.length > 0 ? payments[0] : null;
-
-      studentRecords.push({
-        studentId: st.id,
-        studentName: `${st.first_name} ${st.last_name}`,
-        admissionNo: st.admission_no,
-        classId: st.class_id,
-        className: st.class_name,
-        sectionId: st.section_id,
-        sectionName: st.section_name,
-        parentId: st.parent_id,
-        parentName: st.parent_name || 'N/A',
-        parentMobile: st.parent_mobile || 'N/A',
-        totalFee: studentTotalFee,
-        amountPaid: paidAmount,
-        outstandingAmount: outstanding,
-        minSplitPayment: minSplit,
-        status: studentStatus,
-        lastPaymentDate: lastPayment ? lastPayment.paid_at : null,
-        receiptNo: lastPayment ? lastPayment.receipt_no : null,
-        payments: payments.map(p => ({
-          id: p.id,
-          amountPaid: p.amount_paid,
-          totalFees: p.total_fees,
-          pendingAmount: p.pending_amount,
-          paymentType: p.payment_type || 'FULL',
-          paymentMode: p.payment_mode,
-          transactionRef: p.transaction_ref,
-          status: p.status,
-          receiptNo: p.receipt_no,
-          paidAt: p.paid_at,
-          termName: p.term_name || 'Tuition Fee'
-        }))
-      });
-    }
-
-    // Recent payments for ledger view
-    const recentPayments = db.query(`
-      SELECT fp.*, s.first_name, s.last_name, s.admission_no, c.name as class_name, sec.name as section_name
-      FROM fee_payments fp
-      JOIN students s ON fp.student_id = s.id
-      JOIN classes c ON s.class_id = c.id
-      JOIN sections sec ON s.section_id = sec.id
-      ORDER BY fp.paid_at DESC LIMIT 50
-    `);
-
-    return res.json({
-      success: true,
-      role: 'SUPER_ADMIN',
-      overview: {
-        totalFees: overallTotalFees,
-        totalCollected: overallTotalCollected,
-        totalOutstanding: overallTotalOutstanding,
-        paidStudents: paidCount,
-        unpaidStudents: unpaidCount,
-        partiallyPaidStudents: partialCount,
-        totalStudents: allStudents.length,
-        collectionRate: overallTotalFees > 0 ? Math.round((overallTotalCollected / overallTotalFees) * 100) : 0,
-        currency: 'INR',
-        currencySymbol: '₹'
-      },
-      students: studentRecords,
-      recentPayments
-    });
+    return getSuperAdminFeeLedger(req, res);
   }
 
   return res.status(403).json({ success: false, error: 'Unauthorized role.' });
+});
+
+// Helper for Super Admin Fee Overview / Cashier Ledger
+function getSuperAdminFeeLedger(req, res) {
+  const { search, student, parent, classId, sectionId, status } = req.query;
+
+  let studentsQuery = `
+    SELECT s.id, s.first_name, s.last_name, s.admission_no, s.class_id, s.section_id,
+           c.name as class_name, sec.name as section_name,
+           p.id as parent_id, p.name as parent_name, p.mobile as parent_mobile
+    FROM students s
+    JOIN classes c ON s.class_id = c.id
+    JOIN sections sec ON s.section_id = sec.id
+    LEFT JOIN parents p ON s.parent_id = p.id
+    WHERE s.status = 'active'
+  `;
+  const params = [];
+
+  if (classId) {
+    studentsQuery += ` AND s.class_id = ?`;
+    params.push(classId);
+  }
+  if (sectionId) {
+    studentsQuery += ` AND s.section_id = ?`;
+    params.push(sectionId);
+  }
+  const studentSearch = search || student;
+  if (studentSearch) {
+    studentsQuery += ` AND (s.first_name LIKE ? OR s.last_name LIKE ? OR s.admission_no LIKE ?)`;
+    params.push(`%${studentSearch}%`, `%${studentSearch}%`, `%${studentSearch}%`);
+  }
+  if (parent) {
+    studentsQuery += ` AND (p.name LIKE ? OR p.mobile LIKE ?)`;
+    params.push(`%${parent}%`, `%${parent}%`);
+  }
+  studentsQuery += ` ORDER BY s.admission_no ASC`;
+
+  const allStudents = db.query(studentsQuery, params);
+
+  // Map class fee structures
+  const classFeesMap = {};
+  const classStructures = db.query(`SELECT class_id, SUM(total_amount) as total FROM fee_structures GROUP BY class_id`);
+  classStructures.forEach(cs => {
+    classFeesMap[cs.class_id] = cs.total;
+  });
+
+  let overallTotalFees = 0;
+  let overallTotalCollected = 0;
+  let overallTotalOutstanding = 0;
+  let paidCount = 0;
+  let unpaidCount = 0;
+  let partialCount = 0;
+
+  const studentRecords = [];
+
+  for (const st of allStudents) {
+    const studentTotalFee = classFeesMap[st.class_id] || 50000;
+
+    const payments = db.query(
+      `SELECT fp.*, fs.term_name 
+       FROM fee_payments fp 
+       LEFT JOIN fee_structures fs ON fp.fee_structure_id = fs.id 
+       WHERE fp.student_id = ? AND fp.status = 'PAID'
+       ORDER BY fp.paid_at DESC`,
+      [st.id]
+    );
+
+    const paidAmount = payments.reduce((sum, p) => sum + p.amount_paid, 0);
+    const outstanding = Math.max(0, studentTotalFee - paidAmount);
+    const minSplit = Math.round(outstanding * 0.30);
+
+    let studentStatus = 'UNPAID';
+    if (outstanding === 0) {
+      studentStatus = 'PAID';
+    } else if (paidAmount > 0) {
+      studentStatus = 'PARTIALLY_PAID';
+    }
+
+    overallTotalFees += studentTotalFee;
+    overallTotalCollected += paidAmount;
+    overallTotalOutstanding += outstanding;
+
+    if (studentStatus === 'PAID') paidCount++;
+    else if (studentStatus === 'UNPAID') unpaidCount++;
+    else partialCount++;
+
+    // Apply status filter if specified
+    if (status && status !== 'ALL') {
+      const normalizedFilter = status.toUpperCase();
+      if (normalizedFilter === 'PAID' && studentStatus !== 'PAID') continue;
+      if (normalizedFilter === 'UNPAID' && studentStatus !== 'UNPAID') continue;
+      if ((normalizedFilter === 'PARTIAL' || normalizedFilter === 'PARTIALLY_PAID') && studentStatus !== 'PARTIALLY_PAID') continue;
+    }
+
+    const lastPayment = payments.length > 0 ? payments[0] : null;
+
+    studentRecords.push({
+      studentId: st.id,
+      studentName: `${st.first_name} ${st.last_name}`,
+      admissionNo: st.admission_no,
+      classId: st.class_id,
+      className: st.class_name,
+      sectionId: st.section_id,
+      sectionName: st.section_name,
+      parentId: st.parent_id,
+      parentName: st.parent_name || 'N/A',
+      parentMobile: st.parent_mobile || 'N/A',
+      totalFee: studentTotalFee,
+      amountPaid: paidAmount,
+      outstandingAmount: outstanding,
+      minSplitPayment: minSplit,
+      status: studentStatus,
+      lastPaymentDate: lastPayment ? lastPayment.paid_at : null,
+      receiptNo: lastPayment ? lastPayment.receipt_no : null,
+      payments: payments.map(p => ({
+        id: p.id,
+        amountPaid: p.amount_paid,
+        totalFees: p.total_fees,
+        pendingAmount: p.pending_amount,
+        paymentType: p.payment_type || 'FULL',
+        paymentMode: p.payment_mode,
+        transactionRef: p.transaction_ref,
+        status: p.status,
+        receiptNo: p.receipt_no,
+        paidAt: p.paid_at,
+        termName: p.term_name || 'Tuition Fee'
+      }))
+    });
+  }
+
+  // Recent payments for ledger view
+  const recentPayments = db.query(`
+    SELECT fp.*, s.first_name, s.last_name, s.admission_no, c.name as class_name, sec.name as section_name
+    FROM fee_payments fp
+    JOIN students s ON fp.student_id = s.id
+    JOIN classes c ON s.class_id = c.id
+    JOIN sections sec ON s.section_id = sec.id
+    ORDER BY fp.paid_at DESC LIMIT 50
+  `);
+
+  return res.json({
+    success: true,
+    role: 'SUPER_ADMIN',
+    overview: {
+      totalFees: overallTotalFees,
+      totalCollected: overallTotalCollected,
+      totalOutstanding: overallTotalOutstanding,
+      paidStudents: paidCount,
+      unpaidStudents: unpaidCount,
+      partiallyPaidStudents: partialCount,
+      totalStudents: allStudents.length,
+      collectionRate: overallTotalFees > 0 ? Math.round((overallTotalCollected / overallTotalFees) * 100) : 0,
+      currency: 'INR',
+      currencySymbol: '₹'
+    },
+    students: studentRecords,
+    recentPayments
+  });
+}
+
+// ----------------------------------------------------------------------------
+// GET /api/fees/summary, /api/fees/ledger, /api/fees/cashier
+// School-wide fee overview & filterable student ledgers for administrators
+// Strictly restricted from Parents (HTTP 403) and Teachers (HTTP 403)
+// ----------------------------------------------------------------------------
+router.get(['/summary', '/ledger', '/cashier'], (req, res) => {
+  if (req.user.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({
+      success: false,
+      error: 'Access denied: Fee Cashier and school-wide fee ledgers are restricted to School Administrators.'
+    });
+  }
+  return getSuperAdminFeeLedger(req, res);
 });
 
 // ----------------------------------------------------------------------------

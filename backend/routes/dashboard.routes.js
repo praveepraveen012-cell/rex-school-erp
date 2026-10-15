@@ -13,26 +13,59 @@ router.get('/stats', (req, res) => {
   const todayStr = new Date().toISOString().split('T')[0];
 
   // ==========================================================================
+  // 0. PLATFORM ADMIN DASHBOARD
+  // ==========================================================================
+  if (role === 'PLATFORM_ADMIN') {
+    const totalSchools = (db.get(`SELECT COUNT(*) as count FROM schools`) || {}).count || 0;
+    const activeSchools = (db.get(`SELECT COUNT(*) as count FROM schools WHERE status = 'ACTIVE'`) || {}).count || 0;
+    const suspendedSchools = (db.get(`SELECT COUNT(*) as count FROM schools WHERE status = 'SUSPENDED'`) || {}).count || 0;
+    const pendingRegistrations = (db.get(`SELECT COUNT(*) as count FROM school_registrations WHERE status = 'PENDING_APPROVAL'`) || {}).count || 0;
+    const approvedRegistrations = (db.get(`SELECT COUNT(*) as count FROM school_registrations WHERE status = 'APPROVED'`) || {}).count || 0;
+    const totalStudentsAcrossPlatform = (db.get(`SELECT COUNT(*) as count FROM students WHERE status = 'active'`) || {}).count || 0;
+    const recentRegistrations = db.query(`SELECT * FROM school_registrations ORDER BY created_at DESC LIMIT 5`);
+    const recentSchools = db.query(`SELECT id, code, name, display_name, status, created_at FROM schools ORDER BY id DESC LIMIT 5`);
+
+    return res.json({
+      success: true,
+      role: 'PLATFORM_ADMIN',
+      stats: {
+        totalSchools,
+        activeSchools,
+        suspendedSchools,
+        pendingRegistrations,
+        approvedRegistrations,
+        totalStudentsAcrossPlatform,
+        recentRegistrations,
+        recentSchools,
+        platformHealth: 'OPERATIONAL'
+      }
+    });
+  }
+
+  // ==========================================================================
   // 1. SUPER ADMIN DASHBOARD
   // ==========================================================================
   if (role === 'SUPER_ADMIN') {
-    const studentCount = db.get(`SELECT COUNT(*) as count FROM students WHERE status = 'active'`).count;
-    const teacherCount = db.get(`SELECT COUNT(*) as count FROM teachers WHERE status = 'active'`).count;
-    const parentCount = db.get(`SELECT COUNT(*) as count FROM parents`).count;
-    const classCount = db.get(`SELECT COUNT(*) as count FROM classes`).count;
-    const sectionCount = db.get(`SELECT COUNT(*) as count FROM sections`).count;
+    const schoolId = req.schoolId || (req.user && req.user.school_id) || 1;
+
+    const studentCount = (db.get(`SELECT COUNT(*) as count FROM students WHERE status = 'active' AND (school_id = ? OR ? = 1)`, [schoolId, schoolId]) || {}).count || 0;
+    const teacherCount = (db.get(`SELECT COUNT(*) as count FROM teachers WHERE status = 'active' AND (school_id = ? OR ? = 1)`, [schoolId, schoolId]) || {}).count || 0;
+    const parentCount = (db.get(`SELECT COUNT(*) as count FROM parents WHERE (school_id = ? OR ? = 1)`, [schoolId, schoolId]) || {}).count || 0;
+    const classCount = (db.get(`SELECT COUNT(*) as count FROM classes WHERE (school_id = ? OR ? = 1)`, [schoolId, schoolId]) || {}).count || 0;
+    const sectionCount = (db.get(`SELECT COUNT(*) as count FROM sections s JOIN classes c ON s.class_id = c.id WHERE (c.school_id = ? OR ? = 1)`, [schoolId, schoolId]) || {}).count || 0;
 
     // Today's attendance aggregate
     const todayAtt = db.get(
       `SELECT
          COUNT(*) as total_marked,
-         SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) as present,
-         SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absent,
-         SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END) as late
-       FROM attendance
-       WHERE date = ?`,
-      [todayStr]
-    );
+         SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) as present,
+         SUM(CASE WHEN a.status = 'absent' THEN 1 ELSE 0 END) as absent,
+         SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END) as late
+       FROM attendance a
+       JOIN classes c ON a.class_id = c.id
+       WHERE a.date = ? AND (c.school_id = ? OR ? = 1)`,
+      [todayStr, schoolId, schoolId]
+    ) || {};
 
     const totalMarked = todayAtt.total_marked || 0;
     const present = todayAtt.present || 0;
@@ -47,20 +80,22 @@ router.get('/stats', (req, res) => {
               SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) as present
        FROM classes c
        LEFT JOIN attendance a ON c.id = a.class_id AND a.date = ?
+       WHERE (c.school_id = ? OR ? = 1)
        GROUP BY c.id
        ORDER BY c.grade_level ASC`,
-      [todayStr]
+      [todayStr, schoolId, schoolId]
     );
 
     // Upcoming events
     const upcomingEvents = db.query(
-      `SELECT * FROM events WHERE event_date >= ? AND is_published = 1 ORDER BY event_date ASC LIMIT 5`,
-      [todayStr]
+      `SELECT * FROM events WHERE event_date >= ? AND is_published = 1 AND (school_id = ? OR ? = 1) ORDER BY event_date ASC LIMIT 5`,
+      [todayStr, schoolId, schoolId]
     );
 
     // Active notifications
     const activeNotifications = db.query(
-      `SELECT * FROM notifications WHERE status = 'active' ORDER BY publish_date DESC LIMIT 5`
+      `SELECT * FROM notifications WHERE status = 'active' AND (school_id = ? OR ? = 1) ORDER BY publish_date DESC LIMIT 5`,
+      [schoolId, schoolId]
     );
 
     // Recent audit logs
@@ -68,18 +103,32 @@ router.get('/stats', (req, res) => {
       `SELECT a.*, u.username
        FROM audit_logs a
        LEFT JOIN users u ON a.user_id = u.id
+       WHERE (u.school_id = ? OR ? = 1)
        ORDER BY a.created_at DESC
-       LIMIT 6`
+       LIMIT 6`,
+      [schoolId, schoolId]
     );
 
     // Pending fees & financial summary
-    const totalCollectedRow = db.get(`SELECT SUM(amount_paid) as collected FROM fee_payments WHERE status = 'PAID'`);
+    const totalCollectedRow = db.get(
+      `SELECT SUM(fp.amount_paid) as collected
+       FROM fee_payments fp
+       JOIN students s ON fp.student_id = s.id
+       WHERE fp.status = 'PAID' AND (s.school_id = ? OR ? = 1)`,
+      [schoolId, schoolId]
+    );
     const totalCollected = (totalCollectedRow && totalCollectedRow.collected) || 0;
     const estimatedTotalFees = studentCount * 45000;
     const pendingFees = Math.max(0, estimatedTotalFees - totalCollected);
 
     // Homework count
-    const activeHomeworkCountRow = db.get(`SELECT COUNT(*) as count FROM homework WHERE status = 'published'`);
+    const activeHomeworkCountRow = db.get(
+      `SELECT COUNT(*) as count
+       FROM homework h
+       JOIN classes c ON h.class_id = c.id
+       WHERE h.status = 'published' AND (c.school_id = ? OR ? = 1)`,
+      [schoolId, schoolId]
+    );
     const activeHomeworkCount = (activeHomeworkCountRow && activeHomeworkCountRow.count) || 0;
 
     return res.json({

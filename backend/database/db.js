@@ -281,6 +281,24 @@ try {
   } else {
     db.prepare("UPDATE users SET school_id = NULL WHERE role = 'PLATFORM_ADMIN'").run();
   }
+
+  // Ensure legacy records have school_id = 1
+  for (const table of tenantTables) {
+    try {
+      db.prepare(`UPDATE ${table} SET school_id = 1 WHERE school_id IS NULL`).run();
+    } catch (_) {}
+  }
+  db.prepare(`UPDATE users SET school_id = 1 WHERE school_id IS NULL AND role != 'PLATFORM_ADMIN'`).run();
+
+  // Enforce fee restriction: Super Admin must NEVER possess fees.pay permission
+  try {
+    db.prepare("DELETE FROM role_permissions WHERE role = 'SUPER_ADMIN' AND permission_code = 'fees.pay'").run();
+    const platPerms = ['platform.manage', 'platform.schools', 'platform.registrations', 'platform.settings', 'platform.audit', 'platform.dashboard'];
+    for (const p of platPerms) {
+      db.prepare("INSERT OR IGNORE INTO permissions (code, module, description) VALUES (?, 'PLATFORM', ?)").run(p, 'Platform Management');
+      db.prepare("INSERT OR IGNORE INTO role_permissions (role, permission_code) VALUES ('PLATFORM_ADMIN', ?)").run(p);
+    }
+  } catch (_) {}
 } catch (tenantErr) {
   console.warn('Multi-tenant schema initialization notice:', tenantErr.message);
 }

@@ -208,7 +208,7 @@
       } else if (role === 'TEACHER') {
         if (window.App) {
           window.App.applyRole('teacher', false);
-          window.App.switchView('attendance');
+          window.App.switchView('teacher-dashboard');
         }
       } else if (role === 'PARENT') {
         if (window.App) {
@@ -627,7 +627,7 @@
 
         if (window.App) {
           window.App.applyRole('teacher', false);
-          window.App.switchView('attendance');
+          window.App.switchView('teacher-dashboard');
         }
       } catch (err) {
         this.showError(err.message || 'Invalid or expired OTP code.');
@@ -662,7 +662,7 @@
 
         if (window.App) {
           window.App.applyRole('teacher', false);
-          window.App.switchView('attendance');
+          window.App.switchView('teacher-dashboard');
         }
       } catch (err) {
         this.showError(err.message || 'Invalid teacher credentials.');

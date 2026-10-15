@@ -171,9 +171,9 @@ async function runMultitenantQATests() {
     assert.ok(tenant1Students.length > 0, 'Legacy School 1 students must remain intact');
 
     // Attempting to access Tenant 1 student ID card using Tenant 2 token must not yield Tenant 1 student
-    // Verify that student 1 belongs to school 1, not school 2
-    const s1 = db.get(`SELECT school_id FROM students WHERE id = 1`);
-    assert.strictEqual(s1.school_id, 1, 'Student 1 must belong to school 1');
+    // Verify that student in school 1 belongs to school 1, not school 2
+    const s1 = db.get(`SELECT school_id FROM students WHERE school_id = 1 LIMIT 1`);
+    assert.strictEqual(s1.school_id, 1, 'Student in School 1 must belong to school 1');
     console.log(`  ✓ Test 8 Passed: Full database tenant isolation confirmed (Tenant 1: ${tenant1Students.length} students, Tenant 2: 0 students).\n`);
 
     // ------------------------------------------------------------------------

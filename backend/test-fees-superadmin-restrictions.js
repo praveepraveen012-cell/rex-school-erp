@@ -142,8 +142,9 @@ async function runFeeRestrictionsTest() {
     testAssert(feeOverview.students && feeOverview.students.length > 0, `Returned ${feeOverview.students.length} student ledger records`);
 
     // Verify student details format
-    const s1 = feeOverview.students.find(s => s.studentId === 1);
+    const s1 = feeOverview.students.find(s => s.studentName.includes('Aarav') || s.studentId === 1);
     testAssert(s1 !== undefined, 'Aarav Sharma record found in Super Admin ledger');
+    const aaravId = s1.studentId;
     testAssert(s1.totalFee > 0 && s1.outstandingAmount !== undefined, 'Aarav Sharma fee dues and amount paid preserved');
     testAssert(['PAID', 'PARTIALLY_PAID', 'UNPAID'].includes(s1.status), `Valid ledger status: ${s1.status}`);
 
@@ -156,12 +157,12 @@ async function runFeeRestrictionsTest() {
     testAssert(unpaidData.students.every(s => s.status === 'UNPAID'), 'All filtered students have UNPAID status');
 
     // Super Admin student details query
-    const studentDetailRes = await fetch(`${BASE}/fees/student/1`, {
+    const studentDetailRes = await fetch(`${BASE}/fees/student/${aaravId}`, {
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
     const studentDetail = await studentDetailRes.json();
-    testAssert(studentDetailRes.status === 200, 'Super Admin can view student ledger details (GET /fees/student/1)');
-    testAssert(studentDetail.student.name === 'Aarav Sharma', 'Student name verified');
+    testAssert(studentDetailRes.status === 200, `Super Admin can view student ledger details (GET /fees/student/${aaravId})`);
+    testAssert(studentDetail.student.name.includes('Aarav Sharma'), 'Student name verified');
     testAssert(Array.isArray(studentDetail.feeStructures), 'Fee structure breakdown items returned');
 
     // ------------------------------------------------------------------------
@@ -175,7 +176,7 @@ async function runFeeRestrictionsTest() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${adminToken}`
       },
-      body: JSON.stringify({ studentId: 1 })
+      body: JSON.stringify({ studentId: aaravId })
     });
     const singleReminder = await singleReminderRes.json();
     testAssert(singleReminderRes.status === 200, 'Super Admin single reminder dispatched with 200 OK');
@@ -200,7 +201,7 @@ async function runFeeRestrictionsTest() {
     console.log('\nStep 5: Parent Can Pay Fees (Full & Split Payment with 30% Minimum Rule)');
 
     // Parent fetches own child's fees
-    const parentFeeRes = await fetch(`${BASE}/fees?studentId=1`, {
+    const parentFeeRes = await fetch(`${BASE}/fees?studentId=${aaravId}`, {
       headers: { 'Authorization': `Bearer ${parentToken}` }
     });
     const parentFeeData = await parentFeeRes.json();
@@ -219,7 +220,7 @@ async function runFeeRestrictionsTest() {
           'Authorization': `Bearer ${parentToken}`
         },
         body: JSON.stringify({
-          studentId: 1,
+          studentId: aaravId,
           amount: minSplit30 - 50,
           paymentType: 'SPLIT',
           paymentMode: 'ONLINE_UPI'
@@ -239,7 +240,7 @@ async function runFeeRestrictionsTest() {
         'Authorization': `Bearer ${parentToken}`
       },
       body: JSON.stringify({
-        studentId: 1,
+        studentId: aaravId,
         amount: validPayAmount,
         paymentType: 'SPLIT',
         paymentMode: 'ONLINE_UPI'
@@ -255,8 +256,11 @@ async function runFeeRestrictionsTest() {
     // ------------------------------------------------------------------------
     console.log('\nStep 6: Data Isolation — Parent Cannot View or Pay Other Students Fees');
 
-    // Student 3 (Rohan Menon) is not linked to this parent (Rajesh Sharma)
-    const unauthorizedViewRes = await fetch(`${BASE}/fees/student/3`, {
+    // Unlinked student (e.g. Rohan Menon or student not linked to Rajesh Sharma)
+    const unlinkedStudent = feeOverview.students.find(s => !s.studentName.includes('Aarav') && !s.studentName.includes('Ananya')) || { studentId: 99999 };
+    const unlinkedId = unlinkedStudent.studentId;
+
+    const unauthorizedViewRes = await fetch(`${BASE}/fees/student/${unlinkedId}`, {
       headers: { 'Authorization': `Bearer ${parentToken}` }
     });
     testAssert(unauthorizedViewRes.status === 403, 'Parent viewing unlinked student fee rejected with 403 Forbidden');
@@ -268,7 +272,7 @@ async function runFeeRestrictionsTest() {
         'Authorization': `Bearer ${parentToken}`
       },
       body: JSON.stringify({
-        studentId: 3,
+        studentId: unlinkedId,
         amount: 2000,
         paymentType: 'SPLIT'
       })
@@ -283,7 +287,9 @@ async function runFeeRestrictionsTest() {
     console.error('\n❌ TEST SUITE FAILED:', err);
     process.exit(1);
   } finally {
-    server.close();
+    server.close(() => {
+      process.exit(0);
+    });
   }
 }
 

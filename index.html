@@ -1151,137 +1151,8 @@
         </a>
       </div>
 
-      <div class="sidebar-content">
-        <!-- Main Section -->
-        <div class="nav-section">
-          <div class="nav-section-title">Core Modules</div>
-          <div class="nav-item" data-view="home" onclick="HomeModule.returnToHome()" style="border-bottom: 1px solid var(--border-subtle); margin-bottom: 0.5rem; padding-bottom: 0.65rem;">
-            <div class="nav-item-left">
-              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-              <span style="font-weight: 700; color: var(--primary);">Home WebApp</span>
-            </div>
-            <span class="badge badge-primary" style="font-size: 0.65rem;">Portal</span>
-          </div>
-          <div class="nav-item active" data-view="dashboard">
-            <div class="nav-item-left">
-              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-              <span>Dashboard</span>
-            </div>
-            <span class="nav-pill">Pulse</span>
-          </div>
-
-          <div class="nav-item" data-view="students">
-            <div class="nav-item-left">
-              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-              <span>Students (SIS)</span>
-            </div>
-            <span class="nav-pill" id="sidebar-student-count">12</span>
-          </div>
-
-          <div class="nav-item" data-view="attendance">
-            <div class="nav-item-left">
-              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-              <span>Smart Attendance</span>
-            </div>
-            <span class="nav-pill warning">Today</span>
-          </div>
-
-          <div class="nav-item" data-view="fees">
-            <div class="nav-item-left">
-              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-              <span>Fee Cashier</span>
-            </div>
-          </div>
-
-          <div class="nav-item" data-view="exams">
-            <div class="nav-item-left">
-              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-              <span>Exams & Reports</span>
-            </div>
-          </div>
-
-          <div class="nav-item" data-view="timetable">
-            <div class="nav-item-left">
-              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              <span>Class Timetable</span>
-            </div>
-          </div>
-
-          <div class="nav-item" data-view="communication">
-            <div class="nav-item-left">
-              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-              <span>WhatsApp & Notices</span>
-            </div>
-          </div>
-
-          <div class="nav-item" data-view="transport">
-            <div class="nav-item-left">
-              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-              <span>Transport & Fleet GPS</span>
-            </div>
-            <span class="badge badge-present" style="font-size: 0.65rem;">500m Radar</span>
-          </div>
-        </div>
-
-        <!-- Stakeholders Section -->
-        <div class="nav-section">
-          <div class="nav-section-title">Stakeholder Portals</div>
-          <div class="nav-item" data-view="parent-portal">
-            <div class="nav-item-left">
-              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-              <span>Parent / Student Portal</span>
-            </div>
-            <span class="badge badge-present" style="font-size: 0.65rem;">Active</span>
-          </div>
-        </div>
-
-        <!-- Platform Admin Section (Visible only for platform_admin role) -->
-        <div class="nav-section" id="platform-admin-nav-section" style="display: none;">
-          <div class="nav-section-title">Grexotix Platform Admin</div>
-          <div class="nav-item" data-view="platform-admin" id="nav-item-platform-admin">
-            <div class="nav-item-left">
-              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-              <span style="font-weight: 700; color: #7928ca;">Platform Admin Console</span>
-            </div>
-            <span class="badge badge-warning" style="font-size: 0.65rem;">Platform</span>
-          </div>
-        </div>
-
-        <!-- Grexotix Digital Operating System -->
-        <div class="nav-section">
-          <div class="nav-section-title">Grexotix Operating OS</div>
-          <div class="nav-item" data-view="ai-assistant" onclick="App.showToast('AI Principal & Parent Assistant Active', 'info')">
-            <div class="nav-item-left">
-              <span style="font-size: 1.1rem; margin-right: 0.5rem;">✨</span>
-              <span>AI School Intelligence</span>
-            </div>
-            <span class="badge badge-warning" style="font-size: 0.65rem;">Copilot</span>
-          </div>
-          <div class="nav-item" data-view="campus-hub" onclick="App.showToast('Campus Hub: Library, Inventory, Visitors, Hostels & ID Cards', 'info')">
-            <div class="nav-item-left">
-              <span style="font-size: 1.1rem; margin-right: 0.5rem;">🏛️</span>
-              <span>Campus Operations Hub</span>
-            </div>
-          </div>
-          <div class="nav-item" data-view="hr-payroll" onclick="App.showToast('HR & Staff Operations: Biometrics, Leaves & Monthly Payroll', 'info')">
-            <div class="nav-item-left">
-              <span style="font-size: 1.1rem; margin-right: 0.5rem;">👥</span>
-              <span>HR, Leaves & Payroll</span>
-            </div>
-          </div>
-          <div class="nav-item" data-view="intelligence" onclick="App.showToast('Executive Intelligence: Real-Time KPIs & Custom Report Builder', 'info')">
-            <div class="nav-item-left">
-              <span style="font-size: 1.1rem; margin-right: 0.5rem;">📊</span>
-              <span>Executive Intelligence</span>
-            </div>
-          </div>
-          <div class="nav-item" data-view="settings-modules" onclick="App.showToast('Configurable Modular Architecture & Multi-Campus Isolation', 'info')">
-            <div class="nav-item-left">
-              <span style="font-size: 1.1rem; margin-right: 0.5rem;">⚙️</span>
-              <span>Modular Architecture</span>
-            </div>
-          </div>
-        </div>
+      <div class="sidebar-content" id="sidebar-nav-container">
+        <!-- Dynamically rendered per authenticated role by App.renderRoleNavigation(role) -->
       </div>
 
       <!-- Sidebar Footer -->
@@ -1519,6 +1390,31 @@
             <div class="card-body" id="dashboard-activity-list" style="padding-top: 0.5rem; padding-bottom: 0.5rem;">
               <!-- Activity log injected by dashboard.js -->
             </div>
+          </div>
+        </section>
+
+        <!-- TEACHER / FACULTY DASHBOARD VIEW (Requirement 2C) -->
+        <section id="teacher-dashboard-view" class="page-view">
+          <div class="page-header">
+            <div class="page-title-group">
+              <h1 class="page-title">
+                <span id="teacher-dashboard-heading">Faculty Academic Dashboard</span>
+                <span class="badge badge-present" style="font-size: 0.72rem;">Teaching Portal</span>
+              </h1>
+              <p class="page-subtitle" id="teacher-dashboard-subheading">Classroom attendance, assigned lectures, student assessments, and digital homework dispatch.</p>
+            </div>
+            <div class="header-actions">
+              <button class="btn btn-secondary" onclick="App.switchView('attendance')">
+                📋 Smart Attendance Manager
+              </button>
+              <button class="btn btn-primary" onclick="App.openNewHomeworkModal()">
+                + Create Homework
+              </button>
+            </div>
+          </div>
+
+          <div id="teacher-dashboard-content">
+            <!-- Dynamically populated by App.renderTeacherDashboard() -->
           </div>
         </section>
 

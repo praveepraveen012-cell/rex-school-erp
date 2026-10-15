@@ -76,7 +76,8 @@ router.get('/', (req, res) => {
     return res.json({ success: true, count: students.length, students });
   }
 
-  // 3. Super Admin: Can view all students with optional filters
+  // 3. Super Admin: Can view all students for authorized school
+  const schoolId = req.schoolId || (req.user && req.user.school_id) || 1;
   let sql = `
     SELECT s.*, c.name as class_name, sec.name as section_name,
            p.name as parent_name, p.mobile as parent_mobile_contact
@@ -84,9 +85,9 @@ router.get('/', (req, res) => {
     JOIN classes c ON s.class_id = c.id
     JOIN sections sec ON s.section_id = sec.id
     LEFT JOIN parents p ON s.parent_id = p.id
-    WHERE 1=1
+    WHERE (s.school_id = ? OR ? = 1)
   `;
-  const params = [];
+  const params = [schoolId, schoolId];
 
   if (classId) {
     sql += ` AND s.class_id = ?`;
@@ -126,13 +127,19 @@ router.get('/:id', (req, res) => {
     return res.status(404).json({ success: false, error: 'Student record not found.' });
   }
 
+  // Cross-school tenant isolation check
+  const schoolId = req.schoolId || (req.user && req.user.school_id) || 1;
+  if (req.user.role !== 'PLATFORM_ADMIN' && student.school_id && schoolId && student.school_id !== schoolId) {
+    return res.status(403).json({
+      success: false,
+      error: 'Access denied: Cross-school access is prohibited.'
+    });
+  }
+
   // Parent isolation verification
   if (req.user.role === 'PARENT') {
-    const isLinked = db.get(
-      `SELECT * FROM student_parents WHERE student_id = ? AND parent_id = ?`,
-      [student.id, req.parent.id]
-    );
-    if (!isLinked && student.parent_id !== req.parent.id) {
+    const isLinked = (req.parent?.students || []).some(s => s.id === student.id);
+    if (!isLinked) {
       return res.status(403).json({
         success: false,
         error: 'Access denied. You do not have permission to view this student profile.'

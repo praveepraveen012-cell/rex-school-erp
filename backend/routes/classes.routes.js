@@ -10,7 +10,22 @@ router.use(authenticate);
 // GET /api/classes - List all classes with sections
 // ----------------------------------------------------------------------------
 router.get('/', (req, res) => {
-  const classes = db.query(`SELECT * FROM classes ORDER BY grade_level ASC, name ASC`);
+  let classes;
+  if (req.user.role === 'PARENT') {
+    if (!req.parent || !req.parent.students || req.parent.students.length === 0) {
+      return res.json({ success: true, count: 0, classes: [] });
+    }
+    const studentClassIds = req.parent.students.map(s => s.class_id).filter(Boolean);
+    if (studentClassIds.length === 0) {
+      return res.json({ success: true, count: 0, classes: [] });
+    }
+    classes = db.query(`SELECT * FROM classes WHERE id IN (${studentClassIds.join(',')}) ORDER BY grade_level ASC, name ASC`);
+  } else if (req.user.role === 'TEACHER') {
+    // Teachers see assigned classes or school classes
+    classes = db.query(`SELECT * FROM classes ORDER BY grade_level ASC, name ASC`);
+  } else {
+    classes = db.query(`SELECT * FROM classes ORDER BY grade_level ASC, name ASC`);
+  }
 
   for (const c of classes) {
     c.sections = db.query(
@@ -48,6 +63,32 @@ router.post('/', requireSuperAdmin, (req, res) => {
   }
 
   return res.status(201).json({ success: true, message: 'Class created successfully.', classId });
+});
+
+// ----------------------------------------------------------------------------
+// PUT /api/classes/:id - Update class (Admin)
+// ----------------------------------------------------------------------------
+router.put('/:id', requireSuperAdmin, (req, res) => {
+  const { name, gradeLevel } = req.body;
+  const cls = db.get(`SELECT * FROM classes WHERE id = ?`, [req.params.id]);
+  if (!cls) return res.status(404).json({ success: false, error: 'Class not found.' });
+
+  db.run(`UPDATE classes SET name = COALESCE(?, name), grade_level = COALESCE(?, grade_level) WHERE id = ?`, [
+    name, gradeLevel, req.params.id
+  ]);
+
+  return res.json({ success: true, message: 'Class updated successfully.' });
+});
+
+// ----------------------------------------------------------------------------
+// DELETE /api/classes/:id - Delete class (Admin)
+// ----------------------------------------------------------------------------
+router.delete('/:id', requireSuperAdmin, (req, res) => {
+  const cls = db.get(`SELECT * FROM classes WHERE id = ?`, [req.params.id]);
+  if (!cls) return res.status(404).json({ success: false, error: 'Class not found.' });
+
+  db.run(`DELETE FROM classes WHERE id = ?`, [req.params.id]);
+  return res.json({ success: true, message: 'Class deleted successfully.' });
 });
 
 // ----------------------------------------------------------------------------
