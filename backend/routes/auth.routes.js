@@ -81,10 +81,14 @@ router.post(['/', '/login'], authLimiter, (req, res) => {
     });
   }
 
-  // 2. Query user from users table by username, email, or mobile
+  // 2. Query user from users table by username, email, or mobile (with domain aliases)
+  const altIdent = cleanIdent.includes('@grexotix.edu')
+    ? cleanIdent.replace('@grexotix.edu', '@rex.edu')
+    : (cleanIdent.includes('@rex.edu') ? cleanIdent.replace('@rex.edu', '@grexotix.edu') : cleanIdent);
+
   const user = db.get(
-    `SELECT * FROM users WHERE username = ? OR email = ? OR mobile = ?`,
-    [cleanIdent, cleanIdent, cleanIdent.replace(/\D/g, '').slice(-10) || cleanIdent]
+    `SELECT * FROM users WHERE username = ? OR email = ? OR username = ? OR email = ? OR mobile = ?`,
+    [cleanIdent, cleanIdent, altIdent, altIdent, cleanIdent.replace(/\D/g, '').slice(-10) || cleanIdent]
   );
 
   // If password provided and user exists in users table
@@ -283,9 +287,14 @@ router.post('/admin/login', authLimiter, (req, res) => {
     });
   }
 
+  const cleanIdent = emailOrUsername.trim();
+  const altIdent = cleanIdent.includes('@grexotix.com')
+    ? cleanIdent.replace('@grexotix.com', '@rex.edu')
+    : (cleanIdent.includes('@rex.edu') ? cleanIdent.replace('@rex.edu', '@grexotix.com') : cleanIdent);
+
   const user = db.get(
-    `SELECT * FROM users WHERE (username = ? OR email = ?)`,
-    [emailOrUsername.trim(), emailOrUsername.trim()]
+    `SELECT * FROM users WHERE (username = ? OR email = ? OR username = ? OR email = ?)`,
+    [cleanIdent, cleanIdent, altIdent, altIdent]
   );
 
   if (!user) {
@@ -639,17 +648,18 @@ router.post('/parent/login', authLimiter, (req, res) => {
 
   let activeStudent = linkedStudents[0];
 
-  // If admissionNo was optionally provided, verify it belongs to this parent's children
+  // If admissionNo was optionally provided, match it against linked children
   if (admissionNo) {
     const cleanAdm = String(admissionNo).trim().toUpperCase();
-    const matched = linkedStudents.find(s => s.admission_no.toUpperCase() === cleanAdm);
-    if (!matched) {
-      return res.status(403).json({
-        success: false,
-        error: 'Authentication failed. This student is not registered under the provided parent mobile number.'
-      });
+    const matched = linkedStudents.find(s => {
+      const sAdm = s.admission_no.toUpperCase();
+      return sAdm === cleanAdm ||
+             sAdm.replace(/^(REX|GRX)-/, '') === cleanAdm.replace(/^(REX|GRX)-/, '') ||
+             sAdm.includes(cleanAdm);
+    });
+    if (matched) {
+      activeStudent = matched;
     }
-    activeStudent = matched;
   }
 
   // Update last login

@@ -234,6 +234,7 @@
         modal.className = 'rex-modal-overlay';
         document.body.appendChild(modal);
       }
+      modal.style.display = 'flex';
 
       modal.innerHTML = `
         <div class="rex-modal-card">
@@ -397,7 +398,7 @@
                 </div>
                 <div class="rex-form-group">
                   <label for="parent-adm">Student Admission Number (Optional for Multi-child)</label>
-                  <input type="text" id="parent-adm" placeholder="GRX-2024-001" value="GRX-2024-001">
+                  <input type="text" id="parent-adm" placeholder="e.g. REX-2024-001 (Optional)" value="">
                 </div>
                 <div class="rex-demo-hint">
                   <i class="fas fa-info-circle"></i> Registered Parent Mobile: <code>9876543210</code>
@@ -655,7 +656,7 @@
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
 
       try {
-        await window.RexApi.login({ email, password: pass, role: 'TEACHER' });
+        await window.RexApi.login({ identifier: email, email, username: email, password: pass, role: 'TEACHER' });
         window.RexApi.showToast('Teacher authenticated successfully!', 'success');
         this.hideLoginModal();
         this.renderUserBadge();

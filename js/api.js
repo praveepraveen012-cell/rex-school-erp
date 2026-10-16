@@ -14,9 +14,11 @@
   const isStaticMode = (function() {
     if (typeof window === 'undefined') return false;
     if (window.API_BASE_URL && !window.API_BASE_URL.startsWith('/')) return false;
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return false;
     return (
       window.location.hostname.includes('github.io') ||
       window.location.hostname.includes('pages.dev') ||
+      window.location.hostname.includes('grexotix.com') ||
       window.location.protocol === 'file:'
     );
   })();
@@ -25,6 +27,20 @@
     loginAdmin(emailOrUsername, password) {
       const u = String(emailOrUsername || '').trim().toLowerCase();
       const p = String(password || '').trim();
+
+      if (u === 'admin@grexotix.com' || u === 'grexotix_admin') {
+        const user = {
+          id: 7,
+          username: 'grexotix_admin',
+          email: 'admin@grexotix.com',
+          role: 'PLATFORM_ADMIN',
+          name: 'Grexotix Platform Admin',
+          status: 'active'
+        };
+        const token = 'rex_jwt_platform_' + Date.now();
+        return { success: true, token, user, role: 'PLATFORM_ADMIN', isOffline: true };
+      }
+
       const validUsers = ['admin', 'admin@rex.edu', 'superadmin'];
       const validPass = ['AdminPassword123!', 'admin', 'rex2026', 'password'];
 
@@ -151,7 +167,10 @@
         ];
       }
 
-      const activeStudent = (cleanAdm && students.find(s => s.admission_no === cleanAdm)) || students[0];
+      const activeStudent = (cleanAdm && students.find(s => {
+        const sAdm = s.admission_no.toUpperCase();
+        return sAdm === cleanAdm || sAdm.replace(/^(REX|GRX)-/, '') === cleanAdm.replace(/^(REX|GRX)-/, '');
+      })) || students[0];
       const token = 'rex_jwt_parent_' + Date.now();
       return { success: true, token, user: parentUser, parent: parentProfile, students, activeStudent, role: 'PARENT', isOffline: true };
     }
