@@ -40,12 +40,27 @@ router.get('/', (req, res) => {
 
   // 1. Parent Access: Can ONLY view attendance of linked child
   if (req.user.role === 'PARENT') {
-    if (!req.parent || !req.parent.students || req.parent.students.length === 0) {
+    const parentRecord = db.get(`SELECT id FROM parents WHERE user_id = ?`, [req.user.id]);
+    const parentId = parentRecord ? parentRecord.id : (req.parent ? req.parent.id : null);
+
+    const linkedStudents = parentId
+      ? db.query(
+          `SELECT s.id, s.first_name, s.last_name, s.class_id, s.section_id, c.name as class_name, sec.name as section_name
+           FROM student_parents sp
+           JOIN students s ON sp.student_id = s.id
+           LEFT JOIN classes c ON s.class_id = c.id
+           LEFT JOIN sections sec ON s.section_id = sec.id
+           WHERE sp.parent_id = ?`,
+          [parentId]
+        )
+      : (req.parent?.students || []);
+
+    if (linkedStudents.length === 0) {
       return res.status(403).json({ success: false, error: 'No parent profile or linked children found.' });
     }
 
-    let targetStudentId = studentId ? parseInt(studentId, 10) : req.parent.students[0].id;
-    const isLinked = req.parent.students.find(s => s.id === targetStudentId);
+    let targetStudentId = studentId ? parseInt(studentId, 10) : linkedStudents[0].id;
+    const isLinked = linkedStudents.find(s => s.id === targetStudentId);
 
     if (!isLinked) {
       return res.status(403).json({
@@ -165,6 +180,42 @@ router.get('/', (req, res) => {
   return res.json({
     success: true,
     count: records.length,
+    records
+  });
+});
+
+// ----------------------------------------------------------------------------
+// GET /api/attendance/student/:id - Direct student attendance lookup
+// ----------------------------------------------------------------------------
+router.get('/student/:id', (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  if (req.user.role === 'PARENT') {
+    const parentRecord = db.get(`SELECT id FROM parents WHERE user_id = ?`, [req.user.id]);
+    const parentId = parentRecord ? parentRecord.id : (req.parent ? req.parent.id : null);
+    const linked = db.get(`SELECT student_id FROM student_parents WHERE parent_id = ? AND student_id = ?`, [parentId, targetId]);
+    if (!linked) {
+      return res.status(403).json({ success: false, error: 'Access denied: You can only view attendance for your linked children.' });
+    }
+  }
+
+  const records = db.query(
+    `SELECT a.*, s.first_name, s.last_name, s.roll_no
+     FROM attendance a
+     JOIN students s ON a.student_id = s.id
+     WHERE a.student_id = ?
+     ORDER BY a.date DESC`,
+    [targetId]
+  );
+
+  const total = records.length;
+  const present = records.filter(r => r.status === 'present').length;
+  const absent = records.filter(r => r.status === 'absent').length;
+  const rate = total > 0 ? Math.round((present / total) * 100) : 100;
+
+  return res.json({
+    success: true,
+    studentId: targetId,
+    summary: { totalDays: total, presentDays: present, absentDays: absent, attendanceRate: rate },
     records
   });
 });

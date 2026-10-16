@@ -1443,6 +1443,32 @@ const TransportModule = {
         </div>
       </div>
 
+      <!-- Educational Explanation Card: How School Bus GPS Tracking Works -->
+      <div class="card" style="margin-bottom: 1.5rem; background: #f0f9ff; border: 1px solid #bae6fd; border-left: 4px solid #0284c7; padding: 1.1rem 1.25rem; border-radius: 8px;">
+        <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+          <div style="font-size: 1.5rem; line-height: 1;">🛰️</div>
+          <div style="flex: 1;">
+            <h4 style="margin: 0 0 0.4rem 0; font-size: 0.98rem; font-weight: 800; color: #0369a1;">
+              How School Bus GPS Tracking Works
+            </h4>
+            <p style="margin: 0 0 0.5rem 0; font-size: 0.85rem; line-height: 1.5; color: #0c4a6e;">
+              "GPS tracking uses location coordinates to show a school bus's position on a map. In live tracking mode, an authorized driver's device or installed GPS tracker sends location updates to the school system. The backend shares those updates with authorized parents and school administrators. Parents can view only the bus assigned to their child. In demo mode, the bus follows a simulated route for testing and does not represent a real bus location."
+            </p>
+            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; font-size: 0.75rem;">
+              <span class="badge ${isDemoRunning ? 'badge-present' : 'badge-warning'}" style="font-weight: 700;">
+                ${isDemoRunning ? '● DEMO TRACKING — SIMULATED LOCATION' : '○ DEMO SIMULATOR STANDBY'}
+              </span>
+              <span style="color: #64748b; font-weight: 500;">
+                ${this.mapsConfig.isConfigured ? '✓ Google Maps Telematics Active' : 'ℹ️ Running on Interactive Topo Engine (Google Maps API key unconfigured)'}
+              </span>
+              <span class="badge badge-neutral" style="font-size: 0.72rem;">
+                Provider: ${isDemoRunning ? 'Simulated Waypoint Engine' : 'No real GPS device connected'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Super Admin Demo Tracking Controller Card (Requirement 3, 4, 5) -->
       <div class="card" style="margin-bottom: 1.5rem; border: 2px solid ${isDemoRunning ? '#2563eb' : 'var(--border-medium)'}; background: var(--bg-surface);">
         <div class="card-header" style="background: linear-gradient(90deg, #f8fafc, #f1f5f9); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">

@@ -486,6 +486,10 @@
       return await this.request(`/students/${id}`, { method: 'DELETE' });
     },
 
+    async getStudentFormOptions() {
+      return await this.request('/students/form-options');
+    },
+
     // ------------------------------------------------------------------------
     // Teachers CRUD & Assignments
     // ------------------------------------------------------------------------

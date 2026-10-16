@@ -162,7 +162,7 @@ class _BusTrackerScreenState extends State<BusTrackerScreen> {
     final isDemoMode = tracking != null && tracking['trackingMode'] == 'DEMO';
     final isDemoActive = tracking != null && tracking['isDemoActive'] == true;
     final isGpsConnected = tracking != null && tracking['isGpsConnected'] == true;
-    final modeLabel = isGpsConnected ? "LIVE GPS" : (isDemoActive ? "DEMO TRACKING (ACTIVE)" : "DEMO TRACKING (STATIONARY)");
+    final modeLabel = isGpsConnected ? "LIVE GPS" : (isDemoActive ? "DEMO TRACKING — SIMULATED LOCATION" : "DEMO SIMULATOR STANDBY");
     final modeColor = isGpsConnected ? const Color(0xFF10B981) : (isDemoActive ? const Color(0xFF2563EB) : const Color(0xFFD97706));
 
     final busNo = tracking?['busNumber'] ?? (isAnanya ? "Bus #04" : "Route 02");
@@ -178,7 +178,7 @@ class _BusTrackerScreenState extends State<BusTrackerScreen> {
         // Mode Banner (Section 14: Clear Differentiation)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          margin: const EdgeInsets.only(bottom: 14),
+          margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
             color: modeColor.withOpacity(0.12),
             borderRadius: BorderRadius.circular(12),
@@ -201,10 +201,53 @@ class _BusTrackerScreenState extends State<BusTrackerScreen> {
                           ? "Satellite telematics link connected with real GPS telemetry."
                           : (isDemoActive
                               ? "Demo Simulation Mode: Moving along configured stops in real-time."
-                              : "Demo Simulation Mode: Paused. Super Admin can start simulation in Demo Tracking."),
+                              : "Demo Simulation Mode: Paused. No real GPS device or live driver location connected."),
                       style: TextStyle(fontSize: 11, color: modeColor.withOpacity(0.9)),
                     ),
                   ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // How School Bus GPS Tracking Works Explanation Card (Requirement 3)
+        Container(
+          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0F9FF),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFBAE6FD)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded, color: Color(0xFF0284C7), size: 18),
+                  const SizedBox(width: 6),
+                  Text(
+                    "How GPS tracking works",
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 12, color: const Color(0xFF0369A1)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                "GPS tracking uses location coordinates to show a school bus's position on a map. In live tracking mode, an authorized driver's device or installed GPS tracker sends location updates to the school system. The backend shares those updates with authorized parents and school administrators. Parents can view only the bus assigned to their child. In demo mode, the bus follows a simulated route for testing and does not represent a real bus location.",
+                style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF0C4A6E), height: 1.45),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: isDemoActive ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  isDemoActive ? "● DEMO TRACKING — SIMULATED LOCATION" : "○ DEMO SIMULATOR STANDBY (No real GPS connected)",
+                  style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: isDemoActive ? const Color(0xFF15803D) : const Color(0xFFB45309)),
                 ),
               ),
             ],

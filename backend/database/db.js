@@ -214,6 +214,56 @@ try {
     INSERT OR IGNORE INTO fee_structures (id, academic_year_id, class_id, term_name, total_amount, due_date)
     VALUES (12, 1, 3, 'Annual Tuition & Lab Fees (Grade 10)', 54000, '2026-10-15');
   `);
+
+  // 10. Ensure Student Complete EMIS Registration Fields
+  const studentCols = db.prepare('PRAGMA table_info(students)').all().map(c => c.name);
+  const newStudentColumns = [
+    { name: 'middle_name', type: 'TEXT' },
+    { name: 'aadhaar_no', type: 'TEXT' },
+    { name: 'mother_tongue', type: 'TEXT' },
+    { name: 'nationality', type: "TEXT DEFAULT 'Indian'" },
+    { name: 'house', type: 'TEXT' },
+    { name: 'identification_marks', type: 'TEXT' },
+    { name: 'religion', type: 'TEXT' },
+    { name: 'community', type: 'TEXT' },
+    { name: 'door_no', type: 'TEXT' },
+    { name: 'street', type: 'TEXT' },
+    { name: 'village_town', type: 'TEXT' },
+    { name: 'district', type: 'TEXT' },
+    { name: 'state', type: 'TEXT' },
+    { name: 'pin_code', type: 'TEXT' },
+    { name: 'permanent_address', type: 'TEXT' },
+    { name: 'communication_address', type: 'TEXT' },
+    { name: 'father_name', type: 'TEXT' },
+    { name: 'mother_name', type: 'TEXT' },
+    { name: 'guardian_name', type: 'TEXT' },
+    { name: 'guardian_relationship', type: 'TEXT' },
+    { name: 'alternate_mobile', type: 'TEXT' },
+    { name: 'father_qualification', type: 'TEXT' },
+    { name: 'mother_qualification', type: 'TEXT' },
+    { name: 'father_occupation', type: 'TEXT' },
+    { name: 'mother_occupation', type: 'TEXT' },
+    { name: 'annual_income', type: 'TEXT' },
+    { name: 'class_admitted', type: 'TEXT' },
+    { name: 'previous_school', type: 'TEXT' },
+    { name: 'bank_name', type: 'TEXT' },
+    { name: 'account_holder_name', type: 'TEXT' },
+    { name: 'account_no', type: 'TEXT' },
+    { name: 'ifsc_code', type: 'TEXT' },
+    { name: 'branch_name', type: 'TEXT' },
+    { name: 'transport_required', type: 'INTEGER DEFAULT 0' },
+    { name: 'bus_id', type: 'INTEGER REFERENCES buses(id)' },
+    { name: 'route_id', type: 'INTEGER REFERENCES bus_routes(id)' },
+    { name: 'pickup_stop_id', type: 'INTEGER REFERENCES bus_stops(id)' }
+  ];
+
+  for (const col of newStudentColumns) {
+    if (!studentCols.includes(col.name)) {
+      try {
+        db.exec(`ALTER TABLE students ADD COLUMN ${col.name} ${col.type};`);
+      } catch (_) {}
+    }
+  }
 } catch (transportErr) {
   console.warn('Transport and fee seed notice:', transportErr.message);
 }

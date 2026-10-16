@@ -370,6 +370,79 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> getStudentFormOptions() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/students/form-options'), headers: _headers()).timeout(const Duration(seconds: 4));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {
+        'success': true,
+        'classes': [
+          {'id': 1, 'name': 'Class 10'},
+          {'id': 2, 'name': 'Class 9'},
+          {'id': 3, 'name': 'Class 11'},
+          {'id': 4, 'name': 'Class 12'}
+        ],
+        'sections': [
+          {'id': 1, 'class_id': 1, 'name': 'A'},
+          {'id': 2, 'class_id': 1, 'name': 'B'},
+          {'id': 3, 'class_id': 2, 'name': 'A'}
+        ],
+        'buses': [
+          {'id': 1, 'bus_number': 'Route 02', 'vehicle_no': 'TN-43-A-2015', 'capacity': 36},
+          {'id': 2, 'bus_number': 'Bus #04', 'vehicle_no': 'TN-43-B-3104', 'capacity': 36}
+        ]
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> getStudentDetails(int studentId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/students/$studentId'), headers: _headers()).timeout(const Duration(seconds: 4));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> createStudent(Map<String, dynamic> payload) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/students'),
+        headers: _headers(),
+        body: jsonEncode(payload),
+      ).timeout(const Duration(seconds: 6));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateStudent(int studentId, Map<String, dynamic> payload) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/students/$studentId'),
+        headers: _headers(),
+        body: jsonEncode(payload),
+      ).timeout(const Duration(seconds: 6));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteStudent(int studentId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/students/$studentId'),
+        headers: _headers(),
+      ).timeout(const Duration(seconds: 4));
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
   static Future<Map<String, dynamic>> getAttendance({int? classId, int? sectionId, String? date, int? studentId}) async {
     try {
       var uri = '$baseUrl/attendance';
