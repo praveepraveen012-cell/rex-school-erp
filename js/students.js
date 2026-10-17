@@ -15,8 +15,15 @@ const StudentsModule = {
 
   async init() {
     this.attachEvents();
-    await this.loadFormOptions();
-    await this.loadStudents();
+    if (window.RexApi && window.RexApi.isAuthenticated()) {
+      await this.loadFormOptions();
+      await this.loadStudents();
+    } else {
+      if (window.ERPStorage && typeof ERPStorage.getStudents === 'function') {
+        this.studentsList = ERPStorage.getStudents();
+        this.render();
+      }
+    }
   },
 
   attachEvents() {

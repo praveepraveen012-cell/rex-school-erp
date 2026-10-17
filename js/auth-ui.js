@@ -793,6 +793,9 @@
       background: white;
       width: 100%;
       max-width: 520px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
       border-radius: 16px;
       overflow: hidden;
       box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
@@ -871,6 +874,8 @@
     }
     .rex-modal-body {
       padding: 24px;
+      overflow-y: auto;
+      flex: 1;
     }
     .rex-auth-error-banner {
       background: #FEF2F2;

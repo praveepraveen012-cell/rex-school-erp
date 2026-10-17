@@ -477,13 +477,22 @@
 
     // ------------------------------------------------------------------------
     // Students CRUD
-    // ------------------------------------------------------------------------
     async getStudents(params = {}) {
+      if (isStaticMode) {
+        if (window.ERPStorage && typeof ERPStorage.getStudents === 'function') {
+          return { success: true, students: ERPStorage.getStudents() };
+        }
+        return { success: true, students: [] };
+      }
       const qs = new URLSearchParams(params).toString();
       return await this.request(`/students${qs ? '?' + qs : ''}`);
     },
 
     async getStudentById(id) {
+      if (isStaticMode && window.ERPStorage) {
+        const found = ERPStorage.getStudents().find(s => String(s.id) === String(id));
+        return { success: !!found, student: found };
+      }
       return await this.request(`/students/${id}`);
     },
 
@@ -506,6 +515,38 @@
     },
 
     async getStudentFormOptions() {
+      if (isStaticMode) {
+        return {
+          success: true,
+          classes: [
+            { id: 1, name: 'Grade 8' },
+            { id: 2, name: 'Grade 9' },
+            { id: 3, name: 'Grade 10' },
+            { id: 4, name: 'Grade 11' },
+            { id: 5, name: 'Grade 12' }
+          ],
+          sections: [
+            { id: 1, class_id: 1, name: 'A' },
+            { id: 2, class_id: 1, name: 'B' },
+            { id: 3, class_id: 2, name: 'A' },
+            { id: 4, class_id: 2, name: 'B' },
+            { id: 5, class_id: 3, name: 'A' },
+            { id: 6, class_id: 3, name: 'B' },
+            { id: 7, class_id: 4, name: 'A' },
+            { id: 8, class_id: 4, name: 'B' },
+            { id: 9, class_id: 5, name: 'A' },
+            { id: 10, class_id: 5, name: 'B' }
+          ],
+          buses: [
+            { id: 1, bus_no: 'Bus #02', route_name: 'Route 02 - Ooty Central' },
+            { id: 2, bus_no: 'Bus #04', route_name: 'Route 04 - Coonoor Road' }
+          ],
+          routes: [
+            { id: 1, route_name: 'Route 02', stops: ['Charring Cross Junction', 'Commercial Road'] },
+            { id: 2, route_name: 'Route 04', stops: ['Botanical Garden Road Junction', 'Lovedale'] }
+          ]
+        };
+      }
       return await this.request('/students/form-options');
     },
 
