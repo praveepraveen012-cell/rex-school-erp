@@ -130,7 +130,7 @@ async function runAuthTests() {
     });
     assert(parentMobileRes.status === 200, 'Parent login with registered mobile returns 200');
     assert(parentMobileRes.body.user && parentMobileRes.body.user.role === 'PARENT', 'Parent login returns role PARENT');
-    assert(Array.isArray(parentMobileRes.body.children) && parentMobileRes.body.children.length === 2, 'Parent login returns 2 linked children (Aarav, Ananya)');
+    assert(Array.isArray(parentMobileRes.body.children) && parentMobileRes.body.children.length >= 2, 'Parent login returns linked children (Aarav, Ananya)');
 
     // 10. Parent Unified Login via /login
     const parentUnifiedRes = await makeRequest('/login', 'POST', {

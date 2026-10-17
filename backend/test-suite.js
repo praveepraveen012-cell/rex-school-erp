@@ -112,6 +112,15 @@ async function runTests() {
     // Test 7: Teacher Attendance Submission & Duplicate Prevention
     // ------------------------------------------------------------------------
     console.log('Test 7: Attendance Submission & Duplicate Prevention');
+    const stuListRes = await fetch(`${BASE}/students?classId=3&sectionId=5`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    const stuListData = await stuListRes.json();
+    const stuIds = (stuListData.students || []).slice(0, 3).map(s => s.id);
+    const stu1 = stuIds[0] || 15;
+    const stu2 = stuIds[1] || 17;
+    const stu3 = stuIds[2] || 18;
+
     const attendanceRes = await fetch(`${BASE}/attendance`, {
       method: 'POST',
       headers: {
@@ -123,9 +132,9 @@ async function runTests() {
         sectionId: 5, // Section A
         date: '2026-09-26',
         records: [
-          { studentId: 1, status: 'present', remarks: 'On time' },
-          { studentId: 2, status: 'present', remarks: 'On time' },
-          { studentId: 3, status: 'absent', remarks: 'Fever' }
+          { studentId: stu1, status: 'present', remarks: 'On time' },
+          { studentId: stu2, status: 'present', remarks: 'On time' },
+          { studentId: stu3, status: 'absent', remarks: 'Fever' }
         ]
       })
     });
@@ -266,19 +275,22 @@ async function runTests() {
     // Test 15: Multi-Child Fee and Data Isolation
     // ------------------------------------------------------------------------
     console.log('Test 15: Multi-Child Data Isolation (Child A vs Child B)');
-    const child1Fees = await fetch(`${BASE}/fees?studentId=1`, {
+    const pChild1 = parentData.students[0].id;
+    const pChild2 = parentData.students[1].id;
+
+    const child1Fees = await fetch(`${BASE}/fees?studentId=${pChild1}`, {
       headers: { 'Authorization': `Bearer ${parentToken}` }
     });
     const child1Data = await child1Fees.json();
     assert.strictEqual(child1Fees.status, 200);
-    assert.strictEqual(child1Data.student.id, 1, 'Child 1 data must belong to Student 1');
+    assert.strictEqual(child1Data.student.id, pChild1, 'Child 1 data must belong to Student 1');
 
-    const child2Fees = await fetch(`${BASE}/fees?studentId=2`, {
+    const child2Fees = await fetch(`${BASE}/fees?studentId=${pChild2}`, {
       headers: { 'Authorization': `Bearer ${parentToken}` }
     });
     const child2Data = await child2Fees.json();
     assert.strictEqual(child2Fees.status, 200);
-    assert.strictEqual(child2Data.student.id, 2, 'Child 2 data must belong to Student 2');
+    assert.strictEqual(child2Data.student.id, pChild2, 'Child 2 data must belong to Student 2');
     // ------------------------------------------------------------------------
     // Test 16: Mandatory Attendance Regression Test (Section 4 & Section 27)
     // ------------------------------------------------------------------------
