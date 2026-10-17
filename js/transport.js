@@ -53,6 +53,7 @@ const TransportModule = {
   // GOOGLE MAPS API INTEGRATION
   // --------------------------------------------------------------------------
   async fetchMapsConfig() {
+    if (window.RexApi && window.RexApi.isStaticMode) return;
     try {
       const res = await fetch('/api/transport/maps-config');
       if (res.ok) {
@@ -283,6 +284,7 @@ const TransportModule = {
   },
 
   async pollTelemetry() {
+    if (window.RexApi && window.RexApi.isStaticMode) return;
     const isAuthed = window.RexApi ? window.RexApi.isAuthenticated() : false;
     const token = isAuthed ? window.RexApi.getToken() : null;
     if (!token) return;
