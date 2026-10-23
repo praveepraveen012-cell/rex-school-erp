@@ -9,6 +9,24 @@ const auditService = require('../services/auditService');
 router.use(authenticate);
 
 // ----------------------------------------------------------------------------
+// GET /api/parents/me - Get authenticated parent profile & linked students
+// ----------------------------------------------------------------------------
+router.get('/me', (req, res) => {
+  if (req.user.role !== 'PARENT') {
+    return res.status(403).json({ success: false, error: 'Only parents can access /me profile.' });
+  }
+  if (!req.parent) {
+    return res.status(404).json({ success: false, error: 'Parent profile not found.' });
+  }
+  return res.json({
+    success: true,
+    parent: req.parent,
+    students: req.parent.students || [],
+    children: req.parent.students || []
+  });
+});
+
+// ----------------------------------------------------------------------------
 // GET /api/parents - List parents (Admin) or self (Parent)
 // ----------------------------------------------------------------------------
 router.get('/', (req, res) => {

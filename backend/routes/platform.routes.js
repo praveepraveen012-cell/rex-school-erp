@@ -460,18 +460,26 @@ router.post('/registrations/:id/reject', authenticate, requirePlatformAdmin, (re
 // 8. PLATFORM ADMIN: LIST ALL SCHOOLS ON PLATFORM
 // ============================================================================
 router.get('/schools', authenticate, requirePlatformAdmin, (req, res) => {
-  const schools = db.query(`SELECT * FROM schools ORDER BY id ASC`);
+  const schools = db.query(`SELECT id, code, name, display_name, email, phone, city, state, status, subscription_plan, trial_starts_at, trial_ends_at, subscription_status, selected_plan, subscription_starts_at, subscription_ends_at, created_at FROM schools ORDER BY id ASC`);
 
+  const now = new Date();
   const enriched = schools.map(sch => {
     const studentCount = db.get(`SELECT COUNT(*) as count FROM students WHERE school_id = ?`, [sch.id])?.count || 0;
     const teacherCount = db.get(`SELECT COUNT(*) as count FROM teachers WHERE school_id = ?`, [sch.id])?.count || 0;
     const classCount = db.get(`SELECT COUNT(*) as count FROM classes WHERE school_id = ?`, [sch.id])?.count || 0;
 
+    let daysRemaining = 0;
+    if (sch.trial_ends_at) {
+      const ms = new Date(sch.trial_ends_at).getTime() - now.getTime();
+      daysRemaining = ms > 0 ? Math.ceil(ms / (1000 * 60 * 60 * 24)) : 0;
+    }
+
     return {
       ...sch,
       activeStudents: studentCount,
       activeTeachers: teacherCount,
-      activeClasses: classCount
+      activeClasses: classCount,
+      trialDaysRemaining: daysRemaining
     };
   });
 

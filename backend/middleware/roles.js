@@ -28,8 +28,9 @@ function requireRole(roles) {
 
 module.exports = {
   requireRole,
-  requireSuperAdmin: requireRole('SUPER_ADMIN'),
+  requireSuperAdmin: requireRole(['SUPER_ADMIN', 'SCHOOL_ADMIN', 'PLATFORM_ADMIN']),
+  requireSchoolAdmin: requireRole(['SUPER_ADMIN', 'SCHOOL_ADMIN', 'PLATFORM_ADMIN']),
   requireTeacher: requireRole('TEACHER'),
   requireParent: requireRole('PARENT'),
-  requireStaff: requireRole(['SUPER_ADMIN', 'TEACHER'])
+  requireStaff: requireRole(['SUPER_ADMIN', 'SCHOOL_ADMIN', 'PLATFORM_ADMIN', 'TEACHER'])
 };

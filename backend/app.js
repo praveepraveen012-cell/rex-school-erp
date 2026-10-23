@@ -29,6 +29,16 @@ const intelligenceRoutes = require('./routes/intelligence.routes');
 const aiRoutes = require('./routes/ai.routes');
 const platformRoutes = require('./routes/platform.routes');
 const schoolRoutes = require('./routes/school.routes');
+const subscriptionsRoutes = require('./routes/subscriptions.routes');
+const enforceActiveSubscription = require('./middleware/subscriptionCheck');
+const reminderScheduler = require('./services/reminderScheduler');
+
+// Start background automated reminder scheduler
+try {
+  reminderScheduler.start();
+} catch (schedErr) {
+  console.warn('Reminder scheduler startup notice:', schedErr.message);
+}
 
 const app = express();
 
@@ -66,6 +76,12 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/login', authRoutes);
 app.use('/login', authRoutes);
+app.use('/api/platform', platformRoutes);
+app.use('/api/subscriptions', subscriptionsRoutes);
+
+// Protect operational mutating routes with 7-day trial & subscription check
+app.use('/api', enforceActiveSubscription);
+
 app.use('/api/students', studentsRoutes);
 app.use('/api/teachers', teachersRoutes);
 app.use('/api/parents', parentsRoutes);
@@ -86,16 +102,35 @@ app.use('/api/academic', academicRoutes);
 app.use('/api/campus', campusRoutes);
 app.use('/api/hr', hrRoutes);
 app.use('/api/intelligence', intelligenceRoutes);
-app.use('/api/ai', aiRoutes);
-app.use('/api/platform', platformRoutes);
+if (typeof aiRoutes !== 'undefined') app.use('/api/ai', aiRoutes);
 app.use('/api/school', schoolRoutes);
 
 // Global Error Handler for API
 app.use('/api', errorHandler);
 
+// Security Middleware: Block direct static downloads of sensitive files
+app.use((req, res, next) => {
+  const urlPath = req.path.toLowerCase();
+  const sensitiveExtensions = ['.sqlite', '.sqlite-wal', '.sqlite-shm', '.env', '.sql', '.log', '.ps1', '.yml', '.yaml', '.key', '.jks', '.lock'];
+  const sensitiveFiles = ['package.json', 'package-lock.json', 'pubspec.yaml', 'database.sqlite'];
+  
+  if (
+    sensitiveExtensions.some(ext => urlPath.endsWith(ext) || urlPath.includes(`${ext}.`) || urlPath.includes(`${ext}/`)) ||
+    sensitiveFiles.some(file => urlPath.includes(file)) ||
+    urlPath.includes('/.git') ||
+    urlPath.includes('/backend') ||
+    urlPath.includes('/lib') ||
+    urlPath.includes('/android') ||
+    urlPath.includes('/ios')
+  ) {
+    return res.status(403).json({ success: false, error: 'Forbidden: Direct access to system files is strictly prohibited.' });
+  }
+  next();
+});
+
 // Serve Frontend Static Assets
 const PUBLIC_DIR = path.resolve(__dirname, '..');
-app.use(express.static(PUBLIC_DIR, { index: 'index.html' }));
+app.use(express.static(PUBLIC_DIR, { index: 'index.html', dotfiles: 'ignore' }));
 
 const fs = require('fs');
 

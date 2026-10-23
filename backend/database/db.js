@@ -353,6 +353,181 @@ try {
   console.warn('Multi-tenant schema initialization notice:', tenantErr.message);
 }
 
+// ============================================================================
+// SaaS PLATFORM EXTENSIONS: 7-Day Trial, Subscriptions, Email Reminders & Homework Approval
+// ============================================================================
+try {
+  // 1. Roles: Ensure PLATFORM_ADMIN and SCHOOL_ADMIN exist
+  db.exec(`
+    INSERT OR IGNORE INTO roles (name, description) VALUES ('PLATFORM_ADMIN', 'Platform owner with SaaS-wide administration privileges');
+    INSERT OR IGNORE INTO roles (name, description) VALUES ('SCHOOL_ADMIN', 'School administrator with full school tenant operational privileges');
+    INSERT OR IGNORE INTO roles (name, description) VALUES ('SUPER_ADMIN', 'School super admin with administrative privileges');
+    INSERT OR IGNORE INTO roles (name, description) VALUES ('TEACHER', 'Teacher with assigned class attendance and homework drafting privileges');
+    INSERT OR IGNORE INTO roles (name, description) VALUES ('PARENT', 'Parent with linked student viewing privileges');
+  `);
+
+  // 2. Schools Table Columns Migration
+  const schoolCols = db.prepare('PRAGMA table_info(schools)').all().map(c => c.name);
+  if (!schoolCols.includes('trial_starts_at')) {
+    try { db.exec("ALTER TABLE schools ADD COLUMN trial_starts_at DATETIME;"); } catch (_) {}
+  }
+  if (!schoolCols.includes('trial_ends_at')) {
+    try { db.exec("ALTER TABLE schools ADD COLUMN trial_ends_at DATETIME;"); } catch (_) {}
+  }
+  if (!schoolCols.includes('subscription_status')) {
+    try { db.exec("ALTER TABLE schools ADD COLUMN subscription_status TEXT DEFAULT 'TRIAL_ACTIVE';"); } catch (_) {}
+  }
+  if (!schoolCols.includes('selected_plan')) {
+    try { db.exec("ALTER TABLE schools ADD COLUMN selected_plan TEXT DEFAULT 'TRIAL';"); } catch (_) {}
+  }
+  if (!schoolCols.includes('subscription_starts_at')) {
+    try { db.exec("ALTER TABLE schools ADD COLUMN subscription_starts_at DATETIME;"); } catch (_) {}
+  }
+  if (!schoolCols.includes('subscription_ends_at')) {
+    try { db.exec("ALTER TABLE schools ADD COLUMN subscription_ends_at DATETIME;"); } catch (_) {}
+  }
+  if (!schoolCols.includes('verified_payment_ref')) {
+    try { db.exec("ALTER TABLE schools ADD COLUMN verified_payment_ref TEXT;"); } catch (_) {}
+  }
+  if (!schoolCols.includes('billing_cycle')) {
+    try { db.exec("ALTER TABLE schools ADD COLUMN billing_cycle TEXT DEFAULT 'MONTHLY';"); } catch (_) {}
+  }
+
+  // Populate default 7-day trial for existing schools if null
+  db.exec(`
+    UPDATE schools
+    SET trial_starts_at = COALESCE(trial_starts_at, created_at, CURRENT_TIMESTAMP),
+        trial_ends_at = COALESCE(trial_ends_at, datetime(COALESCE(created_at, CURRENT_TIMESTAMP), '+7 days')),
+        subscription_status = COALESCE(subscription_status, 'TRIAL_ACTIVE'),
+        selected_plan = COALESCE(selected_plan, 'TRIAL')
+    WHERE trial_ends_at IS NULL;
+  `);
+
+  // 3. School Subscriptions Table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS school_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      plan_id TEXT NOT NULL,
+      plan_name TEXT NOT NULL,
+      billing_cycle TEXT DEFAULT 'MONTHLY' CHECK(billing_cycle IN ('MONTHLY', 'ANNUAL')),
+      amount REAL NOT NULL,
+      currency TEXT DEFAULT 'INR',
+      status TEXT NOT NULL,
+      trial_starts_at DATETIME,
+      trial_ends_at DATETIME,
+      subscription_starts_at DATETIME,
+      subscription_ends_at DATETIME,
+      payment_gateway TEXT DEFAULT 'SANDBOX',
+      transaction_ref TEXT,
+      payment_status TEXT DEFAULT 'PENDING',
+      invoice_number TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_school_subs_school ON school_subscriptions(school_id);
+    CREATE INDEX IF NOT EXISTS idx_school_subs_status ON school_subscriptions(status);
+  `);
+
+  const subCols = db.prepare('PRAGMA table_info(school_subscriptions)').all().map(c => c.name);
+  if (!subCols.includes('plan_name')) {
+    try { db.exec("ALTER TABLE school_subscriptions ADD COLUMN plan_name TEXT;"); } catch (_) {}
+  }
+  if (!subCols.includes('billing_cycle')) {
+    try { db.exec("ALTER TABLE school_subscriptions ADD COLUMN billing_cycle TEXT DEFAULT 'MONTHLY';"); } catch (_) {}
+  }
+  if (!subCols.includes('subscription_starts_at')) {
+    try { db.exec("ALTER TABLE school_subscriptions ADD COLUMN subscription_starts_at DATETIME;"); } catch (_) {}
+  }
+  if (!subCols.includes('subscription_ends_at')) {
+    try { db.exec("ALTER TABLE school_subscriptions ADD COLUMN subscription_ends_at DATETIME;"); } catch (_) {}
+  }
+  if (!subCols.includes('invoice_number')) {
+    try { db.exec("ALTER TABLE school_subscriptions ADD COLUMN invoice_number TEXT;"); } catch (_) {}
+  }
+  if (!subCols.includes('trial_starts_at')) {
+    try { db.exec("ALTER TABLE school_subscriptions ADD COLUMN trial_starts_at DATETIME;"); } catch (_) {}
+  }
+
+  // 4. Email Reminders & Notification Logs Table
+  const emailLogCols = db.prepare('PRAGMA table_info(email_logs)').all().map(c => c.name);
+  if (!emailLogCols.includes('email_type')) {
+    try { db.exec("ALTER TABLE email_logs ADD COLUMN email_type TEXT;"); } catch (_) {}
+    try { db.exec("UPDATE email_logs SET email_type = template_name WHERE email_type IS NULL AND template_name IS NOT NULL;"); } catch (_) {}
+  }
+  if (!emailLogCols.includes('delivery_status')) {
+    try { db.exec("ALTER TABLE email_logs ADD COLUMN delivery_status TEXT DEFAULT 'SENT';"); } catch (_) {}
+    try { db.exec("UPDATE email_logs SET delivery_status = status WHERE delivery_status IS NULL AND status IS NOT NULL;"); } catch (_) {}
+  }
+  if (!emailLogCols.includes('provider')) {
+    try { db.exec("ALTER TABLE email_logs ADD COLUMN provider TEXT DEFAULT 'SIMULATED';"); } catch (_) {}
+  }
+  if (!emailLogCols.includes('content_preview')) {
+    try { db.exec("ALTER TABLE email_logs ADD COLUMN content_preview TEXT;"); } catch (_) {}
+  }
+  if (!emailLogCols.includes('provider_message_id')) {
+    try { db.exec("ALTER TABLE email_logs ADD COLUMN provider_message_id TEXT;"); } catch (_) {}
+  }
+  try {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_email_logs_school ON email_logs(school_id, email_type);");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_email_logs_recipient ON email_logs(recipient_email);");
+  } catch (_) {}
+
+  // 5. Homework Schema Extensions for Approval Workflow
+  const hwCols = db.prepare('PRAGMA table_info(homework)').all().map(c => c.name);
+  if (!hwCols.includes('submitted_at')) {
+    try { db.exec("ALTER TABLE homework ADD COLUMN submitted_at DATETIME;"); } catch (_) {}
+  }
+  if (!hwCols.includes('approved_by')) {
+    try { db.exec("ALTER TABLE homework ADD COLUMN approved_by INTEGER REFERENCES users(id);"); } catch (_) {}
+  }
+  if (!hwCols.includes('approved_at')) {
+    try { db.exec("ALTER TABLE homework ADD COLUMN approved_at DATETIME;"); } catch (_) {}
+  }
+  if (!hwCols.includes('rejected_by')) {
+    try { db.exec("ALTER TABLE homework ADD COLUMN rejected_by INTEGER REFERENCES users(id);"); } catch (_) {}
+  }
+  if (!hwCols.includes('rejected_at')) {
+    try { db.exec("ALTER TABLE homework ADD COLUMN rejected_at DATETIME;"); } catch (_) {}
+  }
+  if (!hwCols.includes('rejection_reason')) {
+    try { db.exec("ALTER TABLE homework ADD COLUMN rejection_reason TEXT;"); } catch (_) {}
+  }
+
+  // 6. Homework Audit Logs Table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS homework_audit_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      homework_id INTEGER NOT NULL REFERENCES homework(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id),
+      user_id INTEGER REFERENCES users(id),
+      user_role TEXT,
+      action TEXT NOT NULL,
+      previous_status TEXT,
+      new_status TEXT,
+      details TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_hw_audit_hw_id ON homework_audit_logs(homework_id);
+  `);
+
+  // 7. Password Reset Tokens Table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token TEXT NOT NULL UNIQUE,
+      expires_at DATETIME NOT NULL,
+      used INTEGER DEFAULT 0 CHECK(used IN (0, 1)),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_pwd_reset_token ON password_reset_tokens(token);
+  `);
+
+} catch (saasErr) {
+  console.warn('SaaS schema initialization notice:', saasErr.message);
+}
+
 /**
  * Database Query Helpers for consistent API
  */

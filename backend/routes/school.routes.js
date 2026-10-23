@@ -32,7 +32,7 @@ router.get('/profile', (req, res) => {
 // PUT /api/school/profile - Update school profile (Super Admin only)
 // ----------------------------------------------------------------------------
 router.put('/profile', (req, res) => {
-  if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'PLATFORM_ADMIN') {
+  if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'SCHOOL_ADMIN' && req.user.role !== 'PLATFORM_ADMIN') {
     return res.status(403).json({ success: false, error: 'Only School Super Admin can update school profile.' });
   }
 

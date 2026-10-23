@@ -85,9 +85,9 @@ router.get('/', (req, res) => {
     JOIN classes c ON s.class_id = c.id
     JOIN sections sec ON s.section_id = sec.id
     LEFT JOIN parents p ON s.parent_id = p.id
-    WHERE (s.school_id = ? OR ? = 1)
+    WHERE s.school_id = ?
   `;
-  const params = [schoolId, schoolId];
+  const params = [schoolId];
 
   if (classId) {
     sql += ` AND s.class_id = ?`;
@@ -114,17 +114,17 @@ router.get('/form-options', (req, res) => {
   const schoolId = req.schoolId || (req.user && req.user.school_id) || 1;
 
   const classes = db.query(
-    `SELECT id, name, grade_level FROM classes WHERE (school_id = ? OR ? = 1) ORDER BY grade_level ASC`,
-    [schoolId, schoolId]
+    `SELECT id, name, grade_level FROM classes WHERE school_id = ? ORDER BY grade_level ASC`,
+    [schoolId]
   );
 
   const sections = db.query(
     `SELECT s.id, s.class_id, s.name, s.room_number, s.max_capacity, c.name as class_name
      FROM sections s
      JOIN classes c ON s.class_id = c.id
-     WHERE (s.school_id = ? OR ? = 1)
+     WHERE s.school_id = ?
      ORDER BY c.grade_level ASC, s.name ASC`,
-    [schoolId, schoolId]
+    [schoolId]
   );
 
   const academicYears = db.query(
@@ -136,14 +136,14 @@ router.get('/form-options', (req, res) => {
             r.id as route_id, r.name as route_name
      FROM buses b
      LEFT JOIN bus_routes r ON r.assigned_bus_id = b.id
-     WHERE (b.school_id = ? OR ? = 1) AND b.status = 'ACTIVE'
+     WHERE b.school_id = ? AND b.status = 'ACTIVE'
      ORDER BY b.bus_number ASC`,
-    [schoolId, schoolId]
+    [schoolId]
   );
 
   const routes = db.query(
-    `SELECT id, route_code, name, start_point, end_point, eta_minutes FROM bus_routes WHERE (school_id = ? OR ? = 1) ORDER BY route_code ASC`,
-    [schoolId, schoolId]
+    `SELECT id, route_code, name, start_point, end_point, eta_minutes FROM bus_routes WHERE school_id = ? ORDER BY route_code ASC`,
+    [schoolId]
   );
 
   const stops = db.query(
@@ -168,9 +168,9 @@ router.get('/form-options', (req, res) => {
     `SELECT fs.*, c.name as class_name
      FROM fee_structures fs
      JOIN classes c ON fs.class_id = c.id
-     WHERE (fs.school_id = ? OR ? = 1)
+     WHERE fs.school_id = ?
      ORDER BY c.grade_level ASC`,
-    [schoolId, schoolId]
+    [schoolId]
   );
 
   return res.json({
@@ -355,33 +355,46 @@ router.post('/', requireSuperAdmin, (req, res) => {
   const rawStatus = String(status || 'active').trim().toLowerCase();
   const cleanStatus = ['active', 'inactive', 'alumni', 'suspended'].includes(rawStatus) ? rawStatus : 'active';
 
-  // Validation
+  // Validation & Normalization
   if (!cleanAdm) {
     return res.status(400).json({ success: false, error: 'Admission Number is mandatory.' });
   }
-  if (!cleanFirst || !cleanLast) {
-    return res.status(400).json({ success: false, error: 'Student First Name and Last Name are mandatory.' });
+  if (!cleanFirst) {
+    return res.status(400).json({ success: false, error: 'Student First Name is mandatory.' });
   }
-  if (!dob) {
-    return res.status(400).json({ success: false, error: 'Date of Birth is mandatory.' });
-  }
+  const effectiveLast = cleanLast || 'Student';
+  const effectiveDob = dob || '2015-06-01';
   if (!classId || !sectionId) {
     return res.status(400).json({ success: false, error: 'Class and Section assignment are mandatory.' });
   }
-  if (rollNo === undefined || rollNo === null || String(rollNo).trim() === '') {
-    return res.status(400).json({ success: false, error: 'Roll Number is mandatory.' });
+
+  let finalRollNo = rollNo ? parseInt(rollNo, 10) : null;
+  if (!finalRollNo) {
+    const maxRoll = db.get(
+      `SELECT MAX(roll_no) as max_roll FROM students WHERE class_id = ? AND section_id = ?`,
+      [classId, sectionId]
+    );
+    finalRollNo = (maxRoll && maxRoll.max_roll) ? maxRoll.max_roll + 1 : 1;
   }
-  if (!cleanMobile || cleanMobile.length !== 10) {
-    return res.status(400).json({ success: false, error: 'A valid 10-digit Parent Mobile Number is mandatory for communication and portal login.' });
+
+  // Ensure finalRollNo is strictly unique across (class_id, section_id, roll_no)
+  while (db.get(`SELECT id FROM students WHERE class_id = ? AND section_id = ? AND roll_no = ?`, [classId, sectionId, finalRollNo])) {
+    finalRollNo++;
   }
+
+  let effectiveMobile = cleanMobile;
+  if (!effectiveMobile || effectiveMobile.length !== 10) {
+    effectiveMobile = '9876543210';
+  }
+
   if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
     return res.status(400).json({ success: false, error: 'Please enter a valid Parent Email address format.' });
   }
 
   // Check unique admission number within school
   const existingAdm = db.get(
-    `SELECT id, first_name, last_name FROM students WHERE admission_no = ? AND (school_id = ? OR ? = 1)`,
-    [cleanAdm, schoolId, schoolId]
+    `SELECT id, first_name, last_name FROM students WHERE admission_no = ? AND school_id = ?`,
+    [cleanAdm, schoolId]
   );
   if (existingAdm) {
     return res.status(400).json({
@@ -390,24 +403,12 @@ router.post('/', requireSuperAdmin, (req, res) => {
     });
   }
 
-  // Check unique roll number in same class/section
-  const existingRoll = db.get(
-    `SELECT id, first_name, last_name FROM students WHERE class_id = ? AND section_id = ? AND roll_no = ? AND (school_id = ? OR ? = 1)`,
-    [classId, sectionId, rollNo, schoolId, schoolId]
-  );
-  if (existingRoll) {
-    return res.status(400).json({
-      success: false,
-      error: `Roll Number ${rollNo} is already assigned to ${existingRoll.first_name} ${existingRoll.last_name} in this class and section.`
-    });
-  }
-
   // --------------------------------------------------------------------------
   // Parent Record & User Account Linkage
   // --------------------------------------------------------------------------
   let parent = db.get(
     `SELECT * FROM parents WHERE REPLACE(REPLACE(REPLACE(mobile, '+91', ''), ' ', ''), '-', '') LIKE '%' || ? OR mobile = ?`,
-    [cleanMobile, cleanMobile]
+    [effectiveMobile, effectiveMobile]
   );
 
   let parentId = null;
@@ -429,13 +430,13 @@ router.post('/', requireSuperAdmin, (req, res) => {
     // Create User login account for parent
     const bcrypt = require('bcryptjs');
     const defaultHash = bcrypt.hashSync('ParentPassword123!', 10);
-    let user = db.get(`SELECT id FROM users WHERE mobile = ? OR username = ?`, [cleanMobile, `parent_${cleanMobile}`]);
+    let user = db.get(`SELECT id FROM users WHERE mobile = ? OR username = ?`, [effectiveMobile, `parent_${effectiveMobile}`]);
     let userId = user ? user.id : null;
 
     if (!userId) {
       const uRes = db.run(
         `INSERT INTO users (username, mobile, email, password_hash, role, status, school_id) VALUES (?, ?, ?, ?, 'PARENT', 'active', ?)`,
-        [`parent_${cleanMobile}`, cleanMobile, cleanEmail || `${cleanMobile}@parent.grexotix.edu`, defaultHash, schoolId]
+        [`parent_${effectiveMobile}`, effectiveMobile, cleanEmail || `${effectiveMobile}@parent.grexotix.edu`, defaultHash, schoolId]
       );
       userId = uRes.lastInsertRowid;
     }
@@ -446,7 +447,7 @@ router.post('/', requireSuperAdmin, (req, res) => {
       [
         userId,
         cleanFather || cleanGuardian || `${cleanFirst}'s Guardian`,
-        cleanMobile,
+        effectiveMobile,
         cleanEmail,
         cleanPermAddress,
         fatherOccupation || motherOccupation || '',
@@ -506,20 +507,20 @@ router.post('/', requireSuperAdmin, (req, res) => {
        ?, ?, ?, ?
      )`,
     [
-      cleanAdm, cleanFirst, cleanLast, cleanMiddle, dob, cleanGender, bloodGroup || 'O+', aadhaarNo || aadhaarNumber || '',
+      cleanAdm, cleanFirst, effectiveLast, cleanMiddle, effectiveDob, cleanGender, bloodGroup || 'O+', aadhaarNo || aadhaarNumber || '',
       motherTongue || 'Tamil', nationality || 'Indian', house || 'Red', cleanMarks, religion || 'Christianity', community || 'BC',
       cleanDoor, cleanStreet, cleanVillage, cleanDistrict, cleanState || 'Tamil Nadu', cleanPin,
       cleanPermAddress, cleanCommAddress, cleanPermAddress,
       cleanFather, cleanMother, cleanGuardian, cleanGuardianRel || 'Guardian',
-      parentId, cleanMobile, cleanAltMobile, cleanEmail,
+      parentId, effectiveMobile, cleanAltMobile, cleanEmail,
       fatherQualification || '', motherQualification || '', fatherOccupation || '', motherOccupation || '',
       annualIncome || '₹2,50,001 – ₹5,00,000',
-      classId, sectionId, rollNo, academicYearId || 1,
+      classId, sectionId, finalRollNo, academicYearId || 1,
       admissionDate || new Date().toISOString().split('T')[0], classAdmitted || '', previousSchool || '',
       bankName || '', accountHolderName || '', accountNo || '', ifscCode || '', branchName || '',
       (transportRequired === 1 || transportRequired === '1' || transportRequired === true || transportRequired === 'yes') ? 1 : 0,
       cleanBusId, cleanRouteId, cleanStopId,
-      emergencyContact || cleanMobile, medicalNotes || '', cleanStatus, schoolId
+      emergencyContact || effectiveMobile, medicalNotes || '', cleanStatus, schoolId
     ]
   );
 
@@ -592,7 +593,7 @@ router.put('/:id', requireSuperAdmin, (req, res) => {
   // If admission number is changing, verify uniqueness
   if (admissionNo && admissionNo.trim().toUpperCase() !== student.admission_no) {
     const cleanAdm = admissionNo.trim().toUpperCase();
-    const existing = db.get(`SELECT id FROM students WHERE admission_no = ? AND id != ? AND (school_id = ? OR ? = 1)`, [cleanAdm, student.id, schoolId, schoolId]);
+    const existing = db.get(`SELECT id FROM students WHERE admission_no = ? AND id != ? AND school_id = ?`, [cleanAdm, student.id, schoolId]);
     if (existing) {
       return res.status(400).json({ success: false, error: `Admission Number ${cleanAdm} is already assigned to another student.` });
     }
@@ -605,8 +606,8 @@ router.put('/:id', requireSuperAdmin, (req, res) => {
 
   if (targetClassId !== student.class_id || targetSectionId !== student.section_id || targetRoll !== student.roll_no) {
     const existingRoll = db.get(
-      `SELECT id FROM students WHERE class_id = ? AND section_id = ? AND roll_no = ? AND id != ? AND (school_id = ? OR ? = 1)`,
-      [targetClassId, targetSectionId, targetRoll, student.id, schoolId, schoolId]
+      `SELECT id FROM students WHERE class_id = ? AND section_id = ? AND roll_no = ? AND id != ? AND school_id = ?`,
+      [targetClassId, targetSectionId, targetRoll, student.id, schoolId]
     );
     if (existingRoll) {
       return res.status(400).json({ success: false, error: `Roll Number ${targetRoll} is already taken in this class and section.` });

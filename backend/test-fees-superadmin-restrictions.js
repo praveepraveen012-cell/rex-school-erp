@@ -199,6 +199,7 @@ async function runFeeRestrictionsTest() {
     // SECTION 4: PARENT FEES & SPLIT PAYMENT FUNCTIONALITY (30% Rule)
     // ------------------------------------------------------------------------
     console.log('\nStep 5: Parent Can Pay Fees (Full & Split Payment with 30% Minimum Rule)');
+    db.run(`DELETE FROM fee_payments WHERE student_id = ?`, [aaravId]);
 
     // Parent fetches own child's fees
     const parentFeeRes = await fetch(`${BASE}/fees?studentId=${aaravId}`, {

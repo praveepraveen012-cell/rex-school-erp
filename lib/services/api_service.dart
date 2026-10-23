@@ -10,6 +10,8 @@ class ApiService {
 
   static String? _authToken;
   static Map<String, dynamic>? _currentUser;
+  static Map<String, dynamic>? _currentSchool;
+  static Map<String, dynamic>? _currentTrial;
   static Map<String, dynamic>? _activeStudent;
   static List<dynamic> _linkedStudents = [];
   static bool _isDemoMode = false;
@@ -18,6 +20,9 @@ class ApiService {
   static bool get isAuthenticated => _authToken != null || _isDemoMode;
   static String? get token => _authToken;
   static Map<String, dynamic>? get currentUser => _currentUser;
+  static Map<String, dynamic>? get currentSchool => _currentSchool;
+  static Map<String, dynamic>? get currentTrial => _currentTrial;
+  static String? get schoolCode => _currentSchool?['code'] ?? _currentSchool?['id']?.toString();
   static String get activeRole => (_currentUser?['role'] as String?)?.toUpperCase() ?? (_isDemoMode ? _demoRole : 'PARENT');
   static Map<String, dynamic>? get activeStudent => _activeStudent;
   static List<dynamic> get linkedStudents => _linkedStudents;
@@ -1327,6 +1332,161 @@ class ApiService {
       return jsonDecode(res.body);
     } catch (e) {
       return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  // ==========================================================================
+  // GREXOTIX SaaS PLATFORM: SCHOOL REGISTRATION & SUBSCRIPTIONS
+  // ==========================================================================
+  static Future<Map<String, dynamic>> registerSchool(Map<String, dynamic> data) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/auth/register-school'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(data),
+      ).timeout(const Duration(seconds: 5));
+
+      final body = jsonDecode(res.body);
+      if (res.statusCode == 201 && body['success'] == true) {
+        _authToken = body['token'];
+        _currentUser = body['user'];
+        _currentSchool = body['school'];
+        _currentTrial = body['trial'];
+        _isDemoMode = false;
+        return body;
+      }
+      return body;
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> loginSchool({
+    required String schoolId,
+    required String password,
+    String? identifier,
+  }) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/auth/school-login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'schoolId': schoolId.trim().toUpperCase(),
+          'password': password,
+          if (identifier != null && identifier.isNotEmpty) 'identifier': identifier.trim(),
+        }),
+      ).timeout(const Duration(seconds: 5));
+
+      final body = jsonDecode(res.body);
+      if (res.statusCode == 200 && body['success'] == true) {
+        _authToken = body['token'];
+        _currentUser = body['user'];
+        _currentSchool = body['school'];
+        _currentTrial = body['trial'];
+        _isDemoMode = false;
+        return body;
+      }
+      return body;
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getSubscriptionStatus() async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/subscriptions/status'),
+        headers: _headers(),
+      ).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getSubscriptionPlans() async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/subscriptions/plans'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'plans': [], 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> verifySubscription({
+    required String planId,
+    String billingCycle = 'MONTHLY',
+    String? transactionRef,
+  }) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/subscriptions/verify'),
+        headers: _headers(),
+        body: jsonEncode({
+          'planId': planId,
+          'billingCycle': billingCycle,
+          'transactionRef': transactionRef ?? 'TXN-FLUTTER-${DateTime.now().millisecondsSinceEpoch}',
+        }),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  // ==========================================================================
+  // GREXOTIX SaaS PLATFORM: HOMEWORK APPROVAL WORKFLOW
+  // ==========================================================================
+  static Future<Map<String, dynamic>> getPendingHomework() async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/homework/pending'),
+        headers: _headers(),
+      ).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'homework': [], 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> approveHomework(int homeworkId, {bool notifyParents = true}) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/homework/$homeworkId/approve'),
+        headers: _headers(),
+        body: jsonEncode({'notifyParents': notifyParents}),
+      ).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> rejectHomework(int homeworkId, String reason) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/homework/$homeworkId/reject'),
+        headers: _headers(),
+        body: jsonEncode({'reason': reason}),
+      ).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getHomeworkAudit(int homeworkId) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/homework/$homeworkId/audit'),
+        headers: _headers(),
+      ).timeout(const Duration(seconds: 4));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'auditTrail': [], 'error': e.toString()};
     }
   }
 }

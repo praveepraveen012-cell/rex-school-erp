@@ -201,8 +201,8 @@ router.get('/my-bus', (req, res) => {
     });
   }
 
-  // Super Admin view
-  if (role === 'SUPER_ADMIN') {
+  // Admin view
+  if (role === 'SUPER_ADMIN' || role === 'SCHOOL_ADMIN' || role === 'PLATFORM_ADMIN') {
     const buses = db.query(
       `SELECT b.*, d.id as driver_id, d.name as driver_name, d.mobile as driver_mobile, d.license_no,
               br.id as route_id, br.route_code, br.name as route_name, br.start_point, br.end_point, br.live_status, br.eta_minutes,
@@ -217,7 +217,7 @@ router.get('/my-bus', (req, res) => {
 
     return res.json({
       success: true,
-      role: 'SUPER_ADMIN',
+      role,
       fleet: buses
     });
   }
@@ -226,10 +226,21 @@ router.get('/my-bus', (req, res) => {
 });
 
 // ----------------------------------------------------------------------------
+// GET /api/transport/routes - List all bus routes
+// ----------------------------------------------------------------------------
+router.get(['/routes', '/bus-routes'], (req, res) => {
+  const routes = db.query(`SELECT * FROM bus_routes ORDER BY id ASC`);
+  return res.json({
+    success: true,
+    routes
+  });
+});
+
+// ----------------------------------------------------------------------------
 // GET /api/transport/fleet - Super Admin full fleet telematics & stats
 // ----------------------------------------------------------------------------
 router.get('/fleet', (req, res) => {
-  if (req.user.role !== 'SUPER_ADMIN') {
+  if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'SCHOOL_ADMIN' && req.user.role !== 'PLATFORM_ADMIN') {
     return res.status(403).json({ success: false, error: 'Administrative permission required.' });
   }
 
@@ -791,11 +802,14 @@ router.post('/assign', (req, res) => {
 
     if (Array.isArray(studentIds)) {
       for (const sId of studentIds) {
-        db.run(
-          `INSERT OR REPLACE INTO student_transport_assignments (student_id, bus_id, route_id, pickup_stop_id)
-           VALUES (?, ?, ?, ?)`,
-          [sId, busId, routeId || 1, pickupStopId || null]
-        );
+        const studentExists = db.get(`SELECT id FROM students WHERE id = ?`, [sId]);
+        if (studentExists) {
+          db.run(
+            `INSERT OR REPLACE INTO student_transport_assignments (student_id, bus_id, route_id, pickup_stop_id)
+             VALUES (?, ?, ?, ?)`,
+            [sId, busId, routeId || 1, pickupStopId || null]
+          );
+        }
       }
     }
 

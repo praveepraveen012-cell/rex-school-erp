@@ -45,7 +45,7 @@ router.get('/', (req, res) => {
        JOIN classes c ON h.class_id = c.id
        JOIN sections sec ON h.section_id = sec.id
        LEFT JOIN homework_submissions hs ON h.id = hs.homework_id AND hs.student_id = ?
-       WHERE h.class_id = ? AND h.section_id = ? AND (h.status = 'SENT' OR h.status = 'published')
+       WHERE h.class_id = ? AND h.section_id = ? AND (h.status IN ('SENT', 'published') OR h.approval_status = 'APPROVED')
        ORDER BY h.due_date ASC`,
       [child.id, child.class_id, child.section_id]
     );
@@ -147,15 +147,46 @@ router.get('/', (req, res) => {
 });
 
 // ----------------------------------------------------------------------------
-// POST /api/homework - Create new homework (Teacher or Super Admin only)
+// GET /api/homework/pending - List homework awaiting School Admin approval
+// ----------------------------------------------------------------------------
+router.get('/pending', (req, res) => {
+  const role = req.user.role;
+  if (role !== 'SUPER_ADMIN' && role !== 'SCHOOL_ADMIN' && role !== 'PLATFORM_ADMIN') {
+    return res.status(403).json({ success: false, error: 'Unauthorized: Only School Administrators can review pending homework.' });
+  }
+
+  const schoolId = req.user.school_id || 1;
+  const list = db.query(
+    `SELECT h.*, sub.name as subject_name, sub.code as subject_code,
+            t.name as teacher_name, t.mobile as teacher_mobile,
+            c.name as class_name, sec.name as section_name,
+            (SELECT COUNT(*) FROM students s WHERE s.class_id = h.class_id AND s.section_id = h.section_id AND s.status = 'active') as target_students_count
+     FROM homework h
+     JOIN subjects sub ON h.subject_id = sub.id
+     JOIN teachers t ON h.teacher_id = t.id
+     JOIN classes c ON h.class_id = c.id
+     JOIN sections sec ON h.section_id = sec.id
+     WHERE h.status IN ('PENDING_APPROVAL', 'READY_FOR_REVIEW') OR h.approval_status = 'PENDING_APPROVAL'
+     ORDER BY h.created_at DESC`
+  );
+
+  return res.json({
+    success: true,
+    count: list.length,
+    homework: list
+  });
+});
+
+// ----------------------------------------------------------------------------
+// POST /api/homework - Create new homework (Teacher or School/Super Admin)
 // ----------------------------------------------------------------------------
 router.post('/', (req, res) => {
   const role = req.user.role;
-  if (role !== 'TEACHER' && role !== 'SUPER_ADMIN') {
+  if (role !== 'TEACHER' && role !== 'SUPER_ADMIN' && role !== 'SCHOOL_ADMIN') {
     return res.status(403).json({ success: false, error: 'Unauthorized: Parents cannot assign or create homework.' });
   }
 
-  const { classId, sectionId, subjectId, title, description, assignedDate, dueDate, attachmentUrl } = req.body;
+  const { classId, sectionId, subjectId, title, description, assignedDate, dueDate, attachmentUrl, status } = req.body;
   const simulatedTime = req.headers['x-simulated-time'] || req.body.simulatedTime || null;
 
   if (!classId || !sectionId || !subjectId || !title || !description || !dueDate) {
@@ -168,6 +199,9 @@ router.post('/', (req, res) => {
   // Determine teacher
   let teacherId = null;
   if (role === 'TEACHER') {
+    if (!req.teacher) {
+      return res.status(403).json({ success: false, error: 'Teacher profile not found.' });
+    }
     teacherId = req.teacher.id;
     const isAssigned = db.get(
       `SELECT id FROM teacher_assignments WHERE teacher_id = ? AND class_id = ? AND section_id = ? AND subject_id = ?`,
@@ -188,14 +222,50 @@ router.post('/', (req, res) => {
   const kolkataNow = homeworkService.getKolkataTime(simulatedTime);
   const assigned = assignedDate || kolkataNow.ymd;
 
-  // New homework starts in READY_FOR_REVIEW status, parents cannot see it until sent
+  let approvalStatus;
+  let dbStatus;
+  if (role === 'TEACHER') {
+    approvalStatus = (status && status.toUpperCase() === 'DRAFT') ? 'DRAFT' : 'PENDING_APPROVAL';
+    dbStatus = approvalStatus === 'DRAFT' ? 'DRAFT' : 'READY_FOR_REVIEW';
+  } else {
+    approvalStatus = (status && status.toUpperCase() === 'PENDING_APPROVAL') ? 'PENDING_APPROVAL' : (status || 'APPROVED');
+    dbStatus = approvalStatus === 'PENDING_APPROVAL' ? 'READY_FOR_REVIEW' : 'SENT';
+  }
+
+  const submittedAt = approvalStatus === 'PENDING_APPROVAL' ? new Date().toISOString().replace('T', ' ').slice(0, 19) : null;
+  const approvedBy = approvalStatus === 'APPROVED' ? req.user.id : null;
+  const approvedAt = approvalStatus === 'APPROVED' ? new Date().toISOString().replace('T', ' ').slice(0, 19) : null;
+
   const result = db.run(
-    `INSERT INTO homework (class_id, section_id, subject_id, teacher_id, title, description, attachment_url, assigned_date, due_date, status, send_mode, auto_send_enabled)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'READY_FOR_REVIEW', 'MANUAL', 0)`,
-    [classId, sectionId, subjectId, teacherId, title, description, attachmentUrl || null, assigned, dueDate]
+    `INSERT INTO homework (
+      class_id, section_id, subject_id, teacher_id, title, description, attachment_url,
+      assigned_date, due_date, status, approval_status, send_mode, auto_send_enabled, submitted_at, approved_by, approved_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'MANUAL', 0, ?, ?, ?)`,
+    [
+      classId, sectionId, subjectId, teacherId, title, description, attachmentUrl || null,
+      assigned, dueDate, dbStatus, approvalStatus, submittedAt, approvedBy, approvedAt
+    ]
   );
 
   const newHomeworkId = result.lastInsertRowid;
+
+  // Log in homework audit trail
+  try {
+    db.run(
+      `INSERT INTO homework_audit_logs (
+        homework_id, school_id, user_id, user_role, action, previous_status, new_status, details
+      ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?)`,
+      [
+        newHomeworkId,
+        req.user.school_id || 1,
+        req.user.id,
+        role,
+        approvalStatus === 'DRAFT' ? 'DRAFT_CREATED' : (approvalStatus === 'PENDING_APPROVAL' ? 'SUBMITTED_FOR_APPROVAL' : 'APPROVED'),
+        approvalStatus,
+        `Homework created by ${role}: "${title}"`
+      ]
+    );
+  } catch (_) {}
 
   auditService.log({
     userId: req.user.id,
@@ -203,15 +273,20 @@ router.post('/', (req, res) => {
     action: role === 'TEACHER' ? 'TEACHER_CREATED_HOMEWORK' : 'ADMIN_CREATED_HOMEWORK',
     module: 'HOMEWORK',
     recordId: newHomeworkId,
-    details: `${role === 'TEACHER' ? 'Teacher' : 'Admin'} created homework: "${title}" for Class ${classId}-${sectionId} (Assigned: ${assigned})`,
+    details: `${role === 'TEACHER' ? 'Teacher' : 'Admin'} created homework: "${title}" (Status: ${approvalStatus})`,
     ipAddress: req.ip
   });
 
   return res.status(201).json({
     success: true,
-    message: 'Homework created successfully and queued for Super Admin review.',
+    message: approvalStatus === 'DRAFT'
+      ? 'Homework saved as draft.'
+      : (approvalStatus === 'PENDING_APPROVAL'
+          ? 'Homework submitted for School Admin approval.'
+          : 'Homework created and approved successfully.'),
     homeworkId: newHomeworkId,
-    status: 'READY_FOR_REVIEW'
+    status: approvalStatus,
+    approvalStatus: approvalStatus
   });
 });
 
@@ -220,7 +295,7 @@ router.post('/', (req, res) => {
 // ----------------------------------------------------------------------------
 router.put('/:id', (req, res) => {
   const role = req.user.role;
-  if (role !== 'TEACHER' && role !== 'SUPER_ADMIN') {
+  if (role !== 'TEACHER' && role !== 'SUPER_ADMIN' && role !== 'SCHOOL_ADMIN') {
     return res.status(403).json({ success: false, error: 'Unauthorized: Parents cannot modify or edit homework assignments.' });
   }
 
@@ -260,12 +335,20 @@ router.put('/:id', (req, res) => {
 
   const { title, description, dueDate, status, attachmentUrl } = req.body;
 
+  // If teacher resubmits a rejected homework for approval
+  let newApproval = status !== undefined ? status : (homework.approval_status || 'PENDING_APPROVAL');
+  let newDbStatus = (newApproval === 'PENDING_APPROVAL') ? 'READY_FOR_REVIEW' : (newApproval === 'DRAFT' ? 'DRAFT' : 'SENT');
+  let isResubmission = (newApproval === 'PENDING_APPROVAL');
+
   db.run(
     `UPDATE homework SET
       title = COALESCE(?, title),
       description = COALESCE(?, description),
       due_date = COALESCE(?, due_date),
-      status = COALESCE(?, status),
+      status = ?,
+      approval_status = ?,
+      rejection_reason = CASE WHEN ? = 'PENDING_APPROVAL' THEN NULL ELSE rejection_reason END,
+      submitted_at = CASE WHEN ? = 'PENDING_APPROVAL' THEN CURRENT_TIMESTAMP ELSE submitted_at END,
       attachment_url = COALESCE(?, attachment_url),
       updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
@@ -273,11 +356,33 @@ router.put('/:id', (req, res) => {
       title !== undefined ? title : null,
       description !== undefined ? description : null,
       dueDate !== undefined ? dueDate : null,
-      status !== undefined ? status : null,
+      newDbStatus,
+      newApproval,
+      newApproval,
+      newApproval,
       attachmentUrl !== undefined ? attachmentUrl : null,
       id
     ]
   );
+
+  // Record in audit log
+  try {
+    db.run(
+      `INSERT INTO homework_audit_logs (
+        homework_id, school_id, user_id, user_role, action, previous_status, new_status, details
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        req.user.school_id || 1,
+        req.user.id,
+        role,
+        isResubmission ? 'RESUBMITTED' : 'EDITED',
+        homework.approval_status || homework.status,
+        newApproval,
+        isResubmission ? 'Teacher edited and resubmitted homework for approval' : `Homework updated by ${role}`
+      ]
+    );
+  } catch (_) {}
 
   auditService.log({
     userId: req.user.id,
@@ -285,11 +390,177 @@ router.put('/:id', (req, res) => {
     action: role === 'TEACHER' ? 'TEACHER_EDITED_HOMEWORK' : 'ADMIN_EDITED_HOMEWORK',
     module: 'HOMEWORK',
     recordId: parseInt(id, 10),
-    details: `${role === 'TEACHER' ? 'Teacher' : 'Admin'} updated homework: "${title || homework.title}"`,
+    details: `${role === 'TEACHER' ? 'Teacher' : 'Admin'} updated homework: "${title || homework.title}" (Status: ${newApproval})`,
     ipAddress: req.ip
   });
 
-  return res.json({ success: true, message: 'Homework updated successfully.' });
+  return res.json({
+    success: true,
+    message: isResubmission ? 'Homework resubmitted for School Admin approval.' : 'Homework updated successfully.',
+    status: newApproval,
+    approvalStatus: newApproval
+  });
+});
+
+// ----------------------------------------------------------------------------
+// POST /api/homework/:id/approve - School Admin Approves Homework
+// ----------------------------------------------------------------------------
+router.post('/:id/approve', async (req, res) => {
+  const role = req.user.role;
+  if (role !== 'SUPER_ADMIN' && role !== 'SCHOOL_ADMIN' && role !== 'PLATFORM_ADMIN') {
+    return res.status(403).json({ success: false, error: 'Unauthorized: Only School Administrators can approve homework.' });
+  }
+
+  const { id } = req.params;
+  const homework = db.get(`SELECT * FROM homework WHERE id = ?`, [id]);
+  if (!homework) {
+    return res.status(404).json({ success: false, error: 'Homework not found.' });
+  }
+
+  if (homework.approval_status === 'APPROVED' || homework.status === 'SENT') {
+    return res.json({ success: true, message: 'Homework is already approved.', status: 'APPROVED' });
+  }
+
+  const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+  db.run(
+    `UPDATE homework SET
+      status = 'SENT',
+      approval_status = 'APPROVED',
+      approved_by = ?,
+      approved_at = ?,
+      rejection_reason = NULL,
+      updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [req.user.id, nowStr, id]
+  );
+
+  // Log approval
+  try {
+    db.run(
+      `INSERT INTO homework_audit_logs (
+        homework_id, school_id, user_id, user_role, action, previous_status, new_status, details
+      ) VALUES (?, ?, ?, ?, 'APPROVED', ?, 'APPROVED', 'Homework approved by School Admin and made visible to parents')`,
+      [id, req.user.school_id || 1, req.user.id, role, homework.status]
+    );
+  } catch (_) {}
+
+  auditService.log({
+    userId: req.user.id,
+    userRole: role,
+    action: 'HOMEWORK_APPROVED',
+    module: 'HOMEWORK',
+    recordId: parseInt(id, 10),
+    details: `School Admin approved homework "${homework.title}"`,
+    ipAddress: req.ip
+  });
+
+  // Automatically dispatch notification to parents if requested
+  if (req.body.notifyParents !== false) {
+    try {
+      await homeworkService.sendHomeworkToParents(id, req.user.id);
+    } catch (notifyErr) {
+      console.warn('Notice: Parent notification dispatch note:', notifyErr.message);
+    }
+  }
+
+  return res.json({
+    success: true,
+    message: 'Homework approved successfully! It is now visible to class parents.',
+    status: 'APPROVED',
+    approvedAt: nowStr
+  });
+});
+
+// ----------------------------------------------------------------------------
+// POST /api/homework/:id/reject - School Admin Rejects Homework
+// ----------------------------------------------------------------------------
+router.post('/:id/reject', (req, res) => {
+  const role = req.user.role;
+  if (role !== 'SUPER_ADMIN' && role !== 'SCHOOL_ADMIN' && role !== 'PLATFORM_ADMIN') {
+    return res.status(403).json({ success: false, error: 'Unauthorized: Only School Administrators can reject homework.' });
+  }
+
+  const { id } = req.params;
+  const { reason } = req.body;
+
+  if (!reason || !reason.trim()) {
+    return res.status(400).json({ success: false, error: 'Please provide a reason for rejecting this homework submission.' });
+  }
+
+  const homework = db.get(`SELECT * FROM homework WHERE id = ?`, [id]);
+  if (!homework) {
+    return res.status(404).json({ success: false, error: 'Homework not found.' });
+  }
+
+  const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+  db.run(
+    `UPDATE homework SET
+      status = 'DRAFT',
+      approval_status = 'REJECTED',
+      rejected_by = ?,
+      rejected_at = ?,
+      rejection_reason = ?,
+      updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [req.user.id, nowStr, reason.trim(), id]
+  );
+
+  // Log rejection
+  try {
+    db.run(
+      `INSERT INTO homework_audit_logs (
+        homework_id, school_id, user_id, user_role, action, previous_status, new_status, details
+      ) VALUES (?, ?, ?, ?, 'REJECTED', ?, 'REJECTED', ?)`,
+      [id, req.user.school_id || 1, req.user.id, role, homework.status, `Rejected: ${reason.trim()}`]
+    );
+  } catch (_) {}
+
+  auditService.log({
+    userId: req.user.id,
+    userRole: role,
+    action: 'HOMEWORK_REJECTED',
+    module: 'HOMEWORK',
+    recordId: parseInt(id, 10),
+    details: `School Admin rejected homework "${homework.title}". Reason: ${reason.trim()}`,
+    ipAddress: req.ip
+  });
+
+  return res.json({
+    success: true,
+    message: 'Homework rejected and returned to teacher with feedback.',
+    status: 'REJECTED',
+    reason: reason.trim()
+  });
+});
+
+// ----------------------------------------------------------------------------
+// GET /api/homework/:id/audit - View Homework Approval Audit Trail
+// ----------------------------------------------------------------------------
+router.get('/:id/audit', (req, res) => {
+  const { id } = req.params;
+  const homework = db.get(`SELECT id, title, status FROM homework WHERE id = ?`, [id]);
+  if (!homework) {
+    return res.status(404).json({ success: false, error: 'Homework not found.' });
+  }
+
+  const logs = db.query(
+    `SELECT hal.*, u.username, u.email
+     FROM homework_audit_logs hal
+     LEFT JOIN users u ON hal.user_id = u.id
+     WHERE hal.homework_id = ?
+     ORDER BY hal.created_at ASC`,
+    [id]
+  );
+
+  return res.json({
+    success: true,
+    homeworkId: homework.id,
+    title: homework.title,
+    currentStatus: homework.status,
+    auditTrail: logs
+  });
 });
 
 // ----------------------------------------------------------------------------

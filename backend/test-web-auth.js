@@ -9,8 +9,10 @@
  */
 
 const http = require('http');
+const app = require('./app');
 
-const BASE_URL = 'http://localhost:3000';
+const TEST_PORT = 3005;
+const BASE_URL = `http://localhost:${TEST_PORT}`;
 
 function makeRequest(path, method, body, headers = {}) {
   return new Promise((resolve, reject) => {
@@ -62,7 +64,14 @@ async function runAuthTests() {
     }
   }
 
+  let server;
   try {
+    await new Promise((resolve) => {
+      server = app.listen(TEST_PORT, () => {
+        resolve();
+      });
+    });
+
     // 1. Health check
     const healthRes = await makeRequest('/api/health', 'GET');
     assert(healthRes.status === 200 && (healthRes.body.status === 'ok' || healthRes.body.status === 'healthy'), 'Backend health check returns 200 OK and healthy status');
@@ -168,10 +177,14 @@ async function runAuthTests() {
     console.log(`🎉 TEST SUMMARY: ${passed} passed, ${failed} failed`);
     console.log(`==================================================\n`);
 
+    if (server) server.close();
     if (failed > 0) {
       process.exit(1);
+    } else {
+      process.exit(0);
     }
   } catch (err) {
+    if (server) server.close();
     console.error('Fatal test error:', err);
     process.exit(1);
   }

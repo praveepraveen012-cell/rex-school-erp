@@ -1,6 +1,7 @@
 const assert = require('assert');
 const app = require('./app');
 const config = require('./config/env');
+const db = require('./database/db');
 
 async function runTests() {
   console.log('🧪 Starting Rex Management API Test Suite...\n');
@@ -105,7 +106,8 @@ async function runTests() {
       headers: { 'Authorization': `Bearer ${parentToken}` }
     });
     const parentStudentsData = await parentStudentsRes.json();
-    assert.strictEqual(parentStudentsData.count, 2, 'Parent should strictly receive only their 2 linked students');
+    assert.strictEqual(parentStudentsData.count, parentData.students.length, 'Parent should strictly receive only their linked students');
+    assert.ok(parentStudentsData.count >= 2, 'Parent should have multiple linked children');
     console.log('✅ Parent data isolation verified (forbidden from admin resources, sees only own children)\n');
 
     // ------------------------------------------------------------------------
@@ -299,13 +301,21 @@ async function runTests() {
     const sectionId = 5;
     const testDate = '2026-09-29';
 
-    // Step 1: Set 1=P, 2(3)=A, 3(4)=P, 4(5)=A, 5(6)=P
+    const testStudents = db.query('SELECT id FROM students WHERE class_id = ? AND section_id = ? ORDER BY roll_no ASC LIMIT 5', [classId, sectionId]);
+    assert.ok(testStudents.length >= 5, 'Must have at least 5 students in Class 3-A');
+    const s1 = testStudents[0].id;
+    const s2 = testStudents[1].id;
+    const s3 = testStudents[2].id;
+    const s4 = testStudents[3].id;
+    const s5 = testStudents[4].id;
+
+    // Step 1: Set s1=P, s2=A, s3=P, s4=A, s5=P
     const initialRecords = [
-      { studentId: 1, status: 'P' },
-      { studentId: 3, status: 'A' },
-      { studentId: 4, status: 'P' },
-      { studentId: 5, status: 'A' },
-      { studentId: 6, status: 'P' }
+      { studentId: s1, status: 'P' },
+      { studentId: s2, status: 'A' },
+      { studentId: s3, status: 'P' },
+      { studentId: s4, status: 'A' },
+      { studentId: s5, status: 'P' }
     ];
     const save1 = await fetch(`${BASE}/attendance`, {
       method: 'POST',
@@ -321,20 +331,20 @@ async function runTests() {
     const sheet1Data = await sheet1.json();
     const map1 = {};
     sheet1Data.students.forEach(s => map1[s.id] = s.attendance_status);
-    assert.strictEqual(map1[1], 'present', 'Student 1 must be present');
-    assert.strictEqual(map1[3], 'absent', 'Student 3 must be absent');
-    assert.strictEqual(map1[4], 'present', 'Student 4 must be present');
-    assert.strictEqual(map1[5], 'absent', 'Student 5 must be absent');
-    assert.strictEqual(map1[6], 'present', 'Student 6 must be present');
-    console.log('  ✓ Step 1 verified: 1=P, 3=A, 4=P, 5=A, 6=P preserved accurately after reload');
+    assert.strictEqual(map1[s1], 'present', 'Student 1 must be present');
+    assert.strictEqual(map1[s2], 'absent', 'Student 2 must be absent');
+    assert.strictEqual(map1[s3], 'present', 'Student 3 must be present');
+    assert.strictEqual(map1[s4], 'absent', 'Student 4 must be absent');
+    assert.strictEqual(map1[s5], 'present', 'Student 5 must be present');
+    console.log(`  ✓ Step 1 verified: ${s1}=P, ${s2}=A, ${s3}=P, ${s4}=A, ${s5}=P preserved accurately after reload`);
 
-    // Step 2: Change only Student 3=P and 5=P
+    // Step 2: Change only Student s2=P and s4=P
     const step2Records = [
-      { studentId: 1, status: 'P' },
-      { studentId: 3, status: 'P' },
-      { studentId: 4, status: 'P' },
-      { studentId: 5, status: 'P' },
-      { studentId: 6, status: 'P' }
+      { studentId: s1, status: 'P' },
+      { studentId: s2, status: 'P' },
+      { studentId: s3, status: 'P' },
+      { studentId: s4, status: 'P' },
+      { studentId: s5, status: 'P' }
     ];
     const save2 = await fetch(`${BASE}/attendance`, {
       method: 'POST',
@@ -349,20 +359,20 @@ async function runTests() {
     const sheet2Data = await sheet2.json();
     const map2 = {};
     sheet2Data.students.forEach(s => map2[s.id] = s.attendance_status);
-    assert.strictEqual(map2[1], 'present');
-    assert.strictEqual(map2[3], 'present', 'Student 3 must now be present');
-    assert.strictEqual(map2[4], 'present');
-    assert.strictEqual(map2[5], 'present', 'Student 5 must now be present');
-    assert.strictEqual(map2[6], 'present');
+    assert.strictEqual(map2[s1], 'present');
+    assert.strictEqual(map2[s2], 'present', 'Student 2 must now be present');
+    assert.strictEqual(map2[s3], 'present');
+    assert.strictEqual(map2[s4], 'present', 'Student 4 must now be present');
+    assert.strictEqual(map2[s5], 'present');
     console.log('  ✓ Step 2 verified: All 5 students successfully marked Present');
 
-    // Step 3: Change only Student 1=A, 4=A, 6=A
+    // Step 3: Change only Student s1=A, s3=A, s5=A
     const step3Records = [
-      { studentId: 1, status: 'A' },
-      { studentId: 3, status: 'P' },
-      { studentId: 4, status: 'A' },
-      { studentId: 5, status: 'P' },
-      { studentId: 6, status: 'A' }
+      { studentId: s1, status: 'A' },
+      { studentId: s2, status: 'P' },
+      { studentId: s3, status: 'A' },
+      { studentId: s4, status: 'P' },
+      { studentId: s5, status: 'A' }
     ];
     const save3 = await fetch(`${BASE}/attendance`, {
       method: 'POST',
@@ -377,12 +387,12 @@ async function runTests() {
     const sheet3Data = await sheet3.json();
     const map3 = {};
     sheet3Data.students.forEach(s => map3[s.id] = s.attendance_status);
-    assert.strictEqual(map3[1], 'absent', 'Student 1 must now be absent');
-    assert.strictEqual(map3[3], 'present', 'Student 3 must remain present');
-    assert.strictEqual(map3[4], 'absent', 'Student 4 must now be absent');
-    assert.strictEqual(map3[5], 'present', 'Student 5 must remain present');
-    assert.strictEqual(map3[6], 'absent', 'Student 6 must now be absent');
-    console.log('✅ Mandatory Attendance Regression Test Passed: 1=A, 3=P, 4=A, 5=P, 6=A isolated and preserved\n');
+    assert.strictEqual(map3[s1], 'absent', 'Student 1 must now be absent');
+    assert.strictEqual(map3[s2], 'present', 'Student 2 must remain present');
+    assert.strictEqual(map3[s3], 'absent', 'Student 3 must now be absent');
+    assert.strictEqual(map3[s4], 'present', 'Student 4 must remain present');
+    assert.strictEqual(map3[s5], 'absent', 'Student 5 must now be absent');
+    console.log(`✅ Mandatory Attendance Regression Test Passed: ${s1}=A, ${s2}=P, ${s3}=A, ${s4}=P, ${s5}=A isolated and preserved\n`);
 
     // ------------------------------------------------------------------------
     // Test 17: Attendance Date Isolation (Section 5)
@@ -391,18 +401,18 @@ async function runTests() {
     const dateA = '2026-09-28';
     const dateB = '2026-09-29';
 
-    // Set Date A: Student 1 is Absent
+    // Set Date A: Student s1 is Absent
     await fetch(`${BASE}/attendance`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
-      body: JSON.stringify({ classId, sectionId, date: dateA, records: [{ studentId: 1, status: 'absent' }] })
+      body: JSON.stringify({ classId, sectionId, date: dateA, records: [{ studentId: s1, status: 'absent' }] })
     });
 
-    // Set Date B: Student 1 is Present
+    // Set Date B: Student s1 is Present
     await fetch(`${BASE}/attendance`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
-      body: JSON.stringify({ classId, sectionId, date: dateB, records: [{ studentId: 1, status: 'present' }] })
+      body: JSON.stringify({ classId, sectionId, date: dateB, records: [{ studentId: s1, status: 'present' }] })
     });
 
     // Reload Date A and Date B independently
@@ -415,8 +425,8 @@ async function runTests() {
     const dataDateA = await resDateA.json();
     const dataDateB = await resDateB.json();
 
-    const stu1DateA = dataDateA.students.find(s => s.id === 1);
-    const stu1DateB = dataDateB.students.find(s => s.id === 1);
+    const stu1DateA = dataDateA.students.find(s => s.id === s1);
+    const stu1DateB = dataDateB.students.find(s => s.id === s1);
     assert.strictEqual(stu1DateA.attendance_status, 'absent', 'Student 1 must remain Absent on Date A');
     assert.strictEqual(stu1DateB.attendance_status, 'present', 'Student 1 must remain Present on Date B');
     console.log('✅ Date Isolation Verified: Saving Date B does NOT overwrite Date A\n');
@@ -425,29 +435,29 @@ async function runTests() {
     // Test 18: Class and Section Isolation (Section 6)
     // ------------------------------------------------------------------------
     console.log('Test 18: Class and Section Isolation (Class 3/Sec 5 vs Class 1/Sec 2)');
-    // Student 2 is in Class 1, Section 2 (Grade 8-B)
-    // Mark Student 2 as Absent in Class 1-B
+    // Student pChild2 is in Class 1, Section 2 (Grade 8-B)
+    // Mark Student pChild2 as Absent in Class 1-B
     await fetch(`${BASE}/attendance`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
-      body: JSON.stringify({ classId: 1, sectionId: 2, date: testDate, records: [{ studentId: 2, status: 'absent' }] })
+      body: JSON.stringify({ classId: 1, sectionId: 2, date: testDate, records: [{ studentId: pChild2, status: 'absent' }] })
     });
 
-    // Verify Class 3-A students do not include Student 2
+    // Verify Class 3-A students do not include Student pChild2
     const class3Sheet = await fetch(`${BASE}/attendance/sheet?classId=3&sectionId=5&date=${testDate}`, {
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
     const class3Data = await class3Sheet.json();
-    assert.strictEqual(class3Data.students.some(s => s.id === 2), false, 'Student 2 must NOT appear in Class 3-A');
+    assert.strictEqual(class3Data.students.some(s => s.id === pChild2), false, 'Child 2 must NOT appear in Class 3-A');
 
-    // Verify Class 1-B has Student 2
+    // Verify Class 1-B has Student pChild2
     const class1Sheet = await fetch(`${BASE}/attendance/sheet?classId=1&sectionId=2&date=${testDate}`, {
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
     const class1Data = await class1Sheet.json();
-    const stu2InClass1 = class1Data.students.find(s => s.id === 2);
-    assert.ok(stu2InClass1, 'Student 2 must appear in Class 1-B');
-    assert.strictEqual(stu2InClass1.attendance_status, 'absent', 'Student 2 must be Absent in Class 1-B');
+    const stu2InClass1 = class1Data.students.find(s => s.id === pChild2);
+    assert.ok(stu2InClass1, 'Child 2 must appear in Class 1-B');
+    assert.strictEqual(stu2InClass1.attendance_status, 'absent', 'Child 2 must be Absent in Class 1-B');
     console.log('✅ Class and Section Isolation Verified: Cross-class contamination prevented\n');
 
     // ========================================================================
@@ -489,7 +499,7 @@ async function runTests() {
     assert.ok(homework1Id, 'Homework ID should be returned');
 
     // Verify Parent CANNOT see it yet
-    const parentViewBeforeRes = await fetch(`${BASE}/homework?studentId=1`, {
+    const parentViewBeforeRes = await fetch(`${BASE}/homework?studentId=${pChild1}`, {
       headers: { 'Authorization': `Bearer ${parentToken}` }
     });
     const parentViewBefore = await parentViewBeforeRes.json();
@@ -571,7 +581,7 @@ async function runTests() {
     assert.ok(sendNowData.sentCount > 0, 'Should deliver to parents');
 
     // Verify Parent CAN now see it
-    const parentViewAfterRes = await fetch(`${BASE}/homework?studentId=1`, {
+    const parentViewAfterRes = await fetch(`${BASE}/homework?studentId=${pChild1}`, {
       headers: { 'Authorization': `Bearer ${parentToken}` }
     });
     const parentViewAfter = await parentViewAfterRes.json();
@@ -744,13 +754,13 @@ async function runTests() {
     // TEST 26 (MANDATORY TEST 8): Parent Filtering
     // ------------------------------------------------------------------------
     console.log('Test 26 (MANDATORY TEST 8): Parent data filtering - Class 10-A vs Class 8-B');
-    const parentStu1Res = await fetch(`${BASE}/homework?studentId=1`, {
+    const parentStu1Res = await fetch(`${BASE}/homework?studentId=${pChild1}`, {
       headers: { 'Authorization': `Bearer ${parentToken}` }
     });
     const parentStu1Data = await parentStu1Res.json();
     assert.ok(parentStu1Data.homework.some(h => h.id === homework1Id), 'Child in 10-A must see 10-A homework');
 
-    const parentStu2Res = await fetch(`${BASE}/homework?studentId=2`, {
+    const parentStu2Res = await fetch(`${BASE}/homework?studentId=${pChild2}`, {
       headers: { 'Authorization': `Bearer ${parentToken}` }
     });
     const parentStu2Data = await parentStu2Res.json();

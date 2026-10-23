@@ -32,6 +32,26 @@ router.use((req, res, next) => {
 });
 
 // ----------------------------------------------------------------------------
+// GET /api/attendance/summary - Attendance summary statistics
+// ----------------------------------------------------------------------------
+router.get(['/summary', '/stats'], (req, res) => {
+  const schoolId = req.schoolId || (req.user && req.user.school_id) || 1;
+  const totalStudents = db.get(`SELECT COUNT(*) as count FROM students WHERE school_id = ? AND status = 'active'`, [schoolId])?.count || 0;
+  const today = new Date().toISOString().slice(0, 10);
+  const presentToday = db.get(
+    `SELECT COUNT(*) as count FROM attendance a JOIN students s ON a.student_id = s.id WHERE s.school_id = ? AND a.date = ? AND a.status = 'present'`,
+    [schoolId, today]
+  )?.count || 0;
+
+  return res.json({
+    success: true,
+    totalStudents,
+    presentToday,
+    attendanceRate: totalStudents > 0 ? Math.round((presentToday / totalStudents) * 100) : 100
+  });
+});
+
+// ----------------------------------------------------------------------------
 // GET /api/attendance - Query attendance by class, section, date or student
 // ----------------------------------------------------------------------------
 router.get('/', (req, res) => {
@@ -143,9 +163,9 @@ router.get('/', (req, res) => {
     JOIN classes c ON a.class_id = c.id
     JOIN sections sec ON a.section_id = sec.id
     LEFT JOIN teachers t ON a.marked_by_teacher_id = t.id
-    WHERE (c.school_id = ? OR ? = 1)
+    WHERE c.school_id = ?
   `;
-  const params = [schoolId, schoolId];
+  const params = [schoolId];
 
   // If teacher and no class/section filter, restrict to assigned sections
   if (req.user.role === 'TEACHER' && !classId && !sectionId) {
@@ -310,6 +330,20 @@ router.post('/', (req, res) => {
   }
 
   const teacherId = req.teacher ? req.teacher.id : null;
+
+  // Validate student existence to prevent SQLite foreign key constraint failure
+  for (const r of records) {
+    const sId = typeof r.studentId === 'number' 
+      ? r.studentId 
+      : (parseInt(r.studentId.toString().replace(/[^0-9]/g, ''), 10) || r.studentId);
+    const validStudent = db.get(`SELECT id FROM students WHERE id = ?`, [sId]);
+    if (!validStudent) {
+      return res.status(400).json({
+        success: false,
+        error: `Cannot mark attendance: Student ID ${sId} does not exist.`
+      });
+    }
+  }
 
   // Execute batch upsert in transaction
   const absentStudentIds = [];

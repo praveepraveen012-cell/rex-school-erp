@@ -25,7 +25,7 @@ async function runSplitPaymentAndBusTests() {
     const adminToken = adminLogin.token;
     console.log('  ✓ Admin authenticated successfully');
 
-    // 2. Authenticate Parent (mobile: 9876543210 -> Aarav Sharma [id 1] & Ananya Sharma [id 2])
+    // 2. Authenticate Parent (mobile: 9876543210 -> Aarav Sharma & Ananya Sharma)
     const parentLoginRes = await fetch(`${BASE}/auth/parent/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -35,7 +35,11 @@ async function runSplitPaymentAndBusTests() {
     assert.strictEqual(parentLoginRes.status, 200, 'Parent login failed');
     const parentToken = parentLogin.token;
     assert.ok(parentLogin.students.length >= 2, 'Expected multi-child account with at least 2 children');
-    console.log(`  ✓ Parent authenticated with ${parentLogin.students.length} linked children (Multi-child verified)`);
+    const aaravId = parentLogin.students[0].id;
+    const ananyaId = parentLogin.students[1].id;
+    const otherStudent = (db.get(`SELECT id FROM students WHERE id NOT IN (?, ?)`, [aaravId, ananyaId]) || {}).id || 17;
+    db.run(`DELETE FROM fee_payments WHERE student_id IN (?, ?, ?)`, [aaravId, ananyaId, otherStudent]);
+    console.log(`  ✓ Parent authenticated with ${parentLogin.students.length} linked children: Aarav (#${aaravId}), Ananya (#${ananyaId})`);
 
     // ------------------------------------------------------------------------
     // TEST 1: CRITICAL PERMISSION RULE: Super Admin MUST NOT BE ABLE TO PAY FEES
@@ -47,7 +51,7 @@ async function runSplitPaymentAndBusTests() {
         'Authorization': `Bearer ${adminToken}`
       },
       body: JSON.stringify({
-        studentId: 1,
+        studentId: aaravId,
         amount: 5000,
         paymentMode: 'ONLINE_UPI'
       })
@@ -61,7 +65,7 @@ async function runSplitPaymentAndBusTests() {
     // ------------------------------------------------------------------------
     // TEST 2: Parent checks child fee details (Aarav Sharma, class 3 -> total ₹54,000)
     // ------------------------------------------------------------------------
-    const feeRes = await fetch(`${BASE}/fees?studentId=1`, {
+    const feeRes = await fetch(`${BASE}/fees?studentId=${aaravId}`, {
       headers: { 'Authorization': `Bearer ${parentToken}` }
     });
     const feeData = await feeRes.json();
@@ -90,7 +94,7 @@ async function runSplitPaymentAndBusTests() {
         'Authorization': `Bearer ${parentToken}`
       },
       body: JSON.stringify({
-        studentId: 1,
+        studentId: aaravId,
         amount: 44000,
         paymentType: 'SPLIT',
         paymentMode: 'ONLINE_UPI'
@@ -109,7 +113,7 @@ async function runSplitPaymentAndBusTests() {
         'Authorization': `Bearer ${parentToken}`
       },
       body: JSON.stringify({
-        studentId: 1,
+        studentId: aaravId,
         amount: 2999,
         paymentType: 'SPLIT',
         paymentMode: 'ONLINE_UPI'
@@ -130,7 +134,7 @@ async function runSplitPaymentAndBusTests() {
         'Authorization': `Bearer ${parentToken}`
       },
       body: JSON.stringify({
-        studentId: 1,
+        studentId: aaravId,
         amount: 10001,
         paymentType: 'FULL',
         paymentMode: 'ONLINE_UPI'
@@ -142,13 +146,6 @@ async function runSplitPaymentAndBusTests() {
     assert.ok(case5Data.error.includes('cannot exceed outstanding fee balance'));
     console.log('  ✓ Test Case 5 Passed: Payment ₹10,001 on ₹10,000 outstanding REJECTED (Cannot exceed outstanding)');
 
-    // CASE 2: Outstanding = ₹10,000, Payment = ₹3,000 -> ALLOW (30% exactly)
-    // To leave ₹6,000 for Case 6, let's test Case 2 on Student 2 (Ananya) or test progression!
-    // If on student 1: pay 4,000 (ALLOW) -> outstanding becomes ₹6,000!
-    // Let's test Case 2 (Pay ₹3,000 on ₹10,000 -> leaves ₹7,000):
-    // Wait, requirement says:
-    // Total fee = ₹10,000, Already paid = ₹4,000, Outstanding = ₹6,000, Minimum next split = ₹1,800.
-    // Let's test Case 3: pay ₹4,000 on ₹10,000 -> leaves outstanding = ₹6,000!
     const case3Res = await fetch(`${BASE}/fees/pay`, {
       method: 'POST',
       headers: {
@@ -156,7 +153,7 @@ async function runSplitPaymentAndBusTests() {
         'Authorization': `Bearer ${parentToken}`
       },
       body: JSON.stringify({
-        studentId: 1,
+        studentId: aaravId,
         amount: 4000,
         paymentType: 'SPLIT',
         paymentMode: 'ONLINE_UPI'
@@ -177,7 +174,7 @@ async function runSplitPaymentAndBusTests() {
         'Authorization': `Bearer ${parentToken}`
       },
       body: JSON.stringify({
-        studentId: 1,
+        studentId: aaravId,
         amount: 1799,
         paymentType: 'SPLIT',
         paymentMode: 'ONLINE_UPI'
@@ -197,7 +194,7 @@ async function runSplitPaymentAndBusTests() {
         'Authorization': `Bearer ${parentToken}`
       },
       body: JSON.stringify({
-        studentId: 1,
+        studentId: aaravId,
         amount: 1800,
         paymentType: 'SPLIT',
         paymentMode: 'ONLINE_UPI'
@@ -216,7 +213,7 @@ async function runSplitPaymentAndBusTests() {
         'Authorization': `Bearer ${parentToken}`
       },
       body: JSON.stringify({
-        studentId: 1,
+        studentId: aaravId,
         amount: 4200,
         paymentType: 'FULL',
         paymentMode: 'ONLINE_UPI'
@@ -231,7 +228,7 @@ async function runSplitPaymentAndBusTests() {
 
     // ------------------------------------------------------------------------
     // TEST 3: Multi-Child Isolation: Parent trying to pay for someone else's child
-    // Student 3 (Rohan Menon) is NOT Rajesh Sharma's child!
+    // Student otherStudent is NOT Rajesh Sharma's child!
     // ------------------------------------------------------------------------
     const unauthorizedPay = await fetch(`${BASE}/fees/pay`, {
       method: 'POST',
@@ -240,7 +237,7 @@ async function runSplitPaymentAndBusTests() {
         'Authorization': `Bearer ${parentToken}`
       },
       body: JSON.stringify({
-        studentId: 3,
+        studentId: otherStudent,
         amount: 5000,
         paymentType: 'SPLIT'
       })
@@ -283,7 +280,7 @@ async function runSplitPaymentAndBusTests() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${adminToken}`
       },
-      body: JSON.stringify({ studentId: 3 })
+      body: JSON.stringify({ studentId: otherStudent })
     });
     const reminderData = await reminderRes.json();
     assert.strictEqual(reminderRes.status, 200);
@@ -386,7 +383,7 @@ async function runSplitPaymentAndBusTests() {
     // TEST 8: Parent Live Bus Tracking & Strict Security Isolation
     // ------------------------------------------------------------------------
     // Parent 1 queries assigned bus for Aarav (assigned to Bus 1)
-    const parentBusRes = await fetch(`${BASE}/transport/my-bus?studentId=1`, {
+    const parentBusRes = await fetch(`${BASE}/transport/my-bus?studentId=${aaravId}`, {
       headers: { 'Authorization': `Bearer ${parentToken}` }
     });
     const parentBusData = await parentBusRes.json();

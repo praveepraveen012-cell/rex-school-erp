@@ -110,8 +110,8 @@ router.get('/', (req, res) => {
     });
   }
 
-  // 2. SUPER ADMIN ACCESS - School-wide fee overview & filterable student ledgers
-  if (role === 'SUPER_ADMIN') {
+  // 2. ADMIN ACCESS - School-wide fee overview & filterable student ledgers
+  if (role === 'SUPER_ADMIN' || role === 'SCHOOL_ADMIN' || role === 'PLATFORM_ADMIN') {
     return getSuperAdminFeeLedger(req, res);
   }
 
@@ -282,7 +282,7 @@ function getSuperAdminFeeLedger(req, res) {
 // Strictly restricted from Parents (HTTP 403) and Teachers (HTTP 403)
 // ----------------------------------------------------------------------------
 router.get(['/summary', '/ledger', '/cashier'], (req, res) => {
-  if (req.user.role !== 'SUPER_ADMIN') {
+  if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'SCHOOL_ADMIN' && req.user.role !== 'PLATFORM_ADMIN') {
     return res.status(403).json({
       success: false,
       error: 'Access denied: Fee Cashier and school-wide fee ledgers are restricted to School Administrators.'

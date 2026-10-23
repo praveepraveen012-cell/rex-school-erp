@@ -25,6 +25,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   String? _otpDevHint;
 
   // Admin form
+  final _adminSchoolIdCtrl = TextEditingController();
   final _adminUserCtrl = TextEditingController(text: 'admin');
   final _adminPassCtrl = TextEditingController(text: 'AdminPassword123!');
   bool _obscureAdminPass = true;
@@ -45,6 +46,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     _parentMobileCtrl.dispose();
     _teacherMobileCtrl.dispose();
     _teacherOtpCtrl.dispose();
+    _adminSchoolIdCtrl.dispose();
     _adminUserCtrl.dispose();
     _adminPassCtrl.dispose();
     super.dispose();
@@ -172,11 +174,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   // Super Admin Login
   // --------------------------------------------------------------------------
   Future<void> _handleAdminLogin() async {
+    final schoolId = _adminSchoolIdCtrl.text.trim();
     final user = _adminUserCtrl.text.trim();
     final pass = _adminPassCtrl.text;
 
     if (user.isEmpty || pass.isEmpty) {
-      setState(() => _errorMessage = "Please enter Admin username and password.");
+      setState(() => _errorMessage = "Please enter Admin username/email and password.");
       return;
     }
 
@@ -185,14 +188,195 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       _errorMessage = null;
     });
 
-    final res = await ApiService.loginAdmin(user, pass);
+    Map<String, dynamic> res;
+    if (schoolId.isNotEmpty) {
+      res = await ApiService.loginSchool(schoolId.toUpperCase(), pass, identifier: user);
+    } else {
+      res = await ApiService.loginAdmin(user, pass);
+    }
     setState(() => _isLoading = false);
 
     if (res['success'] == true) {
       _onLoginSuccess('admin', isOffline: res['isOffline'] == true);
     } else {
-      setState(() => _errorMessage = res['error'] ?? "Invalid admin credentials.");
+      setState(() => _errorMessage = res['error'] ?? "Invalid admin credentials or School ID.");
     }
+  }
+
+  void _showRegisterSchoolDialog() {
+    final nameCtrl = TextEditingController();
+    final emailCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    final cityCtrl = TextEditingController();
+    final adminNameCtrl = TextEditingController();
+    final adminEmailCtrl = TextEditingController();
+    final adminPhoneCtrl = TextEditingController();
+    final passCtrl = TextEditingController();
+    final confirmPassCtrl = TextEditingController();
+    String? dialogError;
+    bool isRegistering = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.rocket_launch, color: Color(0xFF7C3AED)),
+              SizedBox(width: 8),
+              Text("Register Your School", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: 360,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEDE9FE),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      "7-Day Free Trial Activated Immediately • Unique School ID Generated",
+                      style: TextStyle(color: Color(0xFF5B21B6), fontSize: 11, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  if (dialogError != null) ...[
+                    const SizedBox(height: 8),
+                    Text(dialogError!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                  ],
+                  const SizedBox(height: 12),
+                  TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "Official School Name *", isDense: true)),
+                  const SizedBox(height: 8),
+                  TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: "School Official Email *", isDense: true)),
+                  const SizedBox(height: 8),
+                  TextField(controller: phoneCtrl, decoration: const InputDecoration(labelText: "School Phone *", isDense: true)),
+                  const SizedBox(height: 8),
+                  TextField(controller: cityCtrl, decoration: const InputDecoration(labelText: "City & State *", isDense: true)),
+                  const Divider(height: 24),
+                  const Text("Administrator Account", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF475569))),
+                  const SizedBox(height: 8),
+                  TextField(controller: adminNameCtrl, decoration: const InputDecoration(labelText: "Admin Full Name *", isDense: true)),
+                  const SizedBox(height: 8),
+                  TextField(controller: adminEmailCtrl, decoration: const InputDecoration(labelText: "Admin Email (Login ID) *", isDense: true)),
+                  const SizedBox(height: 8),
+                  TextField(controller: adminPhoneCtrl, decoration: const InputDecoration(labelText: "Admin Mobile *", isDense: true)),
+                  const SizedBox(height: 8),
+                  TextField(controller: passCtrl, obscureText: true, decoration: const InputDecoration(labelText: "Password * (Min 8 chars)", isDense: true)),
+                  const SizedBox(height: 8),
+                  TextField(controller: confirmPassCtrl, obscureText: true, decoration: const InputDecoration(labelText: "Confirm Password *", isDense: true)),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isRegistering ? null : () => Navigator.pop(ctx),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7C3AED),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: isRegistering ? null : () async {
+                if (passCtrl.text != confirmPassCtrl.text) {
+                  setDialogState(() => dialogError = "Passwords do not match.");
+                  return;
+                }
+                setDialogState(() {
+                  isRegistering = true;
+                  dialogError = null;
+                });
+                final res = await ApiService.registerSchool({
+                  'schoolName': nameCtrl.text.trim(),
+                  'displayName': nameCtrl.text.trim(),
+                  'schoolEmail': emailCtrl.text.trim(),
+                  'schoolPhone': phoneCtrl.text.trim(),
+                  'address': 'Main Campus',
+                  'city': cityCtrl.text.trim(),
+                  'state': 'State',
+                  'postalCode': '560001',
+                  'adminName': adminNameCtrl.text.trim(),
+                  'adminEmail': adminEmailCtrl.text.trim(),
+                  'adminMobile': adminPhoneCtrl.text.trim(),
+                  'password': passCtrl.text,
+                  'confirmPassword': confirmPassCtrl.text,
+                });
+                setDialogState(() => isRegistering = false);
+                if (res['success'] == true) {
+                  Navigator.pop(ctx);
+                  _showCelebrationDialog(res);
+                } else {
+                  setDialogState(() => dialogError = res['error'] ?? "Registration failed.");
+                }
+              },
+              child: isRegistering
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text("Start 7-Day Trial"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCelebrationDialog(Map<String, dynamic> data) {
+    final schoolId = data['schoolId'] ?? data['school']?['code'] ?? 'GRX-SCH-NEW';
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Color(0xFF059669), size: 28),
+            SizedBox(width: 8),
+            Expanded(child: Text("Trial Activated!", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text("Your school has been registered with a 7-day free trial on Grexotix SaaS."),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F3FF),
+                border: Border.all(color: const Color(0xFF7C3AED), width: 2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  const Text("PERMANENT SCHOOL ID", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6D28D9))),
+                  const SizedBox(height: 4),
+                  Text(schoolId, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF5B21B6), letterSpacing: 1.5)),
+                  const SizedBox(height: 6),
+                  const Text("● 7-Day Free Trial Active", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF047857))),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7C3AED), foregroundColor: Colors.white),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _onLoginSuccess('admin');
+            },
+            child: const Text("Enter School Workspace"),
+          ),
+        ],
+      ),
+    );
   }
 
   // Server Settings Dialog
@@ -795,15 +979,27 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text(
-            "Super Admin Management",
+            "School Admin Workspace Access",
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
           ),
           const SizedBox(height: 4),
           const Text(
-            "Enter administrative credentials for school-wide control and master records.",
+            "Sign in with your permanent School ID and administrator credentials.",
             style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _adminSchoolIdCtrl,
+            textCapitalization: TextCapitalization.characters,
+            decoration: const InputDecoration(
+              labelText: "School ID (e.g. GRX-SCH-XXXXXX)",
+              hintText: "Optional for default campus",
+              prefixIcon: Icon(Icons.apartment, color: Color(0xFF1E3A8A)),
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            ),
+          ),
+          const SizedBox(height: 10),
           TextField(
             controller: _adminUserCtrl,
             decoration: const InputDecoration(
@@ -814,7 +1010,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           TextField(
             controller: _adminPassCtrl,
             obscureText: _obscureAdminPass,
@@ -829,7 +1025,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           ElevatedButton(
             onPressed: _isLoading ? null : _handleAdminLogin,
             style: ElevatedButton.styleFrom(
@@ -839,18 +1035,18 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             ),
             child: _isLoading
                 ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text("Login as Super Admin", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                : const Text("Sign In to School Workspace", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
           ),
-          const SizedBox(height: 12),
-          Center(
-            child: TextButton.icon(
-              icon: const Icon(Icons.touch_app, size: 16),
-              label: const Text("Auto-fill Super Admin Credentials", style: TextStyle(fontSize: 12)),
-              onPressed: () {
-                _adminUserCtrl.text = "admin";
-                _adminPassCtrl.text = "AdminPassword123!";
-              },
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.rocket_launch, size: 16, color: Color(0xFF7C3AED)),
+            label: const Text("Register School (7-Day Free Trial)", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF7C3AED))),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Color(0xFF7C3AED)),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
+            onPressed: _showRegisterSchoolDialog,
           ),
         ],
       ),

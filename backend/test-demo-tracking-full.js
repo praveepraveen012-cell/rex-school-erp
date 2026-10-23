@@ -193,8 +193,9 @@ async function runTestSuite() {
 
   // 10. Parent Live Tracking (Authorized Child)
   console.log('\nStep 10: Parent Live Tracking (Aarav Sharma assigned to Bus 1)');
-  await request('POST', '/transport/assign', { busId: 1, routeId: 1, studentIds: [1] }, adminToken);
-  const parentBusRes = await request('GET', '/transport/my-bus?studentId=1', null, parentToken);
+  const linkedChildId = (parentLogin.body.students && parentLogin.body.students[0] && parentLogin.body.students[0].id) || 15;
+  await request('POST', '/transport/assign', { busId: 1, routeId: 1, studentIds: [linkedChildId] }, adminToken);
+  const parentBusRes = await request('GET', `/transport/my-bus?studentId=${linkedChildId}`, null, parentToken);
   assert(parentBusRes.status === 200, 'Parent can view assigned bus');
   assert(parentBusRes.body.hasAssignment === true, 'Parent child has assignment');
   assert(parentBusRes.body.tracking.busId === 1, 'Assigned bus is Bus 1');
@@ -263,7 +264,8 @@ async function runTestSuite() {
   const attendanceRes = await request('GET', '/attendance', null, adminToken);
   assert(attendanceRes.status === 200, 'Smart attendance API operational');
 
-  const feesRes = await request('GET', '/fees/student/1', null, adminToken);
+  const testStudentId = (studentsRes.body.students && studentsRes.body.students[0] && studentsRes.body.students[0].id) || 15;
+  const feesRes = await request('GET', `/fees/student/${testStudentId}`, null, adminToken);
   assert(feesRes.status === 200, 'Fees cashier & split payment API operational');
 
   console.log('\n================================================================');

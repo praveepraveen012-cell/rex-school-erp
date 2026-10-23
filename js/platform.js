@@ -374,45 +374,45 @@
       }
 
       if (this.currentRegStep === 5) {
-        // Confirmation Screen
+        const schoolId = this.regFormData.schoolId || 'GRX-SCH-NEW';
+        const trialEnds = this.regFormData.trial?.endsAt ? new Date(this.regFormData.trial.endsAt).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '7 Days from today';
+        const adminEmail = this.regFormData.repEmail || '';
+
         return `
           <div style="text-align: center; padding: 1.5rem 0.5rem;">
-            <div style="width: 64px; height: 64px; border-radius: 50%; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1.25rem auto;">
+            <div style="width: 68px; height: 68px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #059669); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; margin: 0 auto 1.25rem auto; box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4);">
               ✓
             </div>
-            <h3 style="margin: 0 0 0.5rem 0; font-size: 1.35rem; color: #0f172a; font-weight: 800;">
-              Registration Successfully Submitted!
+            <h3 style="margin: 0 0 0.5rem 0; font-size: 1.4rem; color: #0f172a; font-weight: 800;">
+              School Registered & Trial Activated!
             </h3>
-            <p style="font-size: 0.85rem; color: #64748b; max-width: 480px; margin: 0 auto 1.5rem auto; line-height: 1.6;">
-              Your application has been received and entered the verification queue for <strong>${this.regFormData.schoolName}</strong>.
+            <p style="font-size: 0.88rem; color: #64748b; max-width: 480px; margin: 0 auto 1.25rem auto; line-height: 1.5;">
+              Welcome <strong>${this.regFormData.schoolName}</strong> to Grexotix SaaS! Your 7-day full platform trial has started.
             </p>
 
-            <div style="background: #f8fafc; border: 2px dashed #7c3aed; border-radius: 8px; padding: 1.25rem; max-width: 420px; margin: 0 auto 1.5rem auto;">
-              <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; font-weight: 700;">
-                Official Registration Reference
+            <div style="background: linear-gradient(135deg, #f5f3ff, #ede9fe); border: 2px solid #7c3aed; border-radius: 12px; padding: 1.25rem; max-width: 440px; margin: 0 auto 1.25rem auto; text-align: center; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.08);">
+              <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6d28d9; font-weight: 800;">
+                Permanent Unique School ID
               </div>
-              <div style="font-size: 1.65rem; font-weight: 800; color: #7c3aed; letter-spacing: 0.04em; margin: 0.35rem 0;" id="submitted-ref-code">
-                ${this.regFormData.registrationRef || 'GRX-REG-2026-PENDING'}
+              <div style="font-size: 1.85rem; font-weight: 900; color: #5b21b6; letter-spacing: 0.06em; margin: 0.4rem 0;" id="submitted-school-id">
+                ${schoolId}
               </div>
-              <div style="font-size: 0.72rem; color: #059669; font-weight: 700;">
-                ● Status: PENDING_APPROVAL (Grexotix Platform Review)
+              <div style="display: flex; align-items: center; justify-content: center; gap: 0.4rem; font-size: 0.76rem; font-weight: 700; color: #047857; margin-bottom: 0.75rem;">
+                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+                7-Day Free Trial Active &bull; Valid until ${trialEnds}
               </div>
+              <button type="button" class="btn btn-sm btn-outline" onclick="PlatformModule.copySchoolId('${schoolId}')" style="background: #ffffff; border-color: #7c3aed; color: #6d28d9; font-weight: 700;">
+                📋 Copy School ID
+              </button>
             </div>
 
-            <div style="font-size: 0.78rem; color: #64748b; margin-bottom: 1.75rem; line-height: 1.5;">
-              Save your reference code to check registration status or contact Grexotix Onboarding Support.<br>
-              An approval notification will be dispatched once verified by a platform administrator.
+            <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 1.5rem; line-height: 1.5;">
+              Registration confirmation, unique School ID, and administrator login credentials have been dispatched to <strong>${adminEmail}</strong>.
             </div>
 
             <div style="display: flex; justify-content: center; gap: 0.75rem;">
-              <button type="button" class="btn btn-outline" onclick="PlatformModule.copyRefCode('${this.regFormData.registrationRef}')">
-                📋 Copy Reference
-              </button>
-              <button type="button" class="btn btn-secondary" onclick="PlatformModule.openStatusModal('${this.regFormData.registrationRef}')">
-                🔍 Track Status
-              </button>
-              <button type="button" class="btn btn-primary" onclick="PlatformModule.closeRegistrationModal()">
-                Done
+              <button type="button" class="btn btn-primary" onclick="PlatformModule.launchSchoolDashboard()" style="background: linear-gradient(135deg, #7c3aed, #5b21b6); border-color: #5b21b6; font-weight: 800; padding: 0.75rem 1.75rem; font-size: 0.95rem;">
+                🚀 Enter School Workspace Dashboard
               </button>
             </div>
           </div>
@@ -489,14 +489,30 @@
 
       try {
         const payload = {
-          ...this.regFormData,
-          country: 'India'
+          schoolName: this.regFormData.schoolName,
+          displayName: this.regFormData.displayName || this.regFormData.schoolName,
+          schoolEmail: this.regFormData.schoolEmail,
+          schoolPhone: this.regFormData.schoolPhone,
+          address: this.regFormData.address,
+          city: this.regFormData.city,
+          state: this.regFormData.state,
+          postalCode: this.regFormData.postalCode,
+          adminName: this.regFormData.repName,
+          adminEmail: this.regFormData.repEmail,
+          adminMobile: this.regFormData.repPhone,
+          password: this.regFormData.password,
+          confirmPassword: this.regFormData.password,
+          country: 'India',
+          affiliationBoard: this.regFormData.affiliationBoard || 'CBSE',
+          affiliationNumber: this.regFormData.affiliationNumber || ''
         };
 
         const res = await window.RexApi.registerSchool(payload);
-        this.regFormData.registrationRef = res.registrationRef;
+        this.regFormData.schoolId = res.schoolId;
+        this.regFormData.trial = res.trial;
+        this.regFormData.adminUser = res.user;
         this.goToStep(5);
-        if (window.RexApi) window.RexApi.showToast('School registration submitted successfully!', 'success');
+        if (window.RexApi) window.RexApi.showToast('School registered with 7-day free trial activated!', 'success');
       } catch (err) {
         this.showRegError(err.message || 'Failed to submit registration. Please check fields.');
         if (btn) {
@@ -513,6 +529,25 @@
       }).catch(() => {
         prompt('Registration Reference:', code);
       });
+    },
+
+    copySchoolId(id) {
+      if (!id) return;
+      navigator.clipboard.writeText(id).then(() => {
+        if (window.RexApi) window.RexApi.showToast(`School ID ${id} copied to clipboard!`, 'success');
+      }).catch(() => {
+        prompt('Permanent School ID:', id);
+      });
+    },
+
+    launchSchoolDashboard() {
+      this.closeRegistrationModal();
+      if (window.AuthUI) {
+        window.AuthUI.renderUserBadge();
+        window.AuthUI.routeToDashboard();
+      } else if (window.App) {
+        window.App.switchView('dashboard');
+      }
     },
 
     // ========================================================================

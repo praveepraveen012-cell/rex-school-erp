@@ -129,6 +129,40 @@
             </span>
           ` : '';
 
+          let trialTag = '';
+          const trialData = JSON.parse(localStorage.getItem('rex_school_trial') || 'null');
+          const schoolData = user.school || JSON.parse(localStorage.getItem('rex_school_profile') || 'null');
+
+          if (user.role === 'SUPER_ADMIN' || user.role === 'SCHOOL_ADMIN' || user.role === 'admin') {
+            const endsAt = trialData?.endsAt || schoolData?.trial_ends_at;
+            const subStatus = schoolData?.subscription_status || trialData?.status || 'TRIAL_ACTIVE';
+
+            if (subStatus === 'ACTIVE_SUBSCRIPTION') {
+              trialTag = `
+                <button type="button" class="rex-trial-pill active" onclick="window.AuthUI.showSubscriptionModal()" title="Active Paid Subscription - Click to view billing" style="background:#059669; color:#fff; border:none; padding:3px 9px; border-radius:12px; font-size:0.72rem; font-weight:700; cursor:pointer; margin-left:4px;">
+                  ✓ Paid Plan
+                </button>
+              `;
+            } else if (endsAt) {
+              const diffMs = new Date(endsAt).getTime() - Date.now();
+              const daysLeft = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+              if (daysLeft > 0) {
+                const color = daysLeft <= 2 ? '#ea580c' : '#7c3aed';
+                trialTag = `
+                  <button type="button" class="rex-trial-pill" onclick="window.AuthUI.showSubscriptionModal()" title="${daysLeft} days remaining in free trial. Click to upgrade" style="background:${color}; color:#fff; border:none; padding:3px 9px; border-radius:12px; font-size:0.72rem; font-weight:700; cursor:pointer; margin-left:4px; display:inline-flex; align-items:center; gap:4px;">
+                    <i class="fas fa-hourglass-half"></i> ${daysLeft}d Trial (Upgrade)
+                  </button>
+                `;
+              } else {
+                trialTag = `
+                  <button type="button" class="rex-trial-pill expired" onclick="window.AuthUI.showSubscriptionModal()" title="Free Trial Expired! Click to renew and restore access." style="background:#dc2626; color:#fff; border:none; padding:3px 9px; border-radius:12px; font-size:0.72rem; font-weight:700; cursor:pointer; margin-left:4px;">
+                    ⚠️ Trial Expired - Upgrade
+                  </button>
+                `;
+              }
+            }
+          }
+
           badgeContainer.innerHTML = `
             <div class="rex-user-pill">
               <span class="rex-role-tag" style="background:${roleColor}">
@@ -136,6 +170,7 @@
               </span>
               <span class="rex-user-name">${user.name || user.username || user.email}</span>
               ${schoolTag}
+              ${trialTag}
               ${studentSwitcherHtml}
               <button type="button" class="rex-btn-switch" onclick="window.AuthUI.showLoginModal()" title="Switch Account / Role">
                 <i class="fas fa-exchange-alt"></i> Switch
@@ -255,6 +290,9 @@
 
           <!-- Role Selection Tabs -->
           <div class="rex-role-tabs">
+            <button type="button" class="rex-tab-btn ${this.currentTab === 'register' ? 'active' : ''}" onclick="window.AuthUI.switchTab('register')" style="color: #7c3aed;">
+              <i class="fas fa-rocket"></i> Register School (7-Day Trial)
+            </button>
             <button type="button" class="rex-tab-btn ${this.currentTab === 'admin' ? 'active' : ''}" onclick="window.AuthUI.switchTab('admin')">
               <i class="fas fa-shield-alt"></i> School Admin
             </button>
@@ -265,13 +303,80 @@
               <i class="fas fa-user-friends"></i> Parent
             </button>
             <button type="button" class="rex-tab-btn ${this.currentTab === 'platform' ? 'active' : ''}" onclick="window.AuthUI.switchTab('platform')">
-              <i class="fas fa-crown"></i> Platform Admin
+              <i class="fas fa-crown"></i> Platform
             </button>
           </div>
 
           <div class="rex-modal-body">
             <!-- Inline Error Banner -->
             <div id="auth-error-banner" class="rex-auth-error-banner" style="display: none;"></div>
+
+            <!-- TAB 0: REGISTER YOUR SCHOOL (7-DAY TRIAL) -->
+            <div id="tab-register" class="rex-tab-pane ${this.currentTab === 'register' ? 'active' : ''}">
+              <div class="rex-login-banner" style="background: linear-gradient(135deg, #ede9fe, #ddd6fe); color: #5b21b6; border-radius: 8px;">
+                <i class="fas fa-rocket" style="font-size: 1.5rem;"></i>
+                <div>
+                  <strong>Register Your School &bull; 7-Day Full Free Trial</strong>
+                  <div style="font-size: 0.75rem; opacity: 0.9;">Instant activation &bull; Unique School ID assigned &bull; Zero credit card required</div>
+                </div>
+              </div>
+              <form id="school-register-form" onsubmit="window.AuthUI.handleRegisterSchool(event)">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                  <div class="rex-form-group">
+                    <label for="reg-sch-name">Official School Name *</label>
+                    <input type="text" id="reg-sch-name" required placeholder="e.g. Oakridge International">
+                  </div>
+                  <div class="rex-form-group">
+                    <label for="reg-sch-email">School Official Email *</label>
+                    <input type="email" id="reg-sch-email" required placeholder="contact@oakridge.edu">
+                  </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                  <div class="rex-form-group">
+                    <label for="reg-sch-phone">School Contact Phone *</label>
+                    <input type="tel" id="reg-sch-phone" required placeholder="9876500001">
+                  </div>
+                  <div class="rex-form-group">
+                    <label for="reg-sch-city">City, State & Postal Code *</label>
+                    <input type="text" id="reg-sch-city" required placeholder="Bengaluru, Karnataka - 560001">
+                  </div>
+                </div>
+                <div class="rex-form-group">
+                  <label for="reg-sch-address">School Campus Address *</label>
+                  <input type="text" id="reg-sch-address" required placeholder="Plot 45, Knowledge Park Road">
+                </div>
+                <div style="border-top: 1px dashed #cbd5e1; padding-top: 10px; margin: 8px 0;">
+                  <div style="font-size: 0.74rem; font-weight: 700; color: #475569; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.04em;">School Administrator Credentials</div>
+                  <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px;">
+                    <div class="rex-form-group">
+                      <label for="reg-adm-name">Administrator Full Name *</label>
+                      <input type="text" id="reg-adm-name" required placeholder="Dr. Sarah Johnson">
+                    </div>
+                    <div class="rex-form-group">
+                      <label for="reg-adm-mobile">Admin Mobile Number *</label>
+                      <input type="tel" id="reg-adm-mobile" required placeholder="9876543210">
+                    </div>
+                  </div>
+                  <div class="rex-form-group">
+                    <label for="reg-adm-email">Administrator Email (Login ID) *</label>
+                    <input type="email" id="reg-adm-email" required placeholder="principal@oakridge.edu">
+                  </div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div class="rex-form-group">
+                      <label for="reg-adm-pass">Password * (Min 8 chars)</label>
+                      <input type="password" id="reg-adm-pass" required minlength="8" placeholder="••••••••">
+                    </div>
+                    <div class="rex-form-group">
+                      <label for="reg-adm-confirm">Confirm Password *</label>
+                      <input type="password" id="reg-adm-confirm" required minlength="8" placeholder="••••••••">
+                    </div>
+                  </div>
+                </div>
+                <button type="submit" class="rex-btn-primary" id="btn-reg-submit" style="background: linear-gradient(135deg, #7c3aed, #6d28d9); font-weight: 800;">
+                  <i class="fas fa-rocket"></i> Activate 7-Day Free Trial & Register School
+                </button>
+              </form>
+            </div>
 
             <!-- TAB 1: SCHOOL SUPER ADMIN -->
             <div id="tab-admin" class="rex-tab-pane ${this.currentTab === 'admin' ? 'active' : ''}">
@@ -284,12 +389,19 @@
               </div>
               <form id="admin-login-form" onsubmit="window.AuthUI.handleAdminLogin(event)">
                 <div class="rex-form-group">
+                  <label for="admin-school-id">School ID (e.g. GRX-SCH-XXXXXX, Optional for Default)</label>
+                  <input type="text" id="admin-school-id" placeholder="e.g. GRX-SCH-B49F7A (Leave blank for default campus)" style="text-transform: uppercase; font-family: monospace; font-weight: 700;">
+                </div>
+                <div class="rex-form-group">
                   <label for="admin-user">Email or Username *</label>
                   <input type="text" id="admin-user" required placeholder="admin" value="admin" autocomplete="username">
                 </div>
                 <div class="rex-form-group">
                   <label for="admin-pass">Password *</label>
                   <input type="password" id="admin-pass" required placeholder="••••••••" value="AdminPassword123!" autocomplete="current-password">
+                </div>
+                <div style="display: flex; justify-content: flex-end; margin-top: -8px; margin-bottom: 12px;">
+                  <a href="#" onclick="window.AuthUI.showForgotPasswordModal(); return false;" class="rex-btn-link" style="color: #2563eb; font-size: 0.76rem;">Forgot password?</a>
                 </div>
                 <div class="rex-demo-hint">
                   <i class="fas fa-info-circle"></i> Default Institutional Credentials: <code>admin</code> / <code>AdminPassword123!</code>
@@ -500,6 +612,7 @@
       e.preventDefault();
       this.clearError();
 
+      const schoolId = document.getElementById('admin-school-id')?.value.trim();
       const user = document.getElementById('admin-user').value.trim();
       const pass = document.getElementById('admin-pass').value.trim();
 
@@ -513,7 +626,12 @@
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
 
       try {
-        const res = await window.RexApi.loginAdmin(user, pass);
+        let res;
+        if (schoolId) {
+          res = await window.RexApi.loginSchool(schoolId, pass, user);
+        } else {
+          res = await window.RexApi.loginAdmin(user, pass);
+        }
         this.hideLoginModal();
         this.renderUserBadge();
 
@@ -531,10 +649,386 @@
           }
         }
       } catch (err) {
-        this.showError(err.message || 'Invalid email/username or password.');
+        this.showError(err.message || 'Invalid credentials or School ID.');
       } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In to School Workspace';
+      }
+    },
+
+    async handleRegisterSchool(e) {
+      e.preventDefault();
+      this.clearError();
+
+      const schoolName = document.getElementById('reg-sch-name')?.value.trim();
+      const schoolEmail = document.getElementById('reg-sch-email')?.value.trim();
+      const schoolPhone = document.getElementById('reg-sch-phone')?.value.trim();
+      const cityState = document.getElementById('reg-sch-city')?.value.trim() || 'Bengaluru, Karnataka - 560001';
+      const address = document.getElementById('reg-sch-address')?.value.trim() || 'Campus Road';
+      const adminName = document.getElementById('reg-adm-name')?.value.trim();
+      const adminMobile = document.getElementById('reg-adm-mobile')?.value.trim();
+      const adminEmail = document.getElementById('reg-adm-email')?.value.trim();
+      const pass = document.getElementById('reg-adm-pass')?.value.trim();
+      const confirmPass = document.getElementById('reg-adm-confirm')?.value.trim();
+
+      if (pass !== confirmPass) {
+        this.showError('Password and password confirmation do not match.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-reg-submit');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Activating 7-Day Free Trial...';
+
+      try {
+        const res = await window.RexApi.registerSchool({
+          schoolName,
+          displayName: schoolName,
+          schoolEmail,
+          schoolPhone,
+          address,
+          city: cityState.split(',')[0]?.trim() || 'Bengaluru',
+          state: cityState.split(',')[1]?.split('-')[0]?.trim() || 'Karnataka',
+          postalCode: cityState.split('-')[1]?.trim() || '560001',
+          adminName,
+          adminEmail,
+          adminMobile,
+          password: pass,
+          confirmPassword: confirmPass
+        });
+
+        this.hideLoginModal();
+        this.showRegistrationSuccessModal(res);
+      } catch (err) {
+        this.showError(err.message || 'School registration failed. Please check your details.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-rocket"></i> Activate 7-Day Free Trial & Register School';
+      }
+    },
+
+    showRegistrationSuccessModal(data) {
+      let modal = document.getElementById('rex-reg-success-modal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'rex-reg-success-modal';
+        modal.className = 'rex-modal-overlay';
+        document.body.appendChild(modal);
+      }
+
+      const schoolId = data.schoolId || data.school?.code || 'GRX-SCH-ACTIVE';
+      const trialEnds = data.trial?.endsAt ? new Date(data.trial.endsAt).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '7 Days from today';
+      const adminEmail = data.user?.email || '';
+
+      modal.innerHTML = `
+        <div class="rex-modal-card" style="max-width: 520px; width: 95%; text-align: center;">
+          <div style="padding: 2rem 1.5rem;">
+            <div style="width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #059669); color: white; display: flex; align-items: center; justify-content: center; font-size: 2.4rem; margin: 0 auto 1.25rem auto; box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4);">
+              ✓
+            </div>
+            <h3 style="margin: 0 0 0.5rem 0; font-size: 1.4rem; color: #0f172a; font-weight: 800;">
+              School Registered Successfully!
+            </h3>
+            <p style="font-size: 0.88rem; color: #64748b; margin-bottom: 1.5rem; line-height: 1.5;">
+              Welcome <strong>${data.school?.name || 'School Campus'}</strong>! Your official institutional tenant has been created on Grexotix SaaS.
+            </p>
+
+            <div style="background: linear-gradient(135deg, #f5f3ff, #ede9fe); border: 2px solid #7c3aed; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem;">
+              <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6d28d9; font-weight: 800;">
+                Permanent Unique School ID
+              </div>
+              <div style="font-size: 1.9rem; font-weight: 900; color: #5b21b6; letter-spacing: 0.05em; margin: 0.4rem 0;">
+                ${schoolId}
+              </div>
+              <div style="display: flex; align-items: center; justify-content: center; gap: 0.4rem; font-size: 0.78rem; font-weight: 700; color: #047857; margin-bottom: 0.75rem;">
+                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+                7-Day Free Trial Active &bull; Valid until ${trialEnds}
+              </div>
+              <button type="button" class="btn btn-sm btn-outline" onclick="window.AuthUI.copySchoolId('${schoolId}')" style="background: #ffffff; border-color: #7c3aed; color: #6d28d9; font-weight: 700;">
+                📋 Copy School ID
+              </button>
+            </div>
+
+            <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 1.75rem; line-height: 1.5;">
+              Account details and verification notice have been dispatched to <strong>${adminEmail}</strong>.
+            </div>
+
+            <button type="button" class="btn btn-primary btn-block" onclick="document.getElementById('rex-reg-success-modal').style.display='none'; window.AuthUI.renderUserBadge(); window.AuthUI.routeToDashboard();" style="background: linear-gradient(135deg, #7c3aed, #5b21b6); border-color: #5b21b6; font-weight: 800; padding: 0.85rem; font-size: 0.95rem; width: 100%;">
+              🚀 Launch School Workspace Dashboard
+            </button>
+          </div>
+        </div>
+      `;
+
+      modal.style.display = 'flex';
+    },
+
+    copySchoolId(id) {
+      if (!id) return;
+      navigator.clipboard.writeText(id).then(() => {
+        window.RexApi.showToast(`School ID ${id} copied to clipboard!`, 'success');
+      }).catch(() => {
+        prompt('Permanent School ID:', id);
+      });
+    },
+
+    showForgotPasswordModal() {
+      this.hideLoginModal();
+      let modal = document.getElementById('rex-forgot-modal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'rex-forgot-modal';
+        modal.className = 'rex-modal-overlay';
+        document.body.appendChild(modal);
+      }
+
+      modal.innerHTML = `
+        <div class="rex-modal-card" style="max-width: 440px; width: 95%;">
+          <div class="rex-modal-header" style="background:#fff; border-bottom:1px solid var(--border-subtle); padding: 1.25rem 1.5rem;">
+            <div class="rex-modal-title-group">
+              <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #0f172a;">Password Recovery</h3>
+              <p style="margin: 0.15rem 0 0 0; font-size: 0.75rem; color: #64748b;">Grexotix Account Recovery & Reset</p>
+            </div>
+            <button type="button" class="rex-modal-close" onclick="document.getElementById('rex-forgot-modal').style.display='none'">&times;</button>
+          </div>
+          <div class="rex-modal-body" style="padding: 1.5rem;">
+            <div id="forgot-error-banner" class="rex-auth-error-banner" style="display: none;"></div>
+            <div id="forgot-step-1">
+              <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 1.25rem; line-height: 1.5;">
+                Enter your registered administrator or user email address to receive password reset authorization.
+              </p>
+              <form onsubmit="window.AuthUI.handleForgotPasswordSubmit(event)">
+                <div class="rex-form-group">
+                  <label>Registered Email Address *</label>
+                  <input type="email" id="forgot-email" required placeholder="admin@school.edu">
+                </div>
+                <div class="rex-form-group">
+                  <label>School ID (Optional)</label>
+                  <input type="text" id="forgot-school-id" placeholder="e.g. GRX-SCH-XXXXXX" style="text-transform: uppercase;">
+                </div>
+                <button type="submit" class="rex-btn-primary admin" id="btn-forgot-send" style="margin-top: 1rem;">
+                  <i class="fas fa-paper-plane"></i> Send Password Reset Link
+                </button>
+              </form>
+            </div>
+            <div id="forgot-step-2" style="display: none;">
+              <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; font-size: 0.82rem; color: #065f46;">
+                <strong>✓ Reset Instructions Sent!</strong>
+                <div id="forgot-token-hint" style="margin-top: 0.35rem; font-size: 0.76rem;"></div>
+              </div>
+              <form onsubmit="window.AuthUI.handleResetPasswordSubmit(event)">
+                <div class="rex-form-group">
+                  <label>Reset Token Code *</label>
+                  <input type="text" id="reset-token-input" required placeholder="Enter token from email">
+                </div>
+                <div class="rex-form-group">
+                  <label>New Secure Password * (Min 8 chars)</label>
+                  <input type="password" id="reset-new-pass" required minlength="8" placeholder="••••••••">
+                </div>
+                <button type="submit" class="rex-btn-primary admin" id="btn-reset-submit">
+                  <i class="fas fa-key"></i> Update Password & Sign In
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      `;
+
+      modal.style.display = 'flex';
+    },
+
+    async handleForgotPasswordSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('forgot-email')?.value.trim();
+      const schoolId = document.getElementById('forgot-school-id')?.value.trim();
+      const btn = document.getElementById('btn-forgot-send');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+      try {
+        const res = await window.RexApi.forgotPassword(email, schoolId);
+        document.getElementById('forgot-step-1').style.display = 'none';
+        document.getElementById('forgot-step-2').style.display = 'block';
+        if (res.devToken) {
+          document.getElementById('reset-token-input').value = res.devToken;
+          document.getElementById('forgot-token-hint').textContent = `Test token generated: ${res.devToken}`;
+        }
+        window.RexApi.showToast('Password reset token dispatched successfully!', 'success');
+      } catch (err) {
+        const banner = document.getElementById('forgot-error-banner');
+        if (banner) {
+          banner.textContent = err.message || 'Failed to request password reset.';
+          banner.style.display = 'block';
+        }
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Password Reset Link';
+      }
+    },
+
+    async handleResetPasswordSubmit(e) {
+      e.preventDefault();
+      const token = document.getElementById('reset-token-input')?.value.trim();
+      const newPassword = document.getElementById('reset-new-pass')?.value.trim();
+      const btn = document.getElementById('btn-reset-submit');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+
+      try {
+        await window.RexApi.resetPassword(token, newPassword);
+        window.RexApi.showToast('Password reset successfully! Please sign in with your new password.', 'success');
+        document.getElementById('rex-forgot-modal').style.display = 'none';
+        this.showLoginModal();
+      } catch (err) {
+        const banner = document.getElementById('forgot-error-banner');
+        if (banner) {
+          banner.textContent = err.message || 'Failed to reset password. Invalid or expired token.';
+          banner.style.display = 'block';
+        }
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-key"></i> Update Password & Sign In';
+      }
+    },
+
+    async showSubscriptionModal() {
+      let modal = document.getElementById('rex-subscription-modal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'rex-subscription-modal';
+        modal.className = 'rex-modal-overlay';
+        document.body.appendChild(modal);
+      }
+
+      modal.innerHTML = `
+        <div class="rex-modal-card" style="max-width: 780px; width: 95%;">
+          <div class="rex-modal-header" style="background:#fff; border-bottom:1px solid var(--border-subtle); padding: 1.25rem 1.5rem;">
+            <div class="rex-modal-title-group">
+              <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #0f172a;">Subscription & Plan Management</h3>
+              <p style="margin: 0.15rem 0 0 0; font-size: 0.75rem; color: #64748b;">Grexotix School SaaS &bull; Verified Gateway & Invoicing</p>
+            </div>
+            <button type="button" class="rex-modal-close" onclick="document.getElementById('rex-subscription-modal').style.display='none'">&times;</button>
+          </div>
+          <div class="rex-modal-body" style="padding: 1.5rem;" id="subscription-modal-body">
+            <div style="text-align: center; padding: 2rem;">
+              <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #7c3aed;"></i>
+              <div style="margin-top: 0.75rem; color: #64748b; font-size: 0.85rem;">Loading subscription status and plans...</div>
+            </div>
+          </div>
+        </div>
+      `;
+      modal.style.display = 'flex';
+
+      try {
+        const [statusData, plansData] = await Promise.all([
+          window.RexApi.getSubscriptionStatus(),
+          window.RexApi.getSubscriptionPlans()
+        ]);
+
+        const body = document.getElementById('subscription-modal-body');
+        if (!body) return;
+
+        const subStatus = statusData.subscriptionStatus || 'TRIAL_ACTIVE';
+        const isPaid = statusData.subscription?.isPaid;
+        const daysLeft = statusData.trial?.daysRemaining || 0;
+        const plans = plansData.plans || [];
+
+        let statusBanner = '';
+        if (isPaid) {
+          statusBanner = `
+            <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <span style="font-size: 1.75rem; color: #059669;">✓</span>
+                <div>
+                  <div style="font-weight: 800; color: #065f46; font-size: 0.95rem;">Active Paid Subscription (${statusData.subscription.planId})</div>
+                  <div style="font-size: 0.76rem; color: #047857;">Valid until: ${new Date(statusData.subscription.endsAt).toLocaleDateString()} &bull; Payment Ref: ${statusData.subscription.verifiedPaymentRef || 'Verified'}</div>
+                </div>
+              </div>
+              <span class="badge" style="background:#059669; color:#fff; font-size:0.75rem; padding: 4px 10px;">ACTIVE</span>
+            </div>
+          `;
+        } else if (daysLeft > 0) {
+          statusBanner = `
+            <div style="background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <span style="font-size: 1.75rem; color: #7c3aed;">⏳</span>
+                <div>
+                  <div style="font-weight: 800; color: #5b21b6; font-size: 0.95rem;">7-Day Free Trial Active (${daysLeft} Days Remaining)</div>
+                  <div style="font-size: 0.76rem; color: #6d28d9;">Trial expires on: ${new Date(statusData.trial.endsAt).toLocaleDateString()} &bull; Upgrade to prevent service disruption</div>
+                </div>
+              </div>
+              <span class="badge" style="background:#7c3aed; color:#fff; font-size:0.75rem; padding: 4px 10px;">TRIAL ACTIVE</span>
+            </div>
+          `;
+        } else {
+          statusBanner = `
+            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <span style="font-size: 1.75rem; color: #dc2626;">⚠️</span>
+                <div>
+                  <div style="font-weight: 800; color: #991b1b; font-size: 0.95rem;">7-Day Free Trial Expired</div>
+                  <div style="font-size: 0.76rem; color: #b91c1c;">New records are locked. Choose a plan below to immediately restore full write operations.</div>
+                </div>
+              </div>
+              <span class="badge" style="background:#dc2626; color:#fff; font-size:0.75rem; padding: 4px 10px;">EXPIRED</span>
+            </div>
+          `;
+        }
+
+        body.innerHTML = `
+          ${statusBanner}
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+            ${plans.map(p => `
+              <div style="background: #ffffff; border: 2px solid ${p.id === 'GROWTH' ? '#7c3aed' : '#e2e8f0'}; border-radius: 10px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+                ${p.id === 'GROWTH' ? '<span style="position: absolute; top: -10px; right: 12px; background: #7c3aed; color: #fff; font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 10px;">MOST POPULAR</span>' : ''}
+                <div>
+                  <h4 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: #0f172a;">${p.name}</h4>
+                  <div style="font-size: 1.4rem; font-weight: 900; color: #7c3aed; margin: 0.5rem 0;">
+                    ₹${p.priceMonthly.toLocaleString()} <span style="font-size: 0.75rem; font-weight: 600; color: #64748b;">/ month</span>
+                  </div>
+                  <ul style="list-style: none; padding: 0; margin: 0.75rem 0 1rem 0; font-size: 0.78rem; color: #475569; display: flex; flex-direction: column; gap: 0.4rem;">
+                    ${p.features.map(f => `<li>✓ ${f}</li>`).join('')}
+                  </ul>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="window.AuthUI.activatePlan('${p.id}', 'MONTHLY')" style="width: 100%; font-size: 0.82rem; font-weight: 800; background: ${p.id === 'GROWTH' ? 'linear-gradient(135deg, #7c3aed, #5b21b6)' : '#1e3a8a'};">
+                  Activate & Pay (Sandbox)
+                </button>
+              </div>
+            `).join('')}
+          </div>
+
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; font-size: 0.78rem; color: #64748b;">
+            🔒 <strong>Secure Invoicing & Sandbox Verification</strong>: All subscription upgrades generate server-verified tax invoices and receipts dispatched to the school administrator's registered email address.
+          </div>
+        `;
+      } catch (err) {
+        const body = document.getElementById('subscription-modal-body');
+        if (body) {
+          body.innerHTML = `
+            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1.5rem; text-align: center; color: #991b1b;">
+              <p>Failed to load subscription status: ${err.message || 'Server error'}</p>
+              <button class="btn btn-secondary btn-sm" onclick="window.AuthUI.showSubscriptionModal()">Retry</button>
+            </div>
+          `;
+        }
+      }
+    },
+
+    async activatePlan(planId, billingCycle = 'MONTHLY') {
+      try {
+        const res = await window.RexApi.verifySubscription({
+          planId,
+          billingCycle,
+          transactionRef: `TXN-SANDBOX-${Date.now()}`,
+          paymentMethod: 'UPI_SANDBOX'
+        });
+
+        window.RexApi.showToast(`Plan ${planId} activated successfully! Invoice ${res.invoiceNumber} generated.`, 'success');
+        document.getElementById('rex-subscription-modal').style.display = 'none';
+        this.renderUserBadge();
+      } catch (err) {
+        window.RexApi.showToast(err.message || 'Failed to activate plan.', 'error');
       }
     },
 

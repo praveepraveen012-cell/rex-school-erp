@@ -467,6 +467,260 @@
     },
 
     // ------------------------------------------------------------------------
+    // Grexotix SaaS Platform: School Registration & Trial Management
+    // ------------------------------------------------------------------------
+    simulateOfflineRegisterSchool(schoolData) {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let rand = '';
+      for (let i = 0; i < 6; i++) rand += chars.charAt(Math.floor(Math.random() * chars.length));
+      const schoolCode = `GRX-SCH-${rand}`;
+      const schoolId = Date.now() % 10000;
+      const trialExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      const school = {
+        id: schoolId,
+        school_code: schoolCode,
+        name: schoolData.schoolName || 'St. Xavier Academy',
+        email: schoolData.adminEmail || 'admin@school.edu',
+        phone: schoolData.adminPhone || '9876543210',
+        address: schoolData.address || '',
+        city: schoolData.city || 'Bangalore',
+        state: schoolData.state || 'Karnataka',
+        status: 'ACTIVE'
+      };
+      const trial = {
+        trialActive: true,
+        trialDays: 7,
+        daysRemaining: 7,
+        trialEndDate: trialExpiry,
+        plan: 'Starter (Trial)'
+      };
+      const user = {
+        id: schoolId,
+        username: schoolData.adminEmail || 'admin',
+        email: schoolData.adminEmail || 'admin@school.edu',
+        role: 'SCHOOL_ADMIN',
+        name: schoolData.adminName || 'School Administrator',
+        school_id: schoolId,
+        school_code: schoolCode,
+        school_name: school.name
+      };
+      const res = {
+        success: true,
+        school,
+        trial,
+        user,
+        token: 'rex_jwt_offline_' + Date.now(),
+        isOffline: true
+      };
+      localStorage.setItem('rex_school_profile', JSON.stringify(school));
+      localStorage.setItem('rex_school_trial', JSON.stringify(trial));
+      return this.applyAuthResult(res);
+    },
+
+    simulateOfflineLoginSchool(schoolId, password, identifier) {
+      let savedSchool = null;
+      try {
+        savedSchool = JSON.parse(localStorage.getItem('rex_school_profile') || 'null');
+      } catch (e) {}
+      const code = schoolId || (savedSchool && savedSchool.school_code) || 'GRX-SCH-DEMO01';
+      const name = (savedSchool && savedSchool.name) || 'Grexotix Partner Academy';
+      const id = (savedSchool && savedSchool.id) || 101;
+      const school = {
+        id,
+        school_code: code,
+        name,
+        status: 'ACTIVE'
+      };
+      let trial = null;
+      try {
+        trial = JSON.parse(localStorage.getItem('rex_school_trial') || 'null');
+      } catch (e) {}
+      if (!trial) {
+        trial = {
+          trialActive: true,
+          trialDays: 7,
+          daysRemaining: 7,
+          trialEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          plan: 'Starter (Trial)'
+        };
+      }
+      const user = {
+        id,
+        username: identifier || 'admin',
+        email: identifier && identifier.includes('@') ? identifier : 'admin@grexotix-demo.edu',
+        role: 'SCHOOL_ADMIN',
+        name: 'School Administrator',
+        school_id: id,
+        school_code: code,
+        school_name: name
+      };
+      const res = {
+        success: true,
+        school,
+        trial,
+        user,
+        token: 'rex_jwt_offline_' + Date.now(),
+        isOffline: true
+      };
+      return this.applyAuthResult(res);
+    },
+
+    async registerSchool(schoolData) {
+      if (isStaticMode) {
+        return this.simulateOfflineRegisterSchool(schoolData);
+      }
+      try {
+        const data = await this.request('/auth/register-school', {
+          method: 'POST',
+          body: JSON.stringify(schoolData)
+        });
+        if (data.school) localStorage.setItem('rex_school_profile', JSON.stringify(data.school));
+        if (data.trial) localStorage.setItem('rex_school_trial', JSON.stringify(data.trial));
+        return this.applyAuthResult(data);
+      } catch (err) {
+        if (!err.status || err.status === 404 || err.status === 405 || err.status >= 500) {
+          return this.simulateOfflineRegisterSchool(schoolData);
+        }
+        throw err;
+      }
+    },
+
+    async loginSchool(schoolId, password, identifier = null) {
+      if (isStaticMode) {
+        return this.simulateOfflineLoginSchool(schoolId, password, identifier);
+      }
+      try {
+        const data = await this.request('/auth/school-login', {
+          method: 'POST',
+          body: JSON.stringify({ schoolId, password, identifier })
+        });
+        if (data.school) localStorage.setItem('rex_school_profile', JSON.stringify(data.school));
+        if (data.trial) localStorage.setItem('rex_school_trial', JSON.stringify(data.trial));
+        return this.applyAuthResult(data);
+      } catch (err) {
+        if (!err.status || err.status === 404 || err.status === 405 || err.status >= 500) {
+          return this.simulateOfflineLoginSchool(schoolId, password, identifier);
+        }
+        throw err;
+      }
+    },
+
+    async forgotPassword(email, schoolId = null) {
+      if (isStaticMode) {
+        return { success: true, message: 'Password reset link simulated for ' + email, isOffline: true };
+      }
+      try {
+        return await this.request('/auth/forgot-password', {
+          method: 'POST',
+          body: JSON.stringify({ email, schoolId })
+        });
+      } catch (err) {
+        if (!err.status || err.status === 404) {
+          return { success: true, message: 'Password reset link simulated for ' + email, isOffline: true };
+        }
+        throw err;
+      }
+    },
+
+    async resetPassword(email, token, newPassword) {
+      if (isStaticMode) {
+        return { success: true, message: 'Password successfully updated!', isOffline: true };
+      }
+      return await this.request('/auth/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({ email, token, newPassword })
+      });
+    },
+
+    async getSubscriptionStatus() {
+      if (isStaticMode) {
+        let trial = null;
+        try { trial = JSON.parse(localStorage.getItem('rex_school_trial') || 'null'); } catch(e){}
+        return {
+          success: true,
+          status: 'TRIAL_ACTIVE',
+          plan: (trial && trial.plan) || 'Starter (Trial)',
+          daysRemaining: (trial && trial.daysRemaining) || 7,
+          trialDays: 7,
+          isOffline: true
+        };
+      }
+      try {
+        return await this.request('/subscriptions/status');
+      } catch (err) {
+        if (!err.status || err.status === 404 || err.status >= 500) {
+          return { success: true, status: 'TRIAL_ACTIVE', plan: 'Starter', daysRemaining: 7, trialDays: 7, isOffline: true };
+        }
+        throw err;
+      }
+    },
+
+    async getSubscriptionPlans() {
+      const defaultPlans = [
+        { id: 'starter', name: 'Starter Plan', price: 2999, currency: 'INR', interval: 'MONTH', maxStudents: 250, maxStaff: 25 },
+        { id: 'growth', name: 'Growth Plan', price: 6999, currency: 'INR', interval: 'MONTH', maxStudents: 1000, maxStaff: 100 },
+        { id: 'enterprise', name: 'Enterprise Platform', price: 14999, currency: 'INR', interval: 'MONTH', maxStudents: 5000, maxStaff: 500 }
+      ];
+      if (isStaticMode) return { success: true, plans: defaultPlans, isOffline: true };
+      try {
+        return await this.request('/subscriptions/plans');
+      } catch (err) {
+        return { success: true, plans: defaultPlans, isOffline: true };
+      }
+    },
+
+    async verifySubscription(planId, billingCycle = 'MONTHLY', transactionRef = null) {
+      if (isStaticMode) {
+        const trial = {
+          trialActive: false,
+          status: 'ACTIVE',
+          plan: planId.toUpperCase(),
+          daysRemaining: 365,
+          expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+        };
+        localStorage.setItem('rex_school_trial', JSON.stringify(trial));
+        return { success: true, subscription: trial, isOffline: true };
+      }
+      return await this.request('/subscriptions/verify', {
+        method: 'POST',
+        body: JSON.stringify({ planId, billingCycle, transactionRef })
+      });
+    },
+
+    // ------------------------------------------------------------------------
+    // Grexotix SaaS Platform: Homework Approval Workflow
+    // ------------------------------------------------------------------------
+    async getPendingHomework() {
+      if (isStaticMode) return { success: true, pendingHomework: [], count: 0, isOffline: true };
+      try {
+        return await this.request('/homework/pending');
+      } catch (err) {
+        return { success: true, pendingHomework: [], count: 0, isOffline: true };
+      }
+    },
+
+    async approveHomework(homeworkId, notifyParents = true) {
+      if (isStaticMode) return { success: true, message: 'Homework approved (preview mode)', isOffline: true };
+      return await this.request(`/homework/${homeworkId}/approve`, {
+        method: 'POST',
+        body: JSON.stringify({ notifyParents })
+      });
+    },
+
+    async rejectHomework(homeworkId, reason) {
+      if (isStaticMode) return { success: true, message: 'Homework rejected (preview mode)', isOffline: true };
+      return await this.request(`/homework/${homeworkId}/reject`, {
+        method: 'POST',
+        body: JSON.stringify({ reason })
+      });
+    },
+
+    async getHomeworkAudit(homeworkId) {
+      if (isStaticMode) return { success: true, auditLogs: [], isOffline: true };
+      return await this.request(`/homework/${homeworkId}/audit`);
+    },
+
+    // ------------------------------------------------------------------------
     // Dashboard & Stats
     // ------------------------------------------------------------------------
     async getDashboardStats(studentId = null) {
@@ -678,7 +932,7 @@
       return await this.request('/platform/info');
     },
 
-    async registerSchool(registrationData) {
+    async submitPlatformRegistration(registrationData) {
       return await this.request('/platform/register', {
         method: 'POST',
         body: JSON.stringify(registrationData)

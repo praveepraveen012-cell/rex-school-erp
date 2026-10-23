@@ -100,16 +100,17 @@ router.post('/', requireSuperAdmin, (req, res) => {
     experience, department, joiningDate, initialPassword, assignments
   } = req.body;
 
-  if (!employeeId || !name || !mobile || !email) {
+  const schoolId = req.schoolId || (req.user && req.user.school_id) || 1;
+  const cleanEmpId = String(employeeId || ('EMP-' + Date.now().toString().slice(-6))).trim().toUpperCase();
+  const cleanMobile = String(mobile).trim();
+  const cleanEmail = String(email).trim().toLowerCase();
+
+  if (!name || !mobile || !email) {
     return res.status(400).json({
       success: false,
-      error: 'Employee ID, Name, Mobile Number, and Email are required.'
+      error: 'Name, Mobile Number, and Email are required.'
     });
   }
-
-  const cleanMobile = String(mobile).trim();
-  const cleanEmpId = String(employeeId).trim().toUpperCase();
-  const cleanEmail = String(email).trim().toLowerCase();
 
   // Unique checks
   const existingMobile = db.get(`SELECT id FROM teachers WHERE mobile = ?`, [cleanMobile]);
@@ -131,9 +132,9 @@ router.post('/', requireSuperAdmin, (req, res) => {
   // Create User account for Teacher
   const passwordHash = bcrypt.hashSync(initialPassword || 'Teacher123!', 10);
   const userRes = db.run(
-    `INSERT INTO users (username, email, mobile, password_hash, role, status)
-     VALUES (?, ?, ?, ?, 'TEACHER', 'active')`,
-    [cleanEmail, cleanEmail, cleanMobile, passwordHash]
+    `INSERT INTO users (username, email, mobile, password_hash, role, status, school_id)
+     VALUES (?, ?, ?, ?, 'TEACHER', 'active', ?)`,
+    [cleanEmail, cleanEmail, cleanMobile, passwordHash, schoolId]
   );
 
   const userId = userRes.lastInsertRowid;
@@ -146,7 +147,7 @@ router.post('/', requireSuperAdmin, (req, res) => {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)`,
     [
       userId, cleanEmpId, name.trim(), cleanMobile, cleanEmail, gender || 'other', dob || null,
-      qualification || '', experience || '', department || 'Academics', joiningDate || DATE('now')
+      qualification || '', experience || '', department || 'Academics', joiningDate || new Date().toISOString().split('T')[0]
     ]
   );
 
