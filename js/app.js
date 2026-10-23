@@ -15,6 +15,9 @@ const App = {
       HomeModule.init();
     }
     StudentsModule.init();
+    if (window.TeachersModule) {
+      TeachersModule.init();
+    }
     AttendanceModule.init();
     FeesModule.init();
     ExamsModule.init();
@@ -182,8 +185,8 @@ const App = {
   },
 
   ROLE_ALLOWED_VIEWS: {
-    platform_admin: ['home', 'platform-admin'],
-    admin: ['home', 'dashboard', 'students', 'attendance', 'fees', 'exams', 'timetable', 'communication', 'transport', 'campus-hub', 'hr-payroll', 'intelligence', 'settings-modules'],
+    platform_admin: ['home', 'platform-admin', 'teachers'],
+    admin: ['home', 'dashboard', 'students', 'teachers', 'attendance', 'fees', 'exams', 'timetable', 'communication', 'transport', 'campus-hub', 'hr-payroll', 'intelligence', 'settings-modules'],
     teacher: ['home', 'teacher-dashboard', 'attendance', 'teacher-homework', 'teacher-students', 'timetable', 'exams', 'communication'],
     parent: ['home', 'parent-portal', 'parent-attendance', 'parent-homework', 'parent-fees', 'parent-bus', 'parent-id-card', 'parent-leave', 'parent-reports', 'timetable', 'communication']
   },
@@ -372,6 +375,13 @@ const App = {
               <span>Students (SIS)</span>
             </div>
             <span class="nav-pill" id="sidebar-student-count">12</span>
+          </div>
+          <div class="nav-item ${this.currentView === 'teachers' ? 'active' : ''}" data-view="teachers">
+            <div class="nav-item-left">
+              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+              <span>Staff & Teachers</span>
+            </div>
+            <span class="badge badge-primary" style="font-size: 0.65rem;" id="sidebar-teacher-count">Faculty</span>
           </div>
           <div class="nav-item ${this.currentView === 'attendance' ? 'active' : ''}" data-view="attendance">
             <div class="nav-item-left">
@@ -645,6 +655,7 @@ const App = {
     if (viewId === 'dashboard') DashboardModule.render();
     if (viewId === 'teacher-dashboard') this.renderTeacherDashboard();
     if (viewId === 'students') StudentsModule.render();
+    if (viewId === 'teachers' && window.TeachersModule) TeachersModule.render();
     if (viewId === 'attendance') AttendanceModule.render();
     if (viewId === 'fees') FeesModule.render();
     if (viewId === 'exams') ExamsModule.render();

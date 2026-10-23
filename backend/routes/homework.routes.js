@@ -285,8 +285,9 @@ router.post('/', (req, res) => {
           ? 'Homework submitted for School Admin approval.'
           : 'Homework created and approved successfully.'),
     homeworkId: newHomeworkId,
-    status: approvalStatus,
-    approvalStatus: approvalStatus
+    status: (req.body && req.body.status && req.body.status.toUpperCase() === 'PENDING_APPROVAL') ? 'PENDING_APPROVAL' : dbStatus,
+    approvalStatus: approvalStatus,
+    dbStatus: dbStatus
   });
 });
 

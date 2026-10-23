@@ -14,15 +14,14 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  // Parent form
-  final _parentAdmissionCtrl = TextEditingController(text: 'REX-2024-001');
-  final _parentMobileCtrl = TextEditingController(text: '9876543210');
-
-  // Teacher form
-  final _teacherMobileCtrl = TextEditingController(text: '9876500004');
-  final _teacherOtpCtrl = TextEditingController();
-  bool _otpSent = false;
-  String? _otpDevHint;
+  // Register School form
+  final _regSchoolNameCtrl = TextEditingController();
+  final _regSchoolEmailCtrl = TextEditingController();
+  final _regSchoolPhoneCtrl = TextEditingController();
+  final _regCityCtrl = TextEditingController(text: 'Bangalore');
+  final _regAdminNameCtrl = TextEditingController();
+  final _regAdminPassCtrl = TextEditingController();
+  bool _obscureRegPass = true;
 
   // Admin form
   final _adminSchoolIdCtrl = TextEditingController();
@@ -30,25 +29,49 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   final _adminPassCtrl = TextEditingController(text: 'AdminPassword123!');
   bool _obscureAdminPass = true;
 
+  // Teacher form (Username & Password default, Mobile OTP secondary)
+  final _teacherUserCtrl = TextEditingController(text: 'anitha.math');
+  final _teacherPassCtrl = TextEditingController(text: 'Teacher123!');
+  final _teacherSchoolIdCtrl = TextEditingController();
+  bool _obscureTeacherPass = true;
+  bool _teacherUseOtp = false;
+  final _teacherMobileCtrl = TextEditingController(text: '9876500004');
+  final _teacherOtpCtrl = TextEditingController();
+  bool _otpSent = false;
+  String? _otpDevHint;
+
+  // Parent form
+  final _parentAdmissionCtrl = TextEditingController(text: 'REX-2024-001');
+  final _parentMobileCtrl = TextEditingController(text: '9876543210');
+
   bool _isLoading = false;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    _parentAdmissionCtrl.dispose();
-    _parentMobileCtrl.dispose();
-    _teacherMobileCtrl.dispose();
-    _teacherOtpCtrl.dispose();
+    _regSchoolNameCtrl.dispose();
+    _regSchoolEmailCtrl.dispose();
+    _regSchoolPhoneCtrl.dispose();
+    _regCityCtrl.dispose();
+    _regAdminNameCtrl.dispose();
+    _regAdminPassCtrl.dispose();
     _adminSchoolIdCtrl.dispose();
     _adminUserCtrl.dispose();
     _adminPassCtrl.dispose();
+    _teacherUserCtrl.dispose();
+    _teacherPassCtrl.dispose();
+    _teacherSchoolIdCtrl.dispose();
+    _teacherMobileCtrl.dispose();
+    _teacherOtpCtrl.dispose();
+    _parentAdmissionCtrl.dispose();
+    _parentMobileCtrl.dispose();
     super.dispose();
   }
 
@@ -110,7 +133,82 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   }
 
   // --------------------------------------------------------------------------
-  // Teacher OTP Flow
+  // Register School (7-Day Free Trial)
+  // --------------------------------------------------------------------------
+  Future<void> _handleSchoolRegister() async {
+    final schoolName = _regSchoolNameCtrl.text.trim();
+    final schoolEmail = _regSchoolEmailCtrl.text.trim();
+    final schoolPhone = _regSchoolPhoneCtrl.text.trim();
+    final city = _regCityCtrl.text.trim();
+    final adminName = _regAdminNameCtrl.text.trim();
+    final pass = _regAdminPassCtrl.text;
+
+    if (schoolName.isEmpty || schoolEmail.isEmpty || schoolPhone.isEmpty || adminName.isEmpty || pass.isEmpty) {
+      setState(() => _errorMessage = "Please fill in all required registration fields.");
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final res = await ApiService.registerSchool({
+      'schoolName': schoolName,
+      'schoolEmail': schoolEmail,
+      'schoolPhone': schoolPhone,
+      'address': '$city Campus Road',
+      'city': city.isNotEmpty ? city : 'Bangalore',
+      'state': 'Karnataka',
+      'postalCode': '560001',
+      'country': 'India',
+      'schoolType': 'K-12 Private Institution',
+      'adminName': adminName,
+      'adminEmail': schoolEmail,
+      'adminMobile': schoolPhone,
+      'password': pass,
+      'confirmPassword': pass,
+    });
+
+    setState(() => _isLoading = false);
+
+    if (res['success'] == true) {
+      _showCelebrationDialog(res);
+    } else {
+      setState(() => _errorMessage = res['error'] ?? "School registration failed.");
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // Teacher Username & Password Authentication
+  // --------------------------------------------------------------------------
+  Future<void> _handleTeacherPasswordLogin() async {
+    final user = _teacherUserCtrl.text.trim();
+    final pass = _teacherPassCtrl.text;
+    final schoolCode = _teacherSchoolIdCtrl.text.trim();
+
+    if (user.isEmpty || pass.isEmpty) {
+      setState(() => _errorMessage = "Please enter teacher username and password.");
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final res = await ApiService.loginTeacherPassword(user, pass, schoolCode.isNotEmpty ? schoolCode : null);
+    setState(() => _isLoading = false);
+
+    if (res['success'] == true) {
+      _onLoginSuccess('teacher', isOffline: res['isOffline'] == true);
+    } else {
+      setState(() => _errorMessage = res['error'] ?? "Teacher authentication failed.");
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // Teacher OTP Flow (Optional Alternate Mode)
   // --------------------------------------------------------------------------
   Future<void> _handleTeacherSendOtp() async {
     final mobile = _teacherMobileCtrl.text.trim();
@@ -373,6 +471,65 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               _onLoginSuccess('admin');
             },
             child: const Text("Enter School Workspace"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPlatformAdminDialog() {
+    final passCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.shield, color: Color(0xFFC084FC), size: 22),
+            SizedBox(width: 8),
+            Text("Platform Governance", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Restricted to Grexotix Platform Superadministrators. Enter Platform Key:",
+              style: TextStyle(fontSize: 12, color: Colors.white70),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: passCtrl,
+              obscureText: true,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                labelText: "Platform Access Key",
+                labelStyle: TextStyle(color: Colors.white70),
+                enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFFC084FC))),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel", style: TextStyle(color: Colors.white60)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7C3AED), foregroundColor: Colors.white),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final res = await ApiService.loginAdmin('platform.admin@grexotix.edu', passCtrl.text);
+              if (res['success'] == true) {
+                _onLoginSuccess('platform_admin', isOffline: res['isOffline'] == true);
+              } else {
+                setState(() => _errorMessage = "Invalid Platform Superadmin authorization.");
+              }
+            },
+            child: const Text("Authenticate"),
           ),
         ],
       ),
@@ -668,23 +825,29 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       ),
                       child: TabBar(
                         controller: _tabController,
-                        labelColor: const Color(0xFF1E3A8A),
-                        unselectedLabelColor: const Color(0xFF64748B),
-                        indicatorColor: const Color(0xFF1E3A8A),
+                        labelColor: const Color(0xFF1D2F80),
+                        unselectedLabelColor: const Color(0xFF596579),
+                        indicatorColor: const Color(0xFF1D2F80),
                         indicatorWeight: 3,
-                        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        isScrollable: true,
+                        tabAlignment: TabAlignment.start,
+                        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                         tabs: const [
                           Tab(
-                            icon: Icon(Icons.family_restroom, size: 20),
-                            text: "Parent",
+                            icon: Icon(Icons.rocket_launch, size: 18),
+                            text: "Register (Trial)",
                           ),
                           Tab(
-                            icon: Icon(Icons.school, size: 20),
-                            text: "Teacher (OTP)",
+                            icon: Icon(Icons.admin_panel_settings, size: 18),
+                            text: "School Admin",
                           ),
                           Tab(
-                            icon: Icon(Icons.admin_panel_settings, size: 20),
-                            text: "Admin",
+                            icon: Icon(Icons.school, size: 18),
+                            text: "Teacher Login",
+                          ),
+                          Tab(
+                            icon: Icon(Icons.family_restroom, size: 18),
+                            text: "Parent Login",
                           ),
                         ],
                       ),
@@ -714,15 +877,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         ),
                       ),
 
-                    // Tab View Content
+                    // Tab View Content (SizedBox with adequate height and scrollability)
                     SizedBox(
-                      height: 380,
+                      height: 480,
                       child: TabBarView(
                         controller: _tabController,
                         children: [
-                          _buildParentTab(),
-                          _buildTeacherTab(),
+                          _buildRegisterTab(),
                           _buildAdminTab(),
+                          _buildTeacherTab(),
+                          _buildParentTab(),
                         ],
                       ),
                     ),
@@ -767,7 +931,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                           ),
                           icon: const Icon(Icons.school, size: 14),
-                          label: const Text("Teacher (Sarah - 10-A)"),
+                          label: const Text("Teacher (Anitha)"),
                           onPressed: () {
                             ApiService.loginDemo('TEACHER');
                             _onLoginSuccess('teacher', isOffline: true);
@@ -781,7 +945,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                           ),
                           icon: const Icon(Icons.admin_panel_settings, size: 14),
-                          label: const Text("Super Admin"),
+                          label: const Text("School Admin"),
                           onPressed: () {
                             ApiService.loginDemo('SUPER_ADMIN');
                             _onLoginSuccess('admin', isOffline: true);
@@ -789,7 +953,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
+                    Center(
+                      child: TextButton.icon(
+                        style: TextButton.styleFrom(foregroundColor: Colors.white38),
+                        icon: const Icon(Icons.shield_outlined, size: 14),
+                        label: const Text(
+                          "Platform Superadmin Governance",
+                          style: TextStyle(fontSize: 11, decoration: TextDecoration.underline),
+                        ),
+                        onPressed: _showPlatformAdminDialog,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                   ],
                 ),
               ),
@@ -803,10 +979,134 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   }
 
   // --------------------------------------------------------------------------
+  // Register School Form View (7-Day Trial)
+  // --------------------------------------------------------------------------
+  Widget _buildRegisterTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            "Register School — 7-Day Free Trial",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            "Instant onboarding with full platform access. No credit card required.",
+            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _regSchoolNameCtrl,
+            decoration: const InputDecoration(
+              labelText: "Official School Name *",
+              hintText: "e.g. St. Xavier International Academy",
+              prefixIcon: Icon(Icons.apartment, color: Color(0xFF7C3AED)),
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _regSchoolEmailCtrl,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: "School Email *",
+                    hintText: "contact@school.edu",
+                    prefixIcon: Icon(Icons.email, color: Color(0xFF7C3AED)),
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _regSchoolPhoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: "School Phone *",
+                    hintText: "10-digit mobile",
+                    prefixIcon: Icon(Icons.phone, color: Color(0xFF7C3AED)),
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _regAdminNameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: "Administrator Name *",
+                    hintText: "e.g. Dr. Arthur Pendelton",
+                    prefixIcon: Icon(Icons.person, color: Color(0xFF7C3AED)),
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _regCityCtrl,
+                  decoration: const InputDecoration(
+                    labelText: "City *",
+                    hintText: "Bangalore",
+                    prefixIcon: Icon(Icons.location_city, color: Color(0xFF7C3AED)),
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _regAdminPassCtrl,
+            obscureText: _obscureRegPass,
+            decoration: InputDecoration(
+              labelText: "Secure Admin Password *",
+              hintText: "Min 8 characters",
+              prefixIcon: const Icon(Icons.lock, color: Color(0xFF7C3AED)),
+              border: const OutlineInputBorder(),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              suffixIcon: IconButton(
+                icon: Icon(_obscureRegPass ? Icons.visibility_off : Icons.visibility),
+                onPressed: () => setState(() => _obscureRegPass = !_obscureRegPass),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _isLoading ? null : _handleSchoolRegister,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF7C3AED),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: _isLoading
+                ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Text("Start 7-Day Free Trial", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --------------------------------------------------------------------------
   // Parent Form View
   // --------------------------------------------------------------------------
   Widget _buildParentTab() {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -872,95 +1172,165 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   }
 
   // --------------------------------------------------------------------------
-  // Teacher Form View (Mobile + SMS OTP)
+  // Teacher Form View (Username & Password default, Mobile OTP secondary)
   // --------------------------------------------------------------------------
   Widget _buildTeacherTab() {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            "Teacher Mobile OTP Verification",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            "Enter your registered teacher phone number. An automated 6-digit OTP will be dispatched via SMS.",
-            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-          ),
-          const SizedBox(height: 16),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _teacherMobileCtrl,
-                  keyboardType: TextInputType.phone,
-                  enabled: !_otpSent,
-                  decoration: const InputDecoration(
-                    labelText: "Teacher Mobile Number",
-                    hintText: "9876500004",
-                    prefixIcon: Icon(Icons.phone_iphone, color: Color(0xFF059669)),
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                  ),
-                ),
+              Text(
+                _teacherUseOtp ? "Teacher Mobile OTP Sign In" : "Teacher Username & Password",
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
               ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _handleTeacherSendOtp,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF059669),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
+              TextButton(
+                onPressed: () => setState(() => _teacherUseOtp = !_teacherUseOtp),
                 child: Text(
-                  _otpSent ? "Resend" : "Send OTP",
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                  _teacherUseOtp ? "Use Password" : "Use SMS OTP",
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF059669)),
                 ),
               ),
             ],
           ),
-          if (_otpDevHint != null) ...[
-            const SizedBox(height: 6),
-            Text(_otpDevHint!, style: const TextStyle(color: Color(0xFF059669), fontSize: 11, fontWeight: FontWeight.w600)),
-          ],
-          const SizedBox(height: 12),
-          TextField(
-            controller: _teacherOtpCtrl,
-            keyboardType: TextInputType.number,
-            maxLength: 6,
-            enabled: _otpSent,
-            decoration: const InputDecoration(
-              labelText: "Enter 6-Digit OTP Code",
-              hintText: "123456",
-              prefixIcon: Icon(Icons.password, color: Color(0xFF059669)),
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-              counterText: "",
-            ),
+          const SizedBox(height: 4),
+          Text(
+            _teacherUseOtp
+                ? "Dispatches a 6-digit verification code to your registered mobile number."
+                : "Enter your staff username/email and password to access your teaching dashboard.",
+            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 14),
-          ElevatedButton(
-            onPressed: (_isLoading || !_otpSent) ? null : _handleTeacherVerifyOtp,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF059669),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+
+          if (!_teacherUseOtp) ...[
+            TextField(
+              controller: _teacherSchoolIdCtrl,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(
+                labelText: "School ID (Optional)",
+                hintText: "e.g. GRX-SCH-XXXXXX (Optional)",
+                prefixIcon: Icon(Icons.apartment, color: Color(0xFF059669)),
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              ),
             ),
-            child: _isLoading
-                ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text("Verify OTP & Sign In", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
-          ),
-          const SizedBox(height: 8),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _teacherUserCtrl,
+              decoration: const InputDecoration(
+                labelText: "Teacher Username or Email *",
+                hintText: "e.g. anitha.math or anitha@school.edu",
+                prefixIcon: Icon(Icons.person, color: Color(0xFF059669)),
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _teacherPassCtrl,
+              obscureText: _obscureTeacherPass,
+              decoration: InputDecoration(
+                labelText: "Password *",
+                prefixIcon: const Icon(Icons.lock, color: Color(0xFF059669)),
+                border: const OutlineInputBorder(),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscureTeacherPass ? Icons.visibility_off : Icons.visibility),
+                  onPressed: () => setState(() => _obscureTeacherPass = !_obscureTeacherPass),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _isLoading ? null : _handleTeacherPasswordLogin,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF059669),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: _isLoading
+                  ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text("Sign In with Username & Password", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+            ),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _teacherMobileCtrl,
+                    keyboardType: TextInputType.phone,
+                    enabled: !_otpSent,
+                    decoration: const InputDecoration(
+                      labelText: "Teacher Mobile Number",
+                      hintText: "9876500004",
+                      prefixIcon: Icon(Icons.phone_iphone, color: Color(0xFF059669)),
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _handleTeacherSendOtp,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF059669),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: Text(
+                    _otpSent ? "Resend" : "Send OTP",
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            if (_otpDevHint != null) ...[
+              const SizedBox(height: 6),
+              Text(_otpDevHint!, style: const TextStyle(color: Color(0xFF059669), fontSize: 11, fontWeight: FontWeight.w600)),
+            ],
+            const SizedBox(height: 12),
+            TextField(
+              controller: _teacherOtpCtrl,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              enabled: _otpSent,
+              decoration: const InputDecoration(
+                labelText: "Enter 6-Digit OTP Code",
+                hintText: "123456",
+                prefixIcon: Icon(Icons.password, color: Color(0xFF059669)),
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                counterText: "",
+              ),
+            ),
+            const SizedBox(height: 14),
+            ElevatedButton(
+              onPressed: (_isLoading || !_otpSent) ? null : _handleTeacherVerifyOtp,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF059669),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: _isLoading
+                  ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text("Verify OTP & Sign In", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+            ),
+          ],
+
+          const SizedBox(height: 10),
           Center(
             child: TextButton.icon(
               icon: const Icon(Icons.touch_app, size: 16),
-              label: const Text("Auto-fill Teacher Sarah Jenkins (9876500004)", style: TextStyle(fontSize: 11)),
+              label: const Text("Auto-fill Teacher (anitha.math • Teacher123!)", style: TextStyle(fontSize: 11)),
               onPressed: () {
+                _teacherUserCtrl.text = "anitha.math";
+                _teacherPassCtrl.text = "Teacher123!";
                 _teacherMobileCtrl.text = "9876500004";
                 _teacherOtpCtrl.text = "123456";
-                setState(() => _otpSent = true);
+                setState(() => _teacherUseOtp = false);
               },
             ),
           ),

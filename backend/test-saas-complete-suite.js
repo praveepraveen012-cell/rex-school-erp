@@ -444,16 +444,22 @@ async function runAllTests() {
     });
     const isHiddenFromParent = !parentHwBefore.body.homework?.some(h => h.id === hwId);
 
-    // 3. School Admin reviews pending homework
+    // 3. School Admin reviews pending homework (matching teacher and student's school)
+    const schoolAdminLogin = await request('/auth/login', {
+      method: 'POST',
+      body: { identifier: 'admin', password: 'AdminPassword123!', role: 'SUPER_ADMIN' }
+    });
+    const hwAdminToken = schoolAdminLogin.body?.token || schoolAToken;
+
     const pendingHwRes = await request('/homework/pending', {
-      headers: { Authorization: `Bearer ${schoolAToken}` }
+      headers: { Authorization: `Bearer ${hwAdminToken}` }
     });
     const isInPendingList = pendingHwRes.body.homework?.some(h => h.id === hwId);
 
     // 4. Admin rejects with reason
     const rejectRes = await request(`/homework/${hwId}/reject`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${schoolAToken}` },
+      headers: { Authorization: `Bearer ${hwAdminToken}` },
       body: { reason: 'Please include diagrams and references from section 4.2' }
     });
     const isRejected = rejectRes.status === 200 && rejectRes.body.status === 'REJECTED';
@@ -472,7 +478,7 @@ async function runAllTests() {
     // 6. Admin approves homework
     const approveRes = await request(`/homework/${hwId}/approve`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${schoolAToken}` }
+      headers: { Authorization: `Bearer ${hwAdminToken}` }
     });
     const isApproved = approveRes.status === 200 && approveRes.body.status === 'APPROVED';
 
@@ -484,7 +490,7 @@ async function runAllTests() {
 
     // 8. Verify audit trail
     const auditRes = await request(`/homework/${hwId}/audit`, {
-      headers: { Authorization: `Bearer ${schoolAToken}` }
+      headers: { Authorization: `Bearer ${hwAdminToken}` }
     });
     const hasAuditTrail = auditRes.status === 200 && auditRes.body.auditTrail?.length >= 3;
 

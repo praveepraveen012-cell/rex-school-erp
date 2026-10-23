@@ -278,7 +278,7 @@ async function runTests() {
     // ------------------------------------------------------------------------
     console.log('Test 15: Multi-Child Data Isolation (Child A vs Child B)');
     const pChild1 = parentData.students[0].id;
-    const pChild2 = parentData.students[1].id;
+    const pChild2 = parentData.students.find(s => s.class_id === 1 && s.section_id === 2)?.id || parentData.students[1].id;
 
     const child1Fees = await fetch(`${BASE}/fees?studentId=${pChild1}`, {
       headers: { 'Authorization': `Bearer ${parentToken}` }

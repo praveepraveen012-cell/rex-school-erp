@@ -27,6 +27,18 @@
   <link rel="stylesheet" href="css/home-webapp.css?v=2.6.0">
   <link rel="stylesheet" href="css/mobile-app.css?v=2.6.0">
 
+  <!-- Production Subpath & Asset URL Normalizer for GitHub Pages -->
+  <script>
+    (function() {
+      // Normalize repository subpath routing for GitHub Pages
+      if (window.location.hostname.includes('github.io')) {
+        const path = window.location.pathname;
+        if (path.includes('/rex-school-erp') && !path.endsWith('/') && !path.includes('.')) {
+          window.history.replaceState(null, '', path + '/' + window.location.search + window.location.hash);
+        }
+      }
+    })();
+  </script>
 </head>
 <body>
   
@@ -72,43 +84,58 @@
       </div>
     </div>
 
-    <!-- Home Navbar -->
+    <!-- Main Primary Header -->
     <header class="home-navbar">
       <div class="home-nav-container">
+        <!-- Brand Group: Original Logo + Title + Tagline -->
         <a href="#" class="home-nav-brand" onclick="window.scrollTo({top:0, behavior:'smooth'}); return false;">
-          <div class="grexotix-logo-container">
-            <img src="assets/grexotix_logo.png" alt="Grexotix Logo" class="grexotix-logo-img">
+          <div class="grexotix-logo-container" style="background:#ffffff; padding:4px 8px; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.08); display:inline-flex; align-items:center;">
+            <img src="assets/grexotix_logo.png" alt="Grexotix Logo" class="grexotix-logo-img" style="height:38px; width:auto; max-width:160px; object-fit:contain;" onerror="if(!this.dataset.retried){this.dataset.retried='1';this.src=(window.location.pathname.includes('rex-school-erp')?'/rex-school-erp/':'./')+'assets/grexotix_logo.png';}">
           </div>
-          <div>
-            <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-primary); line-height: 1.1;">Grexotix School Platform</div>
-            <div style="font-size: 0.72rem; color: #7c3aed; font-weight: 700;">Empowering Schools with Smart Management • Product of Grexotix</div>
+          <div class="home-brand-text">
+            <div class="home-brand-title">Grexotix School Platform</div>
+            <div class="home-brand-tagline">Empowering Schools with Smart Management &bull; Product of Grexotix</div>
           </div>
         </a>
 
-        <nav class="home-nav-links">
-          <a href="#solutions" class="home-nav-link">Platform Features</a>
-          <a href="#sandbox" class="home-nav-link">Live Fee Engine</a>
-          <a href="#architecture" class="home-nav-link">Multi-School Cloud</a>
-          <a href="#onboarding" class="home-nav-link">Onboarding Guide</a>
-          <a href="#contact" class="home-nav-link">Contact Support</a>
-        </nav>
-
+        <!-- Primary Header Actions (Compact horizontal row on desktop) -->
         <div class="home-nav-actions">
           <button type="button" class="icon-action-btn theme-toggle-btn" title="Toggle Light/Dark Theme">
             <span class="theme-icon">🌙</span>
           </button>
-          <button type="button" class="btn btn-outline" onclick="if(window.PlatformModule) window.PlatformModule.openStatusModal()" style="font-size: 0.8rem; font-weight: 700;">
-            Track Status
+          <button type="button" class="btn btn-outline home-btn-track" onclick="if(window.PlatformModule) window.PlatformModule.openStatusModal()">
+            🔍 Track Status
           </button>
-          <button type="button" class="btn btn-primary" onclick="if(window.PlatformModule) window.PlatformModule.openRegistrationModal()" style="background: linear-gradient(135deg, #7c3aed, #5b21b6); border-color: #5b21b6; font-weight: 800; font-size: 0.82rem;">
+          <button type="button" class="btn btn-primary home-btn-register" onclick="if(window.PlatformModule) window.PlatformModule.openRegistrationModal()" style="background: linear-gradient(135deg, #673AB7, #1D2F80); border-color: #1D2F80; font-weight: 800; font-size: 0.82rem; white-space: nowrap;">
             🚀 Register Your School
           </button>
-          <button type="button" id="home-nav-signin-btn" class="btn btn-secondary" onclick="window.AuthUI.showLoginModal()" style="font-weight: 700; font-size: 0.82rem;">
-            School Login
+          <button type="button" id="home-nav-signin-btn" class="btn btn-secondary home-btn-login" onclick="window.AuthUI.showLoginModal()" style="font-weight: 700; font-size: 0.82rem; white-space: nowrap;">
+            🔑 School Login
+          </button>
+          <!-- Mobile Hamburger Toggle -->
+          <button type="button" class="home-mobile-menu-btn" id="home-mobile-toggle-btn" onclick="document.getElementById('home-secondary-nav').classList.toggle('mobile-open')" title="Toggle Navigation Menu">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
           </button>
         </div>
       </div>
     </header>
+
+    <!-- Distinct Secondary Navigation Row -->
+    <nav class="home-secondary-nav" id="home-secondary-nav">
+      <div class="home-secondary-container">
+        <div class="home-secondary-links">
+          <a href="#solutions" class="home-secondary-link"><span class="nav-icon">🎯</span> Platform Features</a>
+          <a href="#sandbox" class="home-secondary-link"><span class="nav-icon">💳</span> Live Fee Engine</a>
+          <a href="#architecture" class="home-secondary-link"><span class="nav-icon">☁️</span> Multi-School Cloud</a>
+          <a href="#onboarding" class="home-secondary-link"><span class="nav-icon">📖</span> Onboarding Guide</a>
+          <a href="#contact" class="home-secondary-link"><span class="nav-icon">📞</span> Contact Support</a>
+        </div>
+        <div class="home-secondary-badge">
+          <span class="live-pulse-dot" style="display:inline-block; width:8px; height:8px; background:#10b981; border-radius:50%; margin-right:5px; box-shadow:0 0 6px #10b981;"></span>
+          <span>Sovereign Multi-School Cloud Active</span>
+        </div>
+      </div>
+    </nav>
 
     <!-- Hero Section -->
     <section class="home-hero-section">
@@ -1481,6 +1508,11 @@
           </div>
         </section>
 
+        <!-- 2B. STAFF & TEACHERS VIEW -->
+        <section id="teachers-view" class="page-view">
+          <!-- Dynamically populated by TeachersModule.render() -->
+        </section>
+
         <!-- 3. ATTENDANCE VIEW -->
         <section id="attendance-view" class="page-view">
           <div class="page-header">
@@ -2531,6 +2563,7 @@
   <script src="js/data.js?v=2.6.0"></script>
   <script src="js/dashboard.js?v=2.6.0"></script>
   <script src="js/students.js?v=2.6.0"></script>
+  <script src="js/teachers.js?v=2.6.0"></script>
   <script src="js/attendance.js?v=2.6.0"></script>
   <script src="js/fees.js?v=2.6.0"></script>
   <script src="js/exams.js?v=2.6.0"></script>

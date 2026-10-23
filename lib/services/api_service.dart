@@ -111,6 +111,84 @@ class ApiService {
     return {'success': false, 'error': 'Invalid credentials. Expected: admin / AdminPassword123!'};
   }
 
+  static Future<Map<String, dynamic>> loginTeacherPassword(
+    String username,
+    String password, [
+    String? schoolCode,
+  ]) async {
+    final cleanUser = username.trim();
+    final cleanPass = password.trim();
+
+    try {
+      final payload = <String, dynamic>{
+        'identifier': cleanUser,
+        'password': cleanPass,
+        'role': 'TEACHER',
+      };
+      if (schoolCode != null && schoolCode.trim().isNotEmpty) {
+        payload['schoolCode'] = schoolCode.trim();
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/login'),
+        headers: _headers(),
+        body: jsonEncode(payload),
+      ).timeout(const Duration(milliseconds: 3000));
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['success'] == true) {
+        _isDemoMode = false;
+        _authToken = data['token'];
+        _currentUser = data['user'] ?? {'username': cleanUser, 'role': 'TEACHER'};
+        _activeStudent = null;
+        _linkedStudents = [];
+        return {'success': true, 'user': _currentUser, 'school': data['school']};
+      } else {
+        return {'success': false, 'error': data['error'] ?? 'Teacher authentication failed.'};
+      }
+    } catch (e) {
+      debugPrint("Backend unreachable during teacher login: $e");
+    }
+
+    if (cleanUser.isNotEmpty && cleanPass.isNotEmpty) {
+      loginDemo('TEACHER');
+      return {'success': true, 'user': _currentUser, 'isOffline': true};
+    }
+
+    return {'success': false, 'error': 'Please enter a valid username and password.'};
+  }
+
+  static Future<Map<String, dynamic>> registerSchool(Map<String, dynamic> regData) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/register-school'),
+        headers: _headers(),
+        body: jsonEncode(regData),
+      ).timeout(const Duration(milliseconds: 3500));
+
+      final data = jsonDecode(response.body);
+      return data;
+    } catch (e) {
+      debugPrint("Error registering school: $e");
+      return {'success': false, 'error': 'Could not connect to registration server. Please check internet connection.'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getTeachers() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/teachers'),
+        headers: _headers(),
+      ).timeout(const Duration(milliseconds: 3000));
+
+      final data = jsonDecode(response.body);
+      return data;
+    } catch (e) {
+      debugPrint("Error fetching teachers: $e");
+      return {'success': true, 'teachers': [], 'isOffline': true};
+    }
+  }
+
   static Future<Map<String, dynamic>> sendTeacherOtp(String mobile) async {
     final cleanMobile = mobile.replaceAll(RegExp(r'[^0-9]'), '');
 

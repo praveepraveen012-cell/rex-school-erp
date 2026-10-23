@@ -66,21 +66,47 @@ class _MessageCenterScreenState extends State<MessageCenterScreen> {
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
-                    children: ['All', 'Birthday', 'Absent', 'Greeting', 'General'].map((f) {
-                      final sel = _filter == f;
+                    children: [
+                      {'key': 'All', 'label': 'All Messages', 'icon': Icons.all_inbox_rounded},
+                      {'key': 'Birthday', 'label': 'Birthday', 'icon': Icons.cake_outlined},
+                      {'key': 'Absent', 'label': 'Absent Alerts', 'icon': Icons.person_off_outlined},
+                      {'key': 'Greeting', 'label': 'Greetings', 'icon': Icons.celebration_outlined},
+                      {'key': 'General', 'label': 'General Notices', 'icon': Icons.notifications_none_outlined},
+                    ].map((item) {
+                      final key = item['key'] as String;
+                      final label = item['label'] as String;
+                      final icon = item['icon'] as IconData;
+                      final sel = _filter == key;
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: FilterChip(
-                          label: Text(f, style: TextStyle(
-                            color: sel ? Colors.white : Colors.white70,
-                            fontSize: 12,
-                          )),
+                          avatar: Icon(
+                            icon,
+                            size: 15,
+                            color: sel ? Colors.white : const Color(0xFF1D2F80),
+                          ),
+                          label: Text(
+                            label,
+                            style: TextStyle(
+                              color: sel ? Colors.white : const Color(0xFF172033),
+                              fontWeight: sel ? FontWeight.w700 : FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
                           selected: sel,
-                          onSelected: (_) => setState(() => _filter = f),
-                          backgroundColor: Colors.white.withOpacity(0.15),
-                          selectedColor: Colors.amber.shade700,
+                          onSelected: (_) => setState(() => _filter = key),
+                          backgroundColor: Colors.white,
+                          selectedColor: const Color(0xFF673AB7),
                           checkmarkColor: Colors.white,
-                          side: BorderSide.none,
+                          showCheckmark: false,
+                          side: BorderSide(
+                            color: sel ? const Color(0xFF673AB7) : const Color(0xFFD8DFEC),
+                            width: 1.2,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         ),
                       );
                     }).toList(),

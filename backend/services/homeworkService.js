@@ -215,6 +215,11 @@ function isEditLocked(homework, simulatedTime = null) {
     return { locked: true, reason: 'Homework has already been sent to parents.' };
   }
 
+  // Phase 12 Requirement 6: Rejected homework returns to the teacher for editing and resubmission
+  if (homework.approval_status === 'REJECTED' || homework.status === 'REJECTED') {
+    return { locked: false };
+  }
+
   // Configured deadline check
   if (isDeadlinePassed(homework.assigned_date, simulatedTime)) {
     return { locked: true, reason: 'Homework editing deadline has passed.' };

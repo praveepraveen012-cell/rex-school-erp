@@ -24,13 +24,22 @@ router.get('/', (req, res) => {
     return res.json({ success: true, count: 1, teachers: [req.teacher] });
   }
 
-  // Super Admin view
-  const teachers = db.query(
-    `SELECT t.*, u.status as user_status, u.last_login_at
-     FROM teachers t
-     LEFT JOIN users u ON t.user_id = u.id
-     ORDER BY t.name ASC`
-  );
+  // Super Admin view with multi-school tenant isolation
+  const schoolId = req.schoolId || (req.user && req.user.school_id) || 1;
+  const isPlatformAdmin = req.user.role === 'PLATFORM_ADMIN';
+
+  let sql = `
+    SELECT t.*, u.username, u.status as user_status, u.last_login_at
+    FROM teachers t
+    LEFT JOIN users u ON t.user_id = u.id
+  `;
+  const params = [];
+  if (!isPlatformAdmin) {
+    sql += ` WHERE (t.school_id = ? OR u.school_id = ?)`;
+    params.push(schoolId, schoolId);
+  }
+  sql += ` ORDER BY t.name ASC`;
+  const teachers = db.query(sql, params);
 
   // Attach assignments to each teacher
   for (const t of teachers) {
@@ -57,6 +66,8 @@ router.get('/:id', (req, res) => {
   }
 
   const teacherId = parseInt(req.params.id, 10);
+  const schoolId = req.schoolId || (req.user && req.user.school_id) || 1;
+  const isPlatformAdmin = req.user.role === 'PLATFORM_ADMIN';
 
   // Teacher isolation: can only view own profile
   if (req.user.role === 'TEACHER' && req.teacher.id !== teacherId) {
@@ -67,7 +78,7 @@ router.get('/:id', (req, res) => {
   }
 
   const teacher = db.get(
-    `SELECT t.*, u.status as user_status, u.last_login_at
+    `SELECT t.*, u.username, u.status as user_status, u.last_login_at
      FROM teachers t
      LEFT JOIN users u ON t.user_id = u.id
      WHERE t.id = ?`,
@@ -76,6 +87,10 @@ router.get('/:id', (req, res) => {
 
   if (!teacher) {
     return res.status(404).json({ success: false, error: 'Teacher not found.' });
+  }
+
+  if (!isPlatformAdmin && req.user.role !== 'TEACHER' && teacher.school_id && teacher.school_id !== schoolId) {
+    return res.status(403).json({ success: false, error: 'Unauthorized: Cannot view teacher of another school.' });
   }
 
   teacher.assignments = db.query(
@@ -92,18 +107,20 @@ router.get('/:id', (req, res) => {
 });
 
 // ----------------------------------------------------------------------------
-// POST /api/teachers - Create new teacher (Super Admin only)
+// POST /api/teachers - Create new teacher (School Admin / Super Admin)
 // ----------------------------------------------------------------------------
 router.post('/', requireSuperAdmin, (req, res) => {
   const {
     employeeId, name, mobile, email, gender, dob, qualification,
-    experience, department, joiningDate, initialPassword, assignments
+    experience, department, joiningDate, initialPassword, assignments,
+    username
   } = req.body;
 
   const schoolId = req.schoolId || (req.user && req.user.school_id) || 1;
   const cleanEmpId = String(employeeId || ('EMP-' + Date.now().toString().slice(-6))).trim().toUpperCase();
   const cleanMobile = String(mobile).trim();
   const cleanEmail = String(email).trim().toLowerCase();
+  const cleanUsername = String(username || cleanEmail.split('@')[0] || ('teacher.' + Date.now().toString().slice(-4))).trim().toLowerCase();
 
   if (!name || !mobile || !email) {
     return res.status(400).json({
@@ -112,7 +129,7 @@ router.post('/', requireSuperAdmin, (req, res) => {
     });
   }
 
-  // Unique checks
+  // Unique checks within tenant / system
   const existingMobile = db.get(`SELECT id FROM teachers WHERE mobile = ?`, [cleanMobile]);
   if (existingMobile) {
     return res.status(400).json({
@@ -129,25 +146,26 @@ router.post('/', requireSuperAdmin, (req, res) => {
     });
   }
 
-  // Create User account for Teacher
+  // Create User account for Teacher (supports username & password login)
   const passwordHash = bcrypt.hashSync(initialPassword || 'Teacher123!', 10);
   const userRes = db.run(
     `INSERT INTO users (username, email, mobile, password_hash, role, status, school_id)
      VALUES (?, ?, ?, ?, 'TEACHER', 'active', ?)`,
-    [cleanEmail, cleanEmail, cleanMobile, passwordHash, schoolId]
+    [cleanUsername, cleanEmail, cleanMobile, passwordHash, schoolId]
   );
 
   const userId = userRes.lastInsertRowid;
 
-  // Insert Teacher profile
+  // Insert Teacher profile with tenant attribution
   const teacherRes = db.run(
     `INSERT INTO teachers (
       user_id, employee_id, name, mobile, email, gender, dob,
-      qualification, experience, department, status, joining_date
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)`,
+      qualification, experience, department, status, joining_date, school_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
     [
       userId, cleanEmpId, name.trim(), cleanMobile, cleanEmail, gender || 'other', dob || null,
-      qualification || '', experience || '', department || 'Academics', joiningDate || new Date().toISOString().split('T')[0]
+      qualification || '', experience || '', department || 'Academics', joiningDate || new Date().toISOString().split('T')[0],
+      schoolId
     ]
   );
 
@@ -319,6 +337,92 @@ router.delete('/:id', requireSuperAdmin, (req, res) => {
   return res.json({
     success: true,
     message: `Teacher ${teacher.name} has been disabled.`
+  });
+});
+
+// ----------------------------------------------------------------------------
+// POST /api/teachers/:id/reset-password - Reset teacher password (Admin only)
+// ----------------------------------------------------------------------------
+router.post('/:id/reset-password', requireSuperAdmin, (req, res) => {
+  const teacherId = parseInt(req.params.id, 10);
+  const schoolId = req.schoolId || (req.user && req.user.school_id) || 1;
+  const isPlatformAdmin = req.user.role === 'PLATFORM_ADMIN';
+
+  const teacher = db.get(
+    `SELECT t.*, u.id as user_id, u.username, u.email as user_email
+     FROM teachers t
+     JOIN users u ON t.user_id = u.id
+     WHERE t.id = ?`,
+    [teacherId]
+  );
+
+  if (!teacher) {
+    return res.status(404).json({ success: false, error: 'Teacher not found.' });
+  }
+
+  if (!isPlatformAdmin && teacher.school_id && teacher.school_id !== schoolId) {
+    return res.status(403).json({ success: false, error: 'Unauthorized: Cannot reset password for teacher of another school.' });
+  }
+
+  const { newPassword } = req.body;
+  const generatedPass = newPassword || `Teach@${Math.random().toString(36).slice(-6)}!`;
+  const hashed = bcrypt.hashSync(generatedPass, 10);
+
+  db.run(`UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [hashed, teacher.user_id]);
+
+  auditService.log({
+    userId: req.user.id,
+    userRole: req.user.role,
+    action: 'TEACHER_PASSWORD_RESET',
+    module: 'TEACHERS',
+    recordId: teacher.id,
+    details: `Reset password for teacher ${teacher.name} (${teacher.username})`,
+    ipAddress: req.ip
+  });
+
+  return res.json({
+    success: true,
+    message: `Password reset successfully for ${teacher.name}.`,
+    username: teacher.username,
+    temporaryPassword: generatedPass
+  });
+});
+
+// ----------------------------------------------------------------------------
+// POST /api/teachers/:id/toggle-status - Toggle Active / Disabled
+// ----------------------------------------------------------------------------
+router.post('/:id/toggle-status', requireSuperAdmin, (req, res) => {
+  const teacherId = parseInt(req.params.id, 10);
+  const schoolId = req.schoolId || (req.user && req.user.school_id) || 1;
+  const isPlatformAdmin = req.user.role === 'PLATFORM_ADMIN';
+
+  const teacher = db.get(`SELECT * FROM teachers WHERE id = ?`, [teacherId]);
+  if (!teacher) {
+    return res.status(404).json({ success: false, error: 'Teacher not found.' });
+  }
+
+  if (!isPlatformAdmin && teacher.school_id && teacher.school_id !== schoolId) {
+    return res.status(403).json({ success: false, error: 'Unauthorized: Cannot modify teacher of another school.' });
+  }
+
+  const newStatus = teacher.status === 'active' ? 'disabled' : 'active';
+  db.run(`UPDATE teachers SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [newStatus, teacher.id]);
+  db.run(`UPDATE users SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [newStatus, teacher.user_id]);
+
+  auditService.log({
+    userId: req.user.id,
+    userRole: req.user.role,
+    action: 'TEACHER_STATUS_CHANGED',
+    module: 'TEACHERS',
+    recordId: teacher.id,
+    details: `Toggled teacher ${teacher.name} status to ${newStatus}`,
+    ipAddress: req.ip
+  });
+
+  return res.json({
+    success: true,
+    message: `Teacher status updated to ${newStatus}.`,
+    status: newStatus
   });
 });
 

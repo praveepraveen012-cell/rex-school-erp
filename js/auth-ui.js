@@ -290,20 +290,17 @@
 
           <!-- Role Selection Tabs -->
           <div class="rex-role-tabs">
-            <button type="button" class="rex-tab-btn ${this.currentTab === 'register' ? 'active' : ''}" onclick="window.AuthUI.switchTab('register')" style="color: #7c3aed;">
+            <button type="button" class="rex-tab-btn ${this.currentTab === 'register' ? 'active' : ''}" onclick="window.AuthUI.switchTab('register')" style="color: #673AB7; font-weight: 700;">
               <i class="fas fa-rocket"></i> Register School (7-Day Trial)
             </button>
             <button type="button" class="rex-tab-btn ${this.currentTab === 'admin' ? 'active' : ''}" onclick="window.AuthUI.switchTab('admin')">
-              <i class="fas fa-shield-alt"></i> School Admin
+              <i class="fas fa-shield-alt"></i> School Admin Login
             </button>
             <button type="button" class="rex-tab-btn ${this.currentTab === 'teacher' ? 'active' : ''}" onclick="window.AuthUI.switchTab('teacher')">
-              <i class="fas fa-chalkboard-teacher"></i> Teacher
+              <i class="fas fa-chalkboard-teacher"></i> Teacher Login
             </button>
             <button type="button" class="rex-tab-btn ${this.currentTab === 'parent' ? 'active' : ''}" onclick="window.AuthUI.switchTab('parent')">
-              <i class="fas fa-user-friends"></i> Parent
-            </button>
-            <button type="button" class="rex-tab-btn ${this.currentTab === 'platform' ? 'active' : ''}" onclick="window.AuthUI.switchTab('platform')">
-              <i class="fas fa-crown"></i> Platform
+              <i class="fas fa-user-friends"></i> Parent Login
             </button>
           </div>
 
@@ -418,42 +415,58 @@
                 <i class="fas fa-chalkboard-teacher" style="font-size: 1.5rem;"></i>
                 <div>
                   <strong>Teacher & Faculty Access</strong>
-                  <div>Mark smart attendance, post homework diaries & record test marks</div>
+                  <div style="font-size: 0.75rem; opacity: 0.9;">Sign in with your assigned Username and Password</div>
                 </div>
               </div>
 
-              <!-- Teacher Sub-mode selector (OTP vs Password) -->
-              <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem;">
-                <button type="button" class="btn btn-sm ${this.teacherAuthMode === 'otp' ? 'btn-primary' : 'btn-outline'}" onclick="window.AuthUI.setTeacherMode('otp')" style="flex: 1; font-size: 0.78rem;">
-                  📱 Mobile OTP
-                </button>
-                <button type="button" class="btn btn-sm ${this.teacherAuthMode === 'password' ? 'btn-primary' : 'btn-outline'}" onclick="window.AuthUI.setTeacherMode('password')" style="flex: 1; font-size: 0.78rem;">
-                  🔑 Email & Password
-                </button>
+              <!-- Primary Mode: Username & Password -->
+              <div id="teacher-pass-container">
+                <form onsubmit="window.AuthUI.handleTeacherPasswordLogin(event)">
+                  <div class="rex-form-group">
+                    <label for="teacher-school-id">School ID (Optional)</label>
+                    <input type="text" id="teacher-school-id" placeholder="e.g. GRX-SCH-XXXXXX (Optional)" autocomplete="organization">
+                  </div>
+                  <div class="rex-form-group">
+                    <label for="teacher-email">Teacher Username / Email *</label>
+                    <input type="text" id="teacher-email" required placeholder="maths@grexotix.edu or faculty username" value="maths@grexotix.edu" autocomplete="username">
+                  </div>
+                  <div class="rex-form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <label for="teacher-pass" style="margin: 0;">Password *</label>
+                      <a href="#" onclick="window.AuthUI.openForgotPasswordModal(); return false;" style="font-size: 0.75rem; color: #059669; text-decoration: none;">Forgot Password?</a>
+                    </div>
+                    <input type="password" id="teacher-pass" required placeholder="••••••••" value="AdminPassword123!" autocomplete="current-password" style="margin-top: 4px;">
+                  </div>
+                  <div class="rex-demo-hint">
+                    <i class="fas fa-info-circle"></i> Faculty Credentials: <code>maths@grexotix.edu</code> / <code>AdminPassword123!</code>
+                  </div>
+                  <button type="submit" class="rex-btn-primary teacher" id="btn-teacher-pass-submit" style="background: linear-gradient(135deg, #059669, #047857); border-color: #047857;">
+                    <i class="fas fa-sign-in-alt"></i> Sign In as Teacher
+                  </button>
+                  <div style="text-align: center; margin-top: 0.75rem;">
+                    <button type="button" class="rex-btn-link" onclick="const el = document.getElementById('teacher-otp-container'); el.style.display = (el.style.display === 'none' ? 'block' : 'none');" style="font-size: 0.75rem; color: #059669;">
+                      📱 Alternate: Sign in with Registered Mobile OTP
+                    </button>
+                  </div>
+                </form>
               </div>
 
-              <!-- Sub-mode: OTP -->
-              <div id="teacher-otp-container" style="display: ${this.teacherAuthMode === 'otp' ? 'block' : 'none'};">
-                <!-- Step 1: Send OTP -->
+              <!-- Secondary Alternate Mode: OTP (Optional Toggle) -->
+              <div id="teacher-otp-container" style="display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed #cbd5e1;">
                 <div id="teacher-step-1">
                   <form onsubmit="window.AuthUI.handleTeacherSendOtp(event)">
                     <div class="rex-form-group">
                       <label for="teacher-phone">Registered Mobile Number *</label>
                       <div class="rex-phone-input">
                         <span>+91</span>
-                        <input type="tel" id="teacher-phone" maxlength="10" required placeholder="9876500004" value="9876500004">
+                        <input type="tel" id="teacher-phone" maxlength="10" placeholder="9876500004" value="9876500004">
                       </div>
                     </div>
-                    <div class="rex-demo-hint">
-                      <i class="fas fa-info-circle"></i> Faculty Mobile: <code>9876500004</code>
-                    </div>
-                    <button type="submit" class="rex-btn-primary teacher" id="btn-teacher-send">
+                    <button type="submit" class="rex-btn-primary teacher" id="btn-teacher-send" style="background: #059669; border-color: #047857;">
                       <i class="fas fa-paper-plane"></i> Send OTP Code
                     </button>
                   </form>
                 </div>
-
-                <!-- Step 2: Verify OTP -->
                 <div id="teacher-step-2" style="display: none;">
                   <form onsubmit="window.AuthUI.handleTeacherVerifyOtp(event)">
                     <div class="rex-otp-header">
@@ -461,33 +474,13 @@
                       <button type="button" class="rex-btn-link" onclick="window.AuthUI.resetTeacherOtp()">Change</button>
                     </div>
                     <div class="rex-form-group">
-                      <input type="text" id="teacher-otp" maxlength="6" required placeholder="123456" class="rex-otp-box">
-                    </div>
-                    <div class="rex-demo-hint dev-otp">
-                      <i class="fas fa-key"></i> Test OTP Code: <strong>123456</strong>
+                      <input type="text" id="teacher-otp" maxlength="6" placeholder="123456" class="rex-otp-box">
                     </div>
                     <button type="submit" class="rex-btn-primary teacher" id="btn-teacher-verify">
                       <i class="fas fa-check-circle"></i> Verify OTP & Enter Dashboard
                     </button>
                   </form>
                 </div>
-              </div>
-
-              <!-- Sub-mode: Password -->
-              <div id="teacher-pass-container" style="display: ${this.teacherAuthMode === 'password' ? 'block' : 'none'};">
-                <form onsubmit="window.AuthUI.handleTeacherPasswordLogin(event)">
-                  <div class="rex-form-group">
-                    <label for="teacher-email">Teacher Email / Username *</label>
-                    <input type="text" id="teacher-email" required placeholder="maths@grexotix.edu" value="maths@grexotix.edu">
-                  </div>
-                  <div class="rex-form-group">
-                    <label for="teacher-pass">Password *</label>
-                    <input type="password" id="teacher-pass" required placeholder="••••••••" value="AdminPassword123!">
-                  </div>
-                  <button type="submit" class="rex-btn-primary teacher" id="btn-teacher-pass-submit">
-                    <i class="fas fa-sign-in-alt"></i> Sign In as Teacher
-                  </button>
-                </form>
               </div>
             </div>
 
@@ -548,10 +541,13 @@
               </form>
             </div>
 
-            <!-- Registration Callout Footer -->
+            <!-- Registration Callout & Discreet Platform Access -->
             <div style="text-align: center; margin-top: 1.25rem; padding-top: 0.85rem; border-top: 1px dashed var(--border-subtle); font-size: 0.78rem; color: #64748b;">
-              New School Institution? <a href="#" onclick="window.AuthUI.hideLoginModal(); if(window.PlatformModule) window.PlatformModule.openRegistrationModal(); return false;" style="color: #7c3aed; font-weight: 700;">Register Your School &rarr;</a>
-              &bull; <a href="#" onclick="window.AuthUI.hideLoginModal(); if(window.PlatformModule) window.PlatformModule.openStatusModal(); return false;" style="color: #2563eb; font-weight: 600;">Track Status</a>
+              New School Institution? <a href="#" onclick="window.AuthUI.switchTab('register'); return false;" style="color: #673AB7; font-weight: 700;">Register Your School (7-Day Trial) &rarr;</a>
+              &bull; <a href="#" onclick="window.AuthUI.hideLoginModal(); if(window.PlatformModule) window.PlatformModule.openStatusModal(); return false;" style="color: #1D2F80; font-weight: 600;">Track Status</a>
+              <div style="margin-top: 6px; font-size: 0.72rem; opacity: 0.75;">
+                <a href="#" onclick="window.AuthUI.switchTab('platform'); return false;" style="color: #64748b; text-decoration: none;">Authorized Platform Superadmin Console &rarr;</a>
+              </div>
             </div>
           </div>
         </div>
@@ -1063,6 +1059,51 @@
       } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Access Platform Console';
+      }
+    },
+
+    async handleTeacherPasswordLogin(e) {
+      e.preventDefault();
+      this.clearError();
+
+      const schoolId = (document.getElementById('teacher-school-id')?.value || '').trim();
+      const identifier = (document.getElementById('teacher-email')?.value || '').trim();
+      const password = (document.getElementById('teacher-pass')?.value || '').trim();
+
+      if (!identifier || !password) {
+        this.showError('Please enter both teacher username/email and password.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-teacher-pass-submit');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
+      }
+
+      try {
+        let authResult;
+        if (schoolId) {
+          authResult = await window.RexApi.loginSchool(schoolId, password, identifier);
+        } else {
+          authResult = await window.RexApi.login({ username: identifier, email: identifier, password, role: 'TEACHER' });
+        }
+
+        window.RexApi.showToast('Welcome, Faculty! Successfully signed in.', 'success');
+        this.hideLoginModal();
+        this.renderUserBadge();
+
+        if (window.App) {
+          window.App.applyRole('teacher', false);
+          window.App.switchView('teacher-dashboard');
+        }
+      } catch (err) {
+        this.showError(err.message || 'Invalid teacher credentials. Please check your username and password.');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In as Teacher';
+        }
       }
     },
 
