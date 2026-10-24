@@ -79,6 +79,21 @@ try {
     INSERT OR IGNORE INTO homework_automation_settings (id, auto_send_enabled, auto_send_time, timezone, send_method)
     VALUES (1, 1, '17:00', 'Asia/Kolkata', 'WhatsApp');
   `);
+
+  // Ensure email_verifications exists
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS email_verifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL,
+      code_hash TEXT NOT NULL,
+      purpose TEXT DEFAULT 'REGISTRATION',
+      attempts INTEGER DEFAULT 0,
+      verified INTEGER DEFAULT 0,
+      expires_at DATETIME NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_email_verifications ON email_verifications(email, verified);
+  `);
 } catch (settingErr) {
   console.warn('Settings table init notice:', settingErr.message);
 }

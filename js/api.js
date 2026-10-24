@@ -565,6 +565,46 @@
       return this.applyAuthResult(res);
     },
 
+    async sendRegistrationPhoneOtp(mobile) {
+      if (isStaticMode) {
+        return { success: true, message: 'OTP sent to mobile (simulated)', devOtpHint: '123456', isOffline: true };
+      }
+      return await this.request('/auth/registration/send-phone-otp', {
+        method: 'POST',
+        body: JSON.stringify({ mobile })
+      });
+    },
+
+    async verifyRegistrationPhoneOtp(mobile, otp) {
+      if (isStaticMode) {
+        return { success: true, message: 'Mobile verified (simulated)', isOffline: true };
+      }
+      return await this.request('/auth/registration/verify-phone-otp', {
+        method: 'POST',
+        body: JSON.stringify({ mobile, otp })
+      });
+    },
+
+    async sendRegistrationEmailOtp(email, adminName) {
+      if (isStaticMode) {
+        return { success: true, message: 'Verification code sent to email (simulated)', devCodeHint: '123456', isOffline: true };
+      }
+      return await this.request('/auth/registration/send-email-otp', {
+        method: 'POST',
+        body: JSON.stringify({ email, adminName })
+      });
+    },
+
+    async verifyRegistrationEmailOtp(email, code) {
+      if (isStaticMode) {
+        return { success: true, message: 'Email verified (simulated)', isOffline: true };
+      }
+      return await this.request('/auth/registration/verify-email-otp', {
+        method: 'POST',
+        body: JSON.stringify({ email, code })
+      });
+    },
+
     async registerSchool(schoolData) {
       if (isStaticMode) {
         return this.simulateOfflineRegisterSchool(schoolData);

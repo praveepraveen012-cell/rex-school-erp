@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
@@ -18,10 +19,33 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   final _regSchoolNameCtrl = TextEditingController();
   final _regSchoolEmailCtrl = TextEditingController();
   final _regSchoolPhoneCtrl = TextEditingController();
+  final _regAddressCtrl = TextEditingController(text: 'Main Campus');
   final _regCityCtrl = TextEditingController(text: 'Bangalore');
   final _regAdminNameCtrl = TextEditingController();
   final _regAdminPassCtrl = TextEditingController();
+  final _regConfirmPassCtrl = TextEditingController();
   bool _obscureRegPass = true;
+  bool _obscureRegConfirmPass = true;
+
+  // Phone OTP State
+  final _regPhoneOtpCtrl = TextEditingController();
+  bool _regPhoneOtpSent = false;
+  bool _regPhoneVerified = false;
+  bool _regPhoneSending = false;
+  bool _regPhoneVerifying = false;
+  int _regPhoneCooldown = 0;
+  String? _regPhoneDevHint;
+  Timer? _phoneTimer;
+
+  // Email OTP State
+  final _regEmailOtpCtrl = TextEditingController();
+  bool _regEmailOtpSent = false;
+  bool _regEmailVerified = false;
+  bool _regEmailSending = false;
+  bool _regEmailVerifying = false;
+  int _regEmailCooldown = 0;
+  String? _regEmailDevHint;
+  Timer? _emailTimer;
 
   // Admin form
   final _adminSchoolIdCtrl = TextEditingController();
@@ -56,12 +80,18 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   @override
   void dispose() {
     _tabController.dispose();
+    _phoneTimer?.cancel();
+    _emailTimer?.cancel();
     _regSchoolNameCtrl.dispose();
     _regSchoolEmailCtrl.dispose();
     _regSchoolPhoneCtrl.dispose();
+    _regAddressCtrl.dispose();
     _regCityCtrl.dispose();
     _regAdminNameCtrl.dispose();
     _regAdminPassCtrl.dispose();
+    _regConfirmPassCtrl.dispose();
+    _regPhoneOtpCtrl.dispose();
+    _regEmailOtpCtrl.dispose();
     _adminSchoolIdCtrl.dispose();
     _adminUserCtrl.dispose();
     _adminPassCtrl.dispose();
@@ -133,18 +163,189 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   }
 
   // --------------------------------------------------------------------------
-  // Register School (7-Day Free Trial)
+  // Register School (7-Day Free Trial) with Phone & Email OTP Verification
   // --------------------------------------------------------------------------
+  void _startPhoneCooldown() {
+    _phoneTimer?.cancel();
+    _phoneTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_regPhoneCooldown <= 1) {
+        timer.cancel();
+        if (mounted) setState(() => _regPhoneCooldown = 0);
+      } else {
+        if (mounted) setState(() => _regPhoneCooldown--);
+      }
+    });
+  }
+
+  void _startEmailCooldown() {
+    _emailTimer?.cancel();
+    _emailTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_regEmailCooldown <= 1) {
+        timer.cancel();
+        if (mounted) setState(() => _regEmailCooldown = 0);
+      } else {
+        if (mounted) setState(() => _regEmailCooldown--);
+      }
+    });
+  }
+
+  Future<void> _handleSendPhoneOtp() async {
+    final mobile = _regSchoolPhoneCtrl.text.trim();
+    if (mobile.length < 10) {
+      setState(() => _errorMessage = "Please enter a valid 10-digit mobile number.");
+      return;
+    }
+    setState(() {
+      _regPhoneSending = true;
+      _errorMessage = null;
+    });
+    final res = await ApiService.sendRegistrationPhoneOtp(mobile);
+    setState(() => _regPhoneSending = false);
+    if (res['success'] == true) {
+      setState(() {
+        _regPhoneOtpSent = true;
+        _regPhoneCooldown = 60;
+        _regPhoneDevHint = res['devOtpHint'];
+      });
+      _startPhoneCooldown();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res['message'] ?? "Phone OTP sent successfully!"),
+            backgroundColor: const Color(0xFF059669),
+          ),
+        );
+      }
+    } else {
+      setState(() => _errorMessage = res['error'] ?? "Failed to send phone OTP.");
+    }
+  }
+
+  Future<void> _handleVerifyPhoneOtp() async {
+    final mobile = _regSchoolPhoneCtrl.text.trim();
+    final otp = _regPhoneOtpCtrl.text.trim();
+    if (otp.length != 6) {
+      setState(() => _errorMessage = "Please enter the 6-digit phone OTP.");
+      return;
+    }
+    setState(() {
+      _regPhoneVerifying = true;
+      _errorMessage = null;
+    });
+    final res = await ApiService.verifyRegistrationPhoneOtp(mobile, otp);
+    setState(() => _regPhoneVerifying = false);
+    if (res['success'] == true) {
+      setState(() {
+        _regPhoneVerified = true;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("✓ Mobile Number Verified Successfully!"),
+            backgroundColor: Color(0xFF059669),
+          ),
+        );
+      }
+    } else {
+      setState(() => _errorMessage = res['error'] ?? "Invalid or expired Phone OTP.");
+    }
+  }
+
+  Future<void> _handleSendEmailOtp() async {
+    final email = _regSchoolEmailCtrl.text.trim();
+    final name = _regAdminNameCtrl.text.trim();
+    if (!email.contains('@') || !email.contains('.')) {
+      setState(() => _errorMessage = "Please enter a valid administrator email address.");
+      return;
+    }
+    setState(() {
+      _regEmailSending = true;
+      _errorMessage = null;
+    });
+    final res = await ApiService.sendRegistrationEmailOtp(email, adminName: name);
+    setState(() => _regEmailSending = false);
+    if (res['success'] == true) {
+      setState(() {
+        _regEmailOtpSent = true;
+        _regEmailCooldown = 60;
+        _regEmailDevHint = res['devOtpHint'];
+      });
+      _startEmailCooldown();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res['message'] ?? "Email verification code sent!"),
+            backgroundColor: const Color(0xFF059669),
+          ),
+        );
+      }
+    } else {
+      setState(() => _errorMessage = res['error'] ?? "Failed to send email verification code.");
+    }
+  }
+
+  Future<void> _handleVerifyEmailOtp() async {
+    final email = _regSchoolEmailCtrl.text.trim();
+    final code = _regEmailOtpCtrl.text.trim();
+    if (code.length != 6) {
+      setState(() => _errorMessage = "Please enter the 6-digit email code.");
+      return;
+    }
+    setState(() {
+      _regEmailVerifying = true;
+      _errorMessage = null;
+    });
+    final res = await ApiService.verifyRegistrationEmailOtp(email, code);
+    setState(() => _regEmailVerifying = false);
+    if (res['success'] == true) {
+      setState(() {
+        _regEmailVerified = true;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("✓ Email Address Verified Successfully!"),
+            backgroundColor: Color(0xFF059669),
+          ),
+        );
+      }
+    } else {
+      setState(() => _errorMessage = res['error'] ?? "Invalid or expired email code.");
+    }
+  }
+
   Future<void> _handleSchoolRegister() async {
     final schoolName = _regSchoolNameCtrl.text.trim();
-    final schoolEmail = _regSchoolEmailCtrl.text.trim();
-    final schoolPhone = _regSchoolPhoneCtrl.text.trim();
+    final address = _regAddressCtrl.text.trim();
     final city = _regCityCtrl.text.trim();
     final adminName = _regAdminNameCtrl.text.trim();
+    final mobile = _regSchoolPhoneCtrl.text.trim();
+    final email = _regSchoolEmailCtrl.text.trim();
     final pass = _regAdminPassCtrl.text;
+    final confirmPass = _regConfirmPassCtrl.text;
 
-    if (schoolName.isEmpty || schoolEmail.isEmpty || schoolPhone.isEmpty || adminName.isEmpty || pass.isEmpty) {
+    if (schoolName.isEmpty || address.isEmpty || adminName.isEmpty || mobile.isEmpty || email.isEmpty || pass.isEmpty || confirmPass.isEmpty) {
       setState(() => _errorMessage = "Please fill in all required registration fields.");
+      return;
+    }
+
+    if (pass != confirmPass) {
+      setState(() => _errorMessage = "Passwords do not match.");
+      return;
+    }
+
+    if (pass.length < 8) {
+      setState(() => _errorMessage = "Password must be at least 8 characters long.");
+      return;
+    }
+
+    if (!_regPhoneVerified) {
+      setState(() => _errorMessage = "Please verify administrator mobile number with Phone OTP first.");
+      return;
+    }
+
+    if (!_regEmailVerified) {
+      setState(() => _errorMessage = "Please verify administrator email address with verification code first.");
       return;
     }
 
@@ -155,19 +356,22 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
     final res = await ApiService.registerSchool({
       'schoolName': schoolName,
-      'schoolEmail': schoolEmail,
-      'schoolPhone': schoolPhone,
-      'address': '$city Campus Road',
+      'displayName': schoolName,
+      'schoolEmail': email,
+      'schoolPhone': mobile,
+      'address': address,
       'city': city.isNotEmpty ? city : 'Bangalore',
       'state': 'Karnataka',
       'postalCode': '560001',
       'country': 'India',
       'schoolType': 'K-12 Private Institution',
       'adminName': adminName,
-      'adminEmail': schoolEmail,
-      'adminMobile': schoolPhone,
+      'adminEmail': email,
+      'adminMobile': mobile,
       'password': pass,
-      'confirmPassword': pass,
+      'confirmPassword': confirmPass,
+      'phoneOtp': _regPhoneOtpCtrl.text.trim(),
+      'emailOtp': _regEmailOtpCtrl.text.trim(),
     });
 
     setState(() => _isLoading = false);
@@ -798,9 +1002,37 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 ),
               ),
 
+              // Visible “7 Days Free Trial” Button on First Screen
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    _tabController.animateTo(0);
+                  },
+                  icon: const Text("🎁", style: TextStyle(fontSize: 20)),
+                  label: const Text(
+                    "Start Your 7-Day Free Trial",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7C3AED),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 5,
+                    shadowColor: const Color(0x667C3AED),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ),
+
               // Main Auth Card
               Container(
-                margin: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
@@ -834,12 +1066,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                         tabs: const [
                           Tab(
-                            icon: Icon(Icons.rocket_launch, size: 18),
-                            text: "Register (Trial)",
+                            icon: Icon(Icons.card_giftcard, size: 18),
+                            text: "Register School (7-Day Trial)",
                           ),
                           Tab(
                             icon: Icon(Icons.admin_panel_settings, size: 18),
-                            text: "School Admin",
+                            text: "Existing School Login",
                           ),
                           Tab(
                             icon: Icon(Icons.school, size: 18),
@@ -879,7 +1111,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
                     // Tab View Content (SizedBox with adequate height and scrollability)
                     SizedBox(
-                      height: 480,
+                      height: 600,
                       child: TabBarView(
                         controller: _tabController,
                         children: [
@@ -987,16 +1219,45 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            "Register School — 7-Day Free Trial",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFEDE9FE), Color(0xFFDDD6FE)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFC4B5FD)),
+            ),
+            child: const Row(
+              children: [
+                Text("🎁", style: TextStyle(fontSize: 24)),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Start Your 7-Day Free Trial",
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF5B21B6)),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        "Instant onboarding with full platform access. No credit card required.",
+                        style: TextStyle(fontSize: 11, color: Color(0xFF6D28D9)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 4),
-          const Text(
-            "Instant onboarding with full platform access. No credit card required.",
-            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
+
+          // 1. School Information
+          const Text("School Details", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF334155))),
+          const SizedBox(height: 6),
           TextField(
             controller: _regSchoolNameCtrl,
             decoration: const InputDecoration(
@@ -1007,16 +1268,180 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: TextField(
+                  controller: _regAddressCtrl,
+                  decoration: const InputDecoration(
+                    labelText: "School Address *",
+                    hintText: "Campus Road / Street",
+                    prefixIcon: Icon(Icons.pin_drop, color: Color(0xFF7C3AED)),
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 2,
+                child: TextField(
+                  controller: _regCityCtrl,
+                  decoration: const InputDecoration(
+                    labelText: "City *",
+                    hintText: "Bangalore",
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // 2. Administrator Account & OTP Verifications
+          const Text("Administrator Credentials & Verification", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF334155))),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _regAdminNameCtrl,
+            decoration: const InputDecoration(
+              labelText: "Admin Full Name *",
+              hintText: "e.g. Dr. Arthur Pendelton",
+              prefixIcon: Icon(Icons.person, color: Color(0xFF7C3AED)),
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Mobile & Phone OTP Verification
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _regSchoolPhoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  enabled: !_regPhoneVerified,
+                  decoration: const InputDecoration(
+                    labelText: "Admin Mobile Number *",
+                    hintText: "10-digit mobile",
+                    prefixIcon: Icon(Icons.phone_android, color: Color(0xFF7C3AED)),
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _regPhoneVerified || _regPhoneSending || _regPhoneCooldown > 0
+                      ? null
+                      : _handleSendPhoneOtp,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _regPhoneVerified ? const Color(0xFF059669) : const Color(0xFF7C3AED),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: _regPhoneSending
+                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : Text(
+                          _regPhoneVerified
+                              ? "✓ Verified"
+                              : (_regPhoneCooldown > 0 ? "${_regPhoneCooldown}s" : (_regPhoneOtpSent ? "Resend OTP" : "Send OTP")),
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                ),
+              ),
+            ],
+          ),
+
+          // Phone OTP Input Row
+          if (_regPhoneOtpSent && !_regPhoneVerified) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFCBD5E1)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _regPhoneOtpCtrl,
+                          keyboardType: TextInputType.number,
+                          maxLength: 6,
+                          decoration: const InputDecoration(
+                            counterText: "",
+                            labelText: "Enter 6-Digit Phone OTP *",
+                            hintText: "••••••",
+                            prefixIcon: Icon(Icons.sms, color: Color(0xFF7C3AED), size: 18),
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        height: 38,
+                        child: ElevatedButton(
+                          onPressed: _regPhoneVerifying ? null : _handleVerifyPhoneOtp,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF059669),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                          ),
+                          child: _regPhoneVerifying
+                              ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Text("Verify OTP", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_regPhoneDevHint != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      "Sandbox Hint: Use OTP ${_regPhoneDevHint}",
+                      style: const TextStyle(fontSize: 10, color: Color(0xFF6D28D9), fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+          if (_regPhoneVerified) ...[
+            const SizedBox(height: 4),
+            const Row(
+              children: [
+                Icon(Icons.check_circle, color: Color(0xFF059669), size: 14),
+                SizedBox(width: 4),
+                Text("Phone Verified via OTP", style: TextStyle(color: Color(0xFF059669), fontSize: 11, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ],
+          const SizedBox(height: 10),
+
+          // Email & Email OTP Verification
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
                 child: TextField(
                   controller: _regSchoolEmailCtrl,
                   keyboardType: TextInputType.emailAddress,
+                  enabled: !_regEmailVerified,
                   decoration: const InputDecoration(
-                    labelText: "School Email *",
-                    hintText: "contact@school.edu",
+                    labelText: "Admin Email Address *",
+                    hintText: "admin@school.edu",
                     prefixIcon: Icon(Icons.email, color: Color(0xFF7C3AED)),
                     border: OutlineInputBorder(),
                     contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -1024,58 +1449,107 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 ),
               ),
               const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: _regSchoolPhoneCtrl,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: "School Phone *",
-                    hintText: "10-digit mobile",
-                    prefixIcon: Icon(Icons.phone, color: Color(0xFF7C3AED)),
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              SizedBox(
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _regEmailVerified || _regEmailSending || _regEmailCooldown > 0
+                      ? null
+                      : _handleSendEmailOtp,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _regEmailVerified ? const Color(0xFF059669) : const Color(0xFF7C3AED),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
+                  child: _regEmailSending
+                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : Text(
+                          _regEmailVerified
+                              ? "✓ Verified"
+                              : (_regEmailCooldown > 0 ? "${_regEmailCooldown}s" : (_regEmailOtpSent ? "Resend Code" : "Send Code")),
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _regAdminNameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: "Administrator Name *",
-                    hintText: "e.g. Dr. Arthur Pendelton",
-                    prefixIcon: Icon(Icons.person, color: Color(0xFF7C3AED)),
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  ),
-                ),
+
+          // Email OTP Input Row
+          if (_regEmailOtpSent && !_regEmailVerified) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFCBD5E1)),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: _regCityCtrl,
-                  decoration: const InputDecoration(
-                    labelText: "City *",
-                    hintText: "Bangalore",
-                    prefixIcon: Icon(Icons.location_city, color: Color(0xFF7C3AED)),
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _regEmailOtpCtrl,
+                          keyboardType: TextInputType.number,
+                          maxLength: 6,
+                          decoration: const InputDecoration(
+                            counterText: "",
+                            labelText: "Enter 6-Digit Email Code *",
+                            hintText: "••••••",
+                            prefixIcon: Icon(Icons.mark_email_read, color: Color(0xFF7C3AED), size: 18),
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        height: 38,
+                        child: ElevatedButton(
+                          onPressed: _regEmailVerifying ? null : _handleVerifyEmailOtp,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF059669),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                          ),
+                          child: _regEmailVerifying
+                              ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Text("Verify Code", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
+                  if (_regEmailDevHint != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      "Sandbox Hint: Use Code ${_regEmailDevHint}",
+                      style: const TextStyle(fontSize: 10, color: Color(0xFF6D28D9), fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
+          if (_regEmailVerified) ...[
+            const SizedBox(height: 4),
+            const Row(
+              children: [
+                Icon(Icons.check_circle, color: Color(0xFF059669), size: 14),
+                SizedBox(width: 4),
+                Text("Email Verified via Code", style: TextStyle(color: Color(0xFF059669), fontSize: 11, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ],
           const SizedBox(height: 10),
+
+          // Password & Confirm Password
           TextField(
             controller: _regAdminPassCtrl,
             obscureText: _obscureRegPass,
             decoration: InputDecoration(
-              labelText: "Secure Admin Password *",
-              hintText: "Min 8 characters",
+              labelText: "Password * (Min 8 chars)",
               prefixIcon: const Icon(Icons.lock, color: Color(0xFF7C3AED)),
               border: const OutlineInputBorder(),
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -1085,7 +1559,23 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               ),
             ),
           ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _regConfirmPassCtrl,
+            obscureText: _obscureRegConfirmPass,
+            decoration: InputDecoration(
+              labelText: "Confirm Password *",
+              prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF7C3AED)),
+              border: const OutlineInputBorder(),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              suffixIcon: IconButton(
+                icon: Icon(_obscureRegConfirmPass ? Icons.visibility_off : Icons.visibility),
+                onPressed: () => setState(() => _obscureRegConfirmPass = !_obscureRegConfirmPass),
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
+
           ElevatedButton(
             onPressed: _isLoading ? null : _handleSchoolRegister,
             style: ElevatedButton.styleFrom(
@@ -1095,7 +1585,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             ),
             child: _isLoading
                 ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text("Start 7-Day Free Trial", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                : const Text("🎁 Start 7-Day Free Trial", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
           ),
         ],
       ),

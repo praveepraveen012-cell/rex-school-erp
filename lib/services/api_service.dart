@@ -158,21 +158,6 @@ class ApiService {
     return {'success': false, 'error': 'Please enter a valid username and password.'};
   }
 
-  static Future<Map<String, dynamic>> registerSchool(Map<String, dynamic> regData) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/register-school'),
-        headers: _headers(),
-        body: jsonEncode(regData),
-      ).timeout(const Duration(milliseconds: 3500));
-
-      final data = jsonDecode(response.body);
-      return data;
-    } catch (e) {
-      debugPrint("Error registering school: $e");
-      return {'success': false, 'error': 'Could not connect to registration server. Please check internet connection.'};
-    }
-  }
 
   static Future<Map<String, dynamic>> getTeachers() async {
     try {
@@ -1439,9 +1424,62 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> loginSchool({
-    required String schoolId,
-    required String password,
+  // Registration OTP methods
+  static Future<Map<String, dynamic>> sendRegistrationPhoneOtp(String mobile) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/auth/registration/send-phone-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'mobile': mobile.trim()}),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'error': 'Failed to send phone OTP: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> verifyRegistrationPhoneOtp(String mobile, String otp) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/auth/registration/verify-phone-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'mobile': mobile.trim(), 'otp': otp.trim()}),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'error': 'Failed to verify phone OTP: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> sendRegistrationEmailOtp(String email, {String? adminName}) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/auth/registration/send-email-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email.trim(), 'adminName': adminName?.trim()}),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'error': 'Failed to send email code: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> verifyRegistrationEmailOtp(String email, String code) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/auth/registration/verify-email-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email.trim(), 'code': code.trim()}),
+      ).timeout(const Duration(seconds: 5));
+      return jsonDecode(res.body);
+    } catch (e) {
+      return {'success': false, 'error': 'Failed to verify email code: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> loginSchool(
+    String schoolId,
+    String password, {
     String? identifier,
   }) async {
     try {

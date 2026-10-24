@@ -89,12 +89,105 @@ async function runAllTests() {
   let schoolAId = null;
   let schoolADbId = null;
   let schoolAToken = null;
+  let teacherToken = null;
+
+  async function completeOtpFlow(mobile, email, adminName = 'Administrator') {
+    const pSend = await request('/auth/registration/send-phone-otp', {
+      method: 'POST',
+      body: { mobile }
+    });
+    const phoneOtp = pSend.body?.devOtpHint;
+    await request('/auth/registration/verify-phone-otp', {
+      method: 'POST',
+      body: { mobile, otp: phoneOtp }
+    });
+
+    const eSend = await request('/auth/registration/send-email-otp', {
+      method: 'POST',
+      body: { email, adminName }
+    });
+    const emailOtp = eSend.body?.devOtpHint;
+    await request('/auth/registration/verify-email-otp', {
+      method: 'POST',
+      body: { email, code: emailOtp }
+    });
+
+    return { phoneOtp, emailOtp };
+  }
 
   try {
     // ------------------------------------------------------------------------
+    // TEST OTP: Phone & Email Real Verification Pipeline
+    // ------------------------------------------------------------------------
+    console.log('--- TEST OTP: Phone & Email Real Verification Pipeline ---');
+    // 1. Phone OTP Send & Cooldown Rate Limiting
+    const phoneSendRes = await request('/auth/registration/send-phone-otp', {
+      method: 'POST',
+      body: { mobile: testAdminMobileA }
+    });
+    const phoneOtpSent = phoneSendRes.status === 200 && phoneSendRes.body.success === true;
+    const phoneDevOtp = phoneSendRes.body.devOtpHint;
+
+    // Cooldown test (immediate resend MUST return 429)
+    const phoneCooldownRes = await request('/auth/registration/send-phone-otp', {
+      method: 'POST',
+      body: { mobile: testAdminMobileA }
+    });
+    const phoneCooldownBlocked = phoneCooldownRes.status === 429;
+
+    // Invalid OTP rejection (MUST return 400)
+    const phoneInvalidRes = await request('/auth/registration/verify-phone-otp', {
+      method: 'POST',
+      body: { mobile: testAdminMobileA, otp: '999999' }
+    });
+    const phoneInvalidBlocked = phoneInvalidRes.status === 400;
+
+    // Correct OTP verification (MUST return 200)
+    const phoneVerifyRes = await request('/auth/registration/verify-phone-otp', {
+      method: 'POST',
+      body: { mobile: testAdminMobileA, otp: phoneDevOtp }
+    });
+    const phoneVerified = phoneVerifyRes.status === 200 && phoneVerifyRes.body.success === true;
+
+    // 2. Email OTP Send & Cooldown Rate Limiting
+    const emailSendRes = await request('/auth/registration/send-email-otp', {
+      method: 'POST',
+      body: { email: testAdminEmailA, adminName: 'Dr. Arthur Pendelton' }
+    });
+    const emailOtpSent = emailSendRes.status === 200 && emailSendRes.body.success === true;
+    const emailDevOtp = emailSendRes.body.devOtpHint || emailSendRes.body.devCodeHint;
+
+    // Cooldown test (immediate resend MUST return 429)
+    const emailCooldownRes = await request('/auth/registration/send-email-otp', {
+      method: 'POST',
+      body: { email: testAdminEmailA, adminName: 'Dr. Arthur Pendelton' }
+    });
+    const emailCooldownBlocked = emailCooldownRes.status === 429;
+
+    // Invalid Code rejection (MUST return 400)
+    const emailInvalidRes = await request('/auth/registration/verify-email-otp', {
+      method: 'POST',
+      body: { email: testAdminEmailA, code: '000000' }
+    });
+    const emailInvalidBlocked = emailInvalidRes.status === 400;
+
+    // Correct Code verification (MUST return 200)
+    const emailVerifyRes = await request('/auth/registration/verify-email-otp', {
+      method: 'POST',
+      body: { email: testAdminEmailA, code: emailDevOtp }
+    });
+    const emailVerified = emailVerifyRes.status === 200 && emailVerifyRes.body.success === true;
+
+    const otpPipelinePassed = phoneOtpSent && phoneCooldownBlocked && phoneInvalidBlocked && phoneVerified &&
+      emailOtpSent && emailCooldownBlocked && emailInvalidBlocked && emailVerified;
+
+    recordTest('TEST OTP', 'Real Dynamic Phone & Email OTP Verification Pipeline', otpPipelinePassed,
+      'Dynamic 6-digit OTP generation, 60s cooldown rate limits (429), invalid OTP rejections (400), verified successfully.');
+
+    // ------------------------------------------------------------------------
     // TEST A: New School Registration & 7-Day Free Trial Activation
     // ------------------------------------------------------------------------
-    console.log('--- TEST A: New School Registration ---');
+    console.log('\n--- TEST A: New School Registration ---');
     const regResA = await request('/auth/register-school', {
       method: 'POST',
       body: {
@@ -111,7 +204,9 @@ async function runAllTests() {
         adminEmail: testAdminEmailA,
         adminMobile: testAdminMobileA,
         password: 'SecurePassword123!',
-        confirmPassword: 'SecurePassword123!'
+        confirmPassword: 'SecurePassword123!',
+        phoneOtp: phoneDevOtp,
+        emailOtp: emailDevOtp
       }
     });
 
@@ -130,6 +225,28 @@ async function runAllTests() {
 
     recordTest('TEST A', 'New School Registration & 7-Day Trial', isRegASuccess,
       `School ID: ${schoolAId}, Token generated, 7-Day Free Trial activated.`);
+
+    // Test Reused OTP rejection (MUST return 400 since OTP was consumed)
+    const reusedOtpRes = await request('/auth/register-school', {
+      method: 'POST',
+      body: {
+        schoolName: `Reused OTP Attempt`,
+        address: '100 Heritage Campus Rd',
+        city: 'Bengaluru',
+        schoolEmail: `other_${timestamp}@test.edu`,
+        schoolPhone: `91${String(timestamp).slice(-8)}`,
+        adminName: 'Dr. Arthur Pendelton',
+        adminEmail: `unused_admin_${timestamp}@test.edu`,
+        adminMobile: `90${String(timestamp).slice(-8)}`,
+        password: 'SecurePassword123!',
+        confirmPassword: 'SecurePassword123!',
+        phoneOtp: phoneDevOtp,
+        emailOtp: emailDevOtp
+      }
+    });
+    const isReusedOtpBlocked = reusedOtpRes.status === 400;
+    recordTest('TEST OTP-REUSE', 'Reused OTP Invalidation & Single-Use Enforcement', isReusedOtpBlocked,
+      'Consumed OTP rejected on subsequent registration attempt (400).');
 
     // ------------------------------------------------------------------------
     // TEST B: Duplicate Registration Prevention
@@ -166,6 +283,7 @@ async function runAllTests() {
     const testAdminEmailC = `mobile_admin_${timestamp}@grexotix-test.edu`;
     const testAdminMobileC = `96${String(timestamp).slice(-8)}`;
 
+    const otpC = await completeOtpFlow(testAdminMobileC, testAdminEmailC, 'Rajesh Sharma');
     const regResC = await request('/auth/register-school', {
       method: 'POST',
       body: {
@@ -181,7 +299,9 @@ async function runAllTests() {
         adminEmail: testAdminEmailC,
         adminMobile: testAdminMobileC,
         password: 'MobilePassword123!',
-        confirmPassword: 'MobilePassword123!'
+        confirmPassword: 'MobilePassword123!',
+        phoneOtp: otpC.phoneOtp,
+        emailOtp: otpC.emailOtp
       }
     });
 
@@ -404,7 +524,7 @@ async function runAllTests() {
       method: 'POST',
       body: { identifier: teacherUser.email, password: 'AdminPassword123!', role: 'TEACHER' }
     });
-    const teacherToken = teacherLogin.body.token;
+    teacherToken = teacherLogin.body.token;
 
     // Look up teacher's actual assignment
     const assignment = db.get(
@@ -531,6 +651,36 @@ async function runAllTests() {
       'Parents cannot write homework/attendance (403), strictly scoped to linked children with multi-child profiles.');
 
     // ------------------------------------------------------------------------
+    // TEST TEACHER-RBAC: Teacher Dashboard Scoping & Role Isolation
+    // ------------------------------------------------------------------------
+    console.log('\n--- TEST TEACHER-RBAC: Teacher Dashboard Scoping & Role Isolation ---');
+    // 1. Teacher cannot access billing / subscription management (MUST FAIL 403)
+    const teacherSubVerify = await request('/subscriptions/verify', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${teacherToken}` },
+      body: { planId: 'plan_starter' }
+    });
+    const isTeacherBillingBlocked = teacherSubVerify.status === 403;
+
+    // 2. Teacher cannot mutate school administration profiles (MUST FAIL 403)
+    const teacherSchoolProfileMod = await request('/school/profile', {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${teacherToken}` },
+      body: { name: 'Hacked Name' }
+    });
+    const isTeacherAdminBlocked = teacherSchoolProfileMod.status === 403;
+
+    // 3. Teacher can access authorized class attendance roster
+    const teacherAttRoster = await request('/attendance', {
+      headers: { Authorization: `Bearer ${teacherToken}` }
+    });
+    const isTeacherAttAllowed = teacherAttRoster.status === 200;
+
+    const teacherRbacPassed = isTeacherBillingBlocked && isTeacherAdminBlocked && isTeacherAttAllowed;
+    recordTest('TEST TEACHER-RBAC', 'Teacher Dashboard Scoping & Role Isolation', teacherRbacPassed,
+      'Teacher blocked from billing & admin mutations (403), strictly scoped to teaching attendance & homework.');
+
+    // ------------------------------------------------------------------------
     // TEST J: Multi-School Tenant Isolation & Cross-School Access Barriers
     // ------------------------------------------------------------------------
     console.log('\n--- TEST J: Multi-School Tenant Isolation ---');
@@ -540,6 +690,7 @@ async function runAllTests() {
     const testAdminEmailB = `admin_b_${timestamp}@grexotix-test.edu`;
     const testAdminMobileB = `93${String(timestamp).slice(-8)}`;
 
+    const otpB = await completeOtpFlow(testAdminMobileB, testAdminEmailB, 'Prof. Alistair Vance');
     const regResB = await request('/auth/register-school', {
       method: 'POST',
       body: {
@@ -555,7 +706,9 @@ async function runAllTests() {
         adminEmail: testAdminEmailB,
         adminMobile: testAdminMobileB,
         password: 'AdminPasswordB123!',
-        confirmPassword: 'AdminPasswordB123!'
+        confirmPassword: 'AdminPasswordB123!',
+        phoneOtp: otpB.phoneOtp,
+        emailOtp: otpB.emailOtp
       }
     });
 

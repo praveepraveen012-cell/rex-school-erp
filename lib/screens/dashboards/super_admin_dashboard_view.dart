@@ -72,6 +72,11 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
         ? "₹${((_serverStats!['pendingFees'] as num) / 100000).toStringAsFixed(2)} L"
         : "₹21.40 L";
 
+    final school = ApiService.currentSchool;
+    final trial = ApiService.currentTrial;
+    final daysRemaining = trial?['daysRemaining'] ?? trial?['trialDays'] ?? 7;
+    final schoolCode = school?['code'] ?? school?['schoolId'] ?? school?['id']?.toString() ?? "GRX-SCH-202601";
+
     return RefreshIndicator(
       onRefresh: _fetchStats,
       color: const Color(0xFF1E3A8A),
@@ -81,6 +86,93 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ================================================================
+            // 7-DAY FREE TRIAL BANNER
+            // ================================================================
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF7C3AED), Color(0xFF4F46E5)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF7C3AED).withOpacity(0.35),
+                    blurRadius: 12,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Row(
+                          children: [
+                            Text("🎁", style: TextStyle(fontSize: 14)),
+                            SizedBox(width: 6),
+                            Text(
+                              "7-DAY FREE TRIAL ACTIVE",
+                              style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        schoolCode,
+                        style: const TextStyle(color: Color(0xFFDDD6FE), fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "$daysRemaining days remaining in your free trial",
+                              style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              "Full platform access enabled. Upgrade anytime.",
+                              style: TextStyle(color: Color(0xFFE0E7FF), fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => _showSubscriptionSheet(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF5B21B6),
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        ),
+                        child: const Text("Subscribe Now", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
             // ================================================================
             // SUPER ADMIN MASTER BANNER
             // ================================================================
@@ -607,6 +699,148 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
           style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
         ),
       ],
+    );
+  }
+
+  void _showSubscriptionSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Row(
+                  children: [
+                    Text("💳", style: TextStyle(fontSize: 22)),
+                    SizedBox(width: 8),
+                    Text(
+                      "Grexotix SaaS Subscription",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              "Select an institutional plan to renew or upgrade your free trial license.",
+              style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 16),
+            _buildPlanOption(
+              title: "Starter Plan",
+              price: "₹15,000 / year",
+              features: "Up to 500 students • Full ERP & Attendance • Mobile App",
+              isPopular: false,
+              planId: "plan_starter",
+              context: ctx,
+            ),
+            const SizedBox(height: 10),
+            _buildPlanOption(
+              title: "Growth Plan",
+              price: "₹35,000 / year",
+              features: "Up to 1,500 students • Bus GPS & RFID • Fee Split Gateway",
+              isPopular: true,
+              planId: "plan_growth",
+              context: ctx,
+            ),
+            const SizedBox(height: 10),
+            _buildPlanOption(
+              title: "Enterprise Plan",
+              price: "₹75,000 / year",
+              features: "Unlimited students • Multi-branch governance • 24/7 SLA",
+              isPopular: false,
+              planId: "plan_enterprise",
+              context: ctx,
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlanOption({
+    required String title,
+    required String price,
+    required String features,
+    required bool isPopular,
+    required String planId,
+    required BuildContext context,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isPopular ? const Color(0xFFF5F3FF) : Colors.white,
+        border: Border.all(color: isPopular ? const Color(0xFF7C3AED) : const Color(0xFFE2E8F0), width: isPopular ? 2 : 1),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    if (isPopular) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF7C3AED),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text("POPULAR", style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(price, style: const TextStyle(color: Color(0xFF5B21B6), fontWeight: FontWeight.w800, fontSize: 13)),
+                const SizedBox(height: 2),
+                Text(features, style: const TextStyle(color: Color(0xFF64748B), fontSize: 11)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final res = await ApiService.verifySubscription(planId: planId);
+              if (mounted) {
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  SnackBar(
+                    content: Text(res['success'] == true ? "Subscription activated successfully! License active." : (res['error'] ?? "Subscription failed.")),
+                    backgroundColor: res['success'] == true ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isPopular ? const Color(0xFF7C3AED) : const Color(0xFF0F172A),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text("Select", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
     );
   }
 }

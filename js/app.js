@@ -187,7 +187,7 @@ const App = {
   ROLE_ALLOWED_VIEWS: {
     platform_admin: ['home', 'platform-admin', 'teachers'],
     admin: ['home', 'dashboard', 'students', 'teachers', 'attendance', 'fees', 'exams', 'timetable', 'communication', 'transport', 'campus-hub', 'hr-payroll', 'intelligence', 'settings-modules'],
-    teacher: ['home', 'teacher-dashboard', 'attendance', 'teacher-homework', 'teacher-students', 'timetable', 'exams', 'communication'],
+    teacher: ['home', 'teacher-dashboard', 'attendance', 'teacher-homework', 'timetable', 'exams', 'communication'],
     parent: ['home', 'parent-portal', 'parent-attendance', 'parent-homework', 'parent-fees', 'parent-bus', 'parent-id-card', 'parent-leave', 'parent-reports', 'timetable', 'communication']
   },
 
@@ -248,12 +248,6 @@ const App = {
               <span>Homework & Diary</span>
             </div>
             <span class="badge" style="background:#8b5cf6; color:#fff; font-size:0.65rem;">5 PM Lock</span>
-          </div>
-          <div class="nav-item ${this.currentView === 'teacher-students' ? 'active' : ''}" data-view="teacher-students">
-            <div class="nav-item-left">
-              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-              <span>Assigned Students</span>
-            </div>
           </div>
           <div class="nav-item ${this.currentView === 'timetable' ? 'active' : ''}" data-view="timetable">
             <div class="nav-item-left">
@@ -640,11 +634,6 @@ const App = {
     if (viewId === 'teacher-homework') {
       this.switchView('teacher-dashboard');
       setTimeout(() => this.openHomeworkModal(), 150);
-      return;
-    }
-
-    if (viewId === 'teacher-students') {
-      this.switchView('students');
       return;
     }
 

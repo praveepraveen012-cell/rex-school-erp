@@ -8,6 +8,7 @@
  *  - Safe test mode logging and duplicate prevention
  */
 
+const crypto = require('crypto');
 const db = require('../database/db');
 const config = require('../config/env');
 
@@ -292,6 +293,196 @@ class EmailService {
       subject,
       text
     });
+  }
+
+  // ============================================================================
+  // 7. School Registration Email Verification Code
+  // ============================================================================
+  checkProviderConfig() {
+    if (this.provider === 'SMTP') {
+      if (!process.env.SMTP_HOST) {
+        return 'Email Provider Error: SMTP configuration missing. Please configure SMTP_HOST in server environment.';
+      }
+    } else if (this.provider === 'SENDGRID') {
+      if (!process.env.SENDGRID_API_KEY) {
+        return 'Email Provider Error: SendGrid API key missing. Please set SENDGRID_API_KEY in server environment.';
+      }
+    }
+    return null;
+  }
+
+  async sendRegistrationVerificationCode({ email, adminName }) {
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return { success: false, error: 'Please enter a valid administrator email address.' };
+    }
+
+    // 1. Verify email provider configuration
+    const providerErr = this.checkProviderConfig();
+    if (providerErr) {
+      return { success: false, providerError: true, error: providerErr };
+    }
+
+    // 2. Enforce 60-second rate limiting cooldown on resends
+    const recent = db.get(
+      `SELECT created_at FROM email_verifications
+       WHERE email = ? AND purpose = 'REGISTRATION' AND datetime(created_at, '+60 seconds') > datetime('now')
+       ORDER BY created_at DESC LIMIT 1`,
+      [cleanEmail]
+    );
+
+    if (recent) {
+      return {
+        success: false,
+        rateLimited: true,
+        error: 'Please wait at least 60 seconds before requesting another email verification code.'
+      };
+    }
+
+    // 3. Cryptographically random 6-digit code (100000 to 999999) - never hardcoded
+    const code = crypto.randomInt(100000, 1000000).toString();
+    const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
+
+    // 4. Invalidate any previous unverified codes for this email
+    db.run(
+      `UPDATE email_verifications SET verified = 2 WHERE email = ? AND verified = 0`,
+      [cleanEmail]
+    );
+
+    // 5. Insert new verification record
+    db.run(
+      `INSERT INTO email_verifications (email, code_hash, purpose, attempts, verified, expires_at)
+       VALUES (?, ?, 'REGISTRATION', 0, 0, ?)`,
+      [cleanEmail, codeHash, expiresAt]
+    );
+
+    // 6. Dispatch email notification
+    const subject = `Your Grexotix School Verification Code: ${code}`;
+    const text = `Dear ${adminName || 'Administrator'},\n\n` +
+      `Thank you for starting your Grexotix School Management 7-Day Free Trial!\n\n` +
+      `Your Email Verification Code is: ${code}\n\n` +
+      `This code is valid for 10 minutes. Enter this code on the registration form to verify your official school email.\n\n` +
+      `Best regards,\nGrexotix Platform Security`;
+
+    await this._send({
+      schoolId: null,
+      recipientEmail: cleanEmail,
+      recipientName: adminName,
+      emailType: 'REGISTRATION_EMAIL_VERIFICATION',
+      subject,
+      text
+    });
+
+    return {
+      success: true,
+      message: 'Verification code sent to your official email.',
+      code: config.isDev ? code : undefined,
+      devCode: config.isDev ? code : undefined,
+      expiresAt,
+      isDev: config.isDev
+    };
+  }
+
+  verifyRegistrationCode({ email, code }) {
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    const cleanCode = String(code || '').trim();
+
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return { valid: false, message: 'Invalid email address.' };
+    }
+    if (!cleanCode || cleanCode.length !== 6) {
+      return { valid: false, message: 'Verification code must be exactly 6 digits.' };
+    }
+
+    const inputHash = crypto.createHash('sha256').update(cleanCode).digest('hex');
+
+    // 1. Fetch pending record
+    const record = db.get(
+      `SELECT * FROM email_verifications
+       WHERE email = ? AND purpose = 'REGISTRATION' AND verified = 0
+       ORDER BY created_at DESC LIMIT 1`,
+      [cleanEmail]
+    );
+
+    // 2. Check if code was already used/consumed (reuse prevention)
+    if (!record) {
+      const usedRecord = db.get(
+        `SELECT * FROM email_verifications
+         WHERE email = ? AND code_hash = ? AND verified IN (1, 2)
+         ORDER BY created_at DESC LIMIT 1`,
+        [cleanEmail, inputHash]
+      );
+      if (usedRecord) {
+        return {
+          valid: false,
+          message: 'This email verification code has already been used and cannot be reused.'
+        };
+      }
+      return {
+        valid: false,
+        message: 'No active email verification request found. Please request a new code.'
+      };
+    }
+
+    // 3. Check expiration
+    if (new Date() > new Date(record.expires_at)) {
+      db.run(`UPDATE email_verifications SET verified = 2 WHERE id = ?`, [record.id]);
+      return { valid: false, message: 'Email verification code has expired. Please request a new code.' };
+    }
+
+    // 4. Check attempts
+    if (record.attempts >= 3) {
+      db.run(`UPDATE email_verifications SET verified = 2 WHERE id = ?`, [record.id]);
+      return { valid: false, message: 'Too many incorrect attempts. This code has been invalidated. Please request a new code.' };
+    }
+
+    // 5. Compare hash
+    if (inputHash !== record.code_hash) {
+      const nextAttempts = record.attempts + 1;
+      db.run(`UPDATE email_verifications SET attempts = ? WHERE id = ?`, [nextAttempts, record.id]);
+      const remaining = 3 - nextAttempts;
+      return {
+        valid: false,
+        message: remaining > 0
+          ? `Invalid verification code. ${remaining} attempt(s) remaining.`
+          : 'Invalid verification code. Attempt limit exceeded. Please request a new code.'
+      };
+    }
+
+    // 6. Mark verified
+    db.run(`UPDATE email_verifications SET verified = 1 WHERE id = ?`, [record.id]);
+
+    const verificationToken = crypto
+      .createHash('sha256')
+      .update(`${cleanEmail}:${record.code_hash}:${Date.now()}:${config.jwtSecret}`)
+      .digest('hex');
+
+    return {
+      valid: true,
+      message: 'Email address verified successfully.',
+      emailVerificationToken: verificationToken
+    };
+  }
+
+  isEmailVerified(email) {
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    const record = db.get(
+      `SELECT id FROM email_verifications
+       WHERE email = ? AND purpose = 'REGISTRATION' AND verified = 1
+         AND datetime(created_at, '+30 minutes') > datetime('now')
+       ORDER BY created_at DESC LIMIT 1`,
+      [cleanEmail]
+    );
+    return !!record;
+  }
+
+  consumeRegistrationCode(email) {
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    db.run(
+      `UPDATE email_verifications SET verified = 2 WHERE email = ? AND verified = 1`,
+      [cleanEmail]
+    );
   }
 }
 

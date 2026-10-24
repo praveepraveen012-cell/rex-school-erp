@@ -319,6 +319,18 @@ CREATE TABLE IF NOT EXISTS otp_verifications (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 16B. EMAIL VERIFICATIONS (Registration & Security)
+CREATE TABLE IF NOT EXISTS email_verifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL,
+  code_hash TEXT NOT NULL,
+  purpose TEXT DEFAULT 'REGISTRATION',
+  attempts INTEGER DEFAULT 0,
+  verified INTEGER DEFAULT 0,
+  expires_at DATETIME NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 17. SESSIONS / REFRESH TOKENS
 CREATE TABLE IF NOT EXISTS sessions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -866,6 +878,7 @@ CREATE INDEX IF NOT EXISTS idx_events_date ON events(event_date);
 CREATE INDEX IF NOT EXISTS idx_notifications_target ON notifications(target_audience, target_class_id);
 CREATE INDEX IF NOT EXISTS idx_notification_recipients_user ON notification_recipients(user_id, is_read);
 CREATE INDEX IF NOT EXISTS idx_otp_mobile ON otp_verifications(mobile, verified);
+CREATE INDEX IF NOT EXISTS idx_email_verifications ON email_verifications(email, verified);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON audit_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_sms_logs_recipient ON sms_logs(recipient);

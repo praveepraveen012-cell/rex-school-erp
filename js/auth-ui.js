@@ -163,6 +163,36 @@
             }
           }
 
+          const trialBanner = document.getElementById('school-trial-banner');
+          if (trialBanner) {
+            const endsAt = trialData?.endsAt || schoolData?.trial_ends_at;
+            const subStatus = schoolData?.subscription_status || trialData?.status || 'TRIAL_ACTIVE';
+            const schCode = schoolData?.code || schoolData?.schoolId || schoolData?.id || 'GRX-SCH-202601';
+            const daysCountEl = document.getElementById('school-trial-days-count');
+            const idEl = document.getElementById('school-trial-banner-id');
+            const titleEl = document.getElementById('school-trial-banner-title');
+            const descEl = document.getElementById('school-trial-banner-desc');
+            if (idEl) idEl.textContent = schCode;
+
+            if (user.role === 'SUPER_ADMIN' || user.role === 'SCHOOL_ADMIN' || user.role === 'admin') {
+              if (subStatus === 'ACTIVE_SUBSCRIPTION') {
+                trialBanner.style.background = 'linear-gradient(135deg, #059669 0%, #047857 100%)';
+                if (titleEl) titleEl.textContent = '✓ Active Institutional License';
+                if (descEl) descEl.innerHTML = `Paid subscription active for <span style="font-family:monospace;font-weight:700;background:rgba(255,255,255,0.2);padding:2px 6px;border-radius:4px;">${schCode}</span>. Full access enabled.`;
+                trialBanner.style.display = 'flex';
+              } else if (endsAt) {
+                const diffMs = new Date(endsAt).getTime() - Date.now();
+                const daysLeft = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+                if (daysCountEl) daysCountEl.textContent = `${daysLeft} days remaining`;
+                trialBanner.style.display = 'flex';
+              } else {
+                trialBanner.style.display = 'flex';
+              }
+            } else {
+              trialBanner.style.display = 'none';
+            }
+          }
+
           badgeContainer.innerHTML = `
             <div class="rex-user-pill">
               <span class="rex-role-tag" style="background:${roleColor}">
@@ -290,11 +320,11 @@
 
           <!-- Role Selection Tabs -->
           <div class="rex-role-tabs">
-            <button type="button" class="rex-tab-btn ${this.currentTab === 'register' ? 'active' : ''}" onclick="window.AuthUI.switchTab('register')" style="color: #673AB7; font-weight: 700;">
-              <i class="fas fa-rocket"></i> Register School (7-Day Trial)
+            <button type="button" class="rex-tab-btn ${this.currentTab === 'register' ? 'active' : ''}" onclick="window.AuthUI.switchTab('register')" style="color: #FF9800; font-weight: 800;">
+              <span>🎁</span> Register School (7-Day Trial)
             </button>
             <button type="button" class="rex-tab-btn ${this.currentTab === 'admin' ? 'active' : ''}" onclick="window.AuthUI.switchTab('admin')">
-              <i class="fas fa-shield-alt"></i> School Admin Login
+              <i class="fas fa-shield-alt"></i> Existing School Login
             </button>
             <button type="button" class="rex-tab-btn ${this.currentTab === 'teacher' ? 'active' : ''}" onclick="window.AuthUI.switchTab('teacher')">
               <i class="fas fa-chalkboard-teacher"></i> Teacher Login
@@ -310,11 +340,11 @@
 
             <!-- TAB 0: REGISTER YOUR SCHOOL (7-DAY TRIAL) -->
             <div id="tab-register" class="rex-tab-pane ${this.currentTab === 'register' ? 'active' : ''}">
-              <div class="rex-login-banner" style="background: linear-gradient(135deg, #ede9fe, #ddd6fe); color: #5b21b6; border-radius: 8px;">
-                <i class="fas fa-rocket" style="font-size: 1.5rem;"></i>
+              <div class="rex-login-banner" style="background: linear-gradient(135deg, #fff7ed, #ffedd5); color: #c2410c; border: 1px solid #fed7aa; border-radius: 8px;">
+                <span style="font-size: 1.6rem;">🎁</span>
                 <div>
-                  <strong>Register Your School &bull; 7-Day Full Free Trial</strong>
-                  <div style="font-size: 0.75rem; opacity: 0.9;">Instant activation &bull; Unique School ID assigned &bull; Zero credit card required</div>
+                  <strong style="color: #9a3412; font-size: 0.95rem;">Register Your School &bull; 7-Day Full Free Trial</strong>
+                  <div style="font-size: 0.75rem; color: #c2410c; opacity: 0.95;">Permanent Unique School ID generated &bull; Server-enforced trial &bull; Zero payment upfront</div>
                 </div>
               </div>
               <form id="school-register-form" onsubmit="window.AuthUI.handleRegisterSchool(event)">
@@ -324,40 +354,69 @@
                     <input type="text" id="reg-sch-name" required placeholder="e.g. Oakridge International">
                   </div>
                   <div class="rex-form-group">
-                    <label for="reg-sch-email">School Official Email *</label>
-                    <input type="email" id="reg-sch-email" required placeholder="contact@oakridge.edu">
-                  </div>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                  <div class="rex-form-group">
-                    <label for="reg-sch-phone">School Contact Phone *</label>
-                    <input type="tel" id="reg-sch-phone" required placeholder="9876500001">
-                  </div>
-                  <div class="rex-form-group">
                     <label for="reg-sch-city">City, State & Postal Code *</label>
                     <input type="text" id="reg-sch-city" required placeholder="Bengaluru, Karnataka - 560001">
                   </div>
                 </div>
+
                 <div class="rex-form-group">
                   <label for="reg-sch-address">School Campus Address *</label>
                   <input type="text" id="reg-sch-address" required placeholder="Plot 45, Knowledge Park Road">
                 </div>
+
                 <div style="border-top: 1px dashed #cbd5e1; padding-top: 10px; margin: 8px 0;">
-                  <div style="font-size: 0.74rem; font-weight: 700; color: #475569; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.04em;">School Administrator Credentials</div>
-                  <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px;">
-                    <div class="rex-form-group">
-                      <label for="reg-adm-name">Administrator Full Name *</label>
-                      <input type="text" id="reg-adm-name" required placeholder="Dr. Sarah Johnson">
-                    </div>
-                    <div class="rex-form-group">
-                      <label for="reg-adm-mobile">Admin Mobile Number *</label>
-                      <input type="tel" id="reg-adm-mobile" required placeholder="9876543210">
-                    </div>
-                  </div>
+                  <div style="font-size: 0.74rem; font-weight: 700; color: #475569; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.04em;">School Administrator Credentials & Verification</div>
                   <div class="rex-form-group">
-                    <label for="reg-adm-email">Administrator Email (Login ID) *</label>
-                    <input type="email" id="reg-adm-email" required placeholder="principal@oakridge.edu">
+                    <label for="reg-adm-name">Administrator Full Name *</label>
+                    <input type="text" id="reg-adm-name" required placeholder="Dr. Sarah Johnson">
                   </div>
+
+                  <!-- Mobile + SMS OTP Verification -->
+                  <div class="rex-form-group">
+                    <label for="reg-adm-mobile">Administrator Mobile Number * (SMS OTP Verification)</label>
+                    <div style="display: flex; gap: 8px;">
+                      <input type="tel" id="reg-adm-mobile" required placeholder="10-digit mobile, e.g. 9876543210" style="flex: 1;">
+                      <button type="button" id="btn-send-phone-otp" class="btn btn-secondary" onclick="window.AuthUI.handleSendPhoneOtp()" style="font-size: 0.76rem; font-weight: 700; white-space: nowrap; padding: 0.45rem 0.85rem; background: #1D2F80; color: #fff; border: none; border-radius: 6px;">
+                        📱 Send OTP
+                      </button>
+                    </div>
+                    <div id="phone-otp-box" style="display: none; margin-top: 6px; padding: 8px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px;">
+                      <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="reg-phone-otp" maxlength="6" placeholder="6-digit SMS OTP" style="flex: 1; font-family: monospace; font-size: 0.95rem; font-weight: 700; text-align: center; letter-spacing: 2px;">
+                        <button type="button" id="btn-verify-phone-otp" class="btn btn-primary" onclick="window.AuthUI.handleVerifyPhoneOtp()" style="font-size: 0.76rem; font-weight: 700; white-space: nowrap; padding: 0.45rem 0.85rem; background: #059669; border: none; border-radius: 6px;">
+                          Verify OTP
+                        </button>
+                      </div>
+                      <div id="phone-otp-feedback" style="font-size: 0.72rem; margin-top: 4px; color: #1e40af;"></div>
+                    </div>
+                    <div id="phone-verified-badge" style="display: none; margin-top: 4px; font-size: 0.75rem; color: #059669; font-weight: 700;">
+                      ✅ Mobile Number Verified
+                    </div>
+                  </div>
+
+                  <!-- Email + Email OTP Verification -->
+                  <div class="rex-form-group">
+                    <label for="reg-adm-email">Administrator Official Email * (Email Verification Code)</label>
+                    <div style="display: flex; gap: 8px;">
+                      <input type="email" id="reg-adm-email" required placeholder="principal@oakridge.edu" style="flex: 1;">
+                      <button type="button" id="btn-send-email-otp" class="btn btn-secondary" onclick="window.AuthUI.handleSendEmailOtp()" style="font-size: 0.76rem; font-weight: 700; white-space: nowrap; padding: 0.45rem 0.85rem; background: #673AB7; color: #fff; border: none; border-radius: 6px;">
+                        ✉️ Send Code
+                      </button>
+                    </div>
+                    <div id="email-otp-box" style="display: none; margin-top: 6px; padding: 8px; background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 6px;">
+                      <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="reg-email-otp" maxlength="6" placeholder="6-digit Email Code" style="flex: 1; font-family: monospace; font-size: 0.95rem; font-weight: 700; text-align: center; letter-spacing: 2px;">
+                        <button type="button" id="btn-verify-email-otp" class="btn btn-primary" onclick="window.AuthUI.handleVerifyEmailOtp()" style="font-size: 0.76rem; font-weight: 700; white-space: nowrap; padding: 0.45rem 0.85rem; background: #059669; border: none; border-radius: 6px;">
+                          Verify Code
+                        </button>
+                      </div>
+                      <div id="email-otp-feedback" style="font-size: 0.72rem; margin-top: 4px; color: #5b21b6;"></div>
+                    </div>
+                    <div id="email-verified-badge" style="display: none; margin-top: 4px; font-size: 0.75rem; color: #059669; font-weight: 700;">
+                      ✅ Official Email Verified
+                    </div>
+                  </div>
+
                   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <div class="rex-form-group">
                       <label for="reg-adm-pass">Password * (Min 8 chars)</label>
@@ -369,8 +428,8 @@
                     </div>
                   </div>
                 </div>
-                <button type="submit" class="rex-btn-primary" id="btn-reg-submit" style="background: linear-gradient(135deg, #7c3aed, #6d28d9); font-weight: 800;">
-                  <i class="fas fa-rocket"></i> Activate 7-Day Free Trial & Register School
+                <button type="submit" class="rex-btn-primary" id="btn-reg-submit" style="background: linear-gradient(135deg, #FF9800, #E65100); font-weight: 800; font-size: 0.95rem; padding: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                  <span>🎁</span> Start Your 7-Day Free Trial
                 </button>
               </form>
             </div>
@@ -652,13 +711,149 @@
       }
     },
 
+    async handleSendPhoneOtp() {
+      this.clearError();
+      const mobileInput = document.getElementById('reg-adm-mobile');
+      const mobile = mobileInput?.value.trim();
+      const cleanMobile = (mobile || '').replace(/\D/g, '').slice(-10);
+
+      if (!cleanMobile || cleanMobile.length !== 10) {
+        this.showError('Please enter a valid 10-digit administrator mobile number first.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-send-phone-otp');
+      btn.disabled = true;
+      btn.innerHTML = 'Sending...';
+
+      try {
+        const res = await window.RexApi.sendRegistrationPhoneOtp(cleanMobile);
+        document.getElementById('phone-otp-box').style.display = 'block';
+        const feedback = document.getElementById('phone-otp-feedback');
+        feedback.innerHTML = `OTP dispatched to +91 ${cleanMobile}. (Expires in 5 mins)`;
+        if (res.devOtpHint) {
+          feedback.innerHTML += ` &bull; <strong>Test OTP: ${res.devOtpHint}</strong>`;
+          const otpInput = document.getElementById('reg-phone-otp');
+          if (otpInput && !otpInput.value) otpInput.value = res.devOtpHint;
+        }
+        btn.innerHTML = 'Sent ✓';
+        this.startCooldown(btn, '📱 Send OTP');
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '📱 Send OTP';
+        this.showError(err.message || 'Failed to dispatch phone verification OTP.');
+      }
+    },
+
+    async handleVerifyPhoneOtp() {
+      this.clearError();
+      const mobile = document.getElementById('reg-adm-mobile')?.value.trim();
+      const otp = document.getElementById('reg-phone-otp')?.value.trim();
+      if (!otp || otp.length !== 6) {
+        this.showError('Please enter the 6-digit SMS OTP received on your mobile.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-verify-phone-otp');
+      btn.disabled = true;
+      btn.innerHTML = 'Verifying...';
+
+      try {
+        await window.RexApi.verifyRegistrationPhoneOtp(mobile, otp);
+        document.getElementById('phone-otp-box').style.display = 'none';
+        document.getElementById('phone-verified-badge').style.display = 'block';
+        document.getElementById('reg-adm-mobile').readOnly = true;
+        document.getElementById('btn-send-phone-otp').style.display = 'none';
+        this.phoneVerified = true;
+        this.clearError();
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = 'Verify OTP';
+        this.showError(err.message || 'Invalid or expired Phone OTP.');
+      }
+    },
+
+    async handleSendEmailOtp() {
+      this.clearError();
+      const emailInput = document.getElementById('reg-adm-email');
+      const email = emailInput?.value.trim().toLowerCase();
+      const adminName = document.getElementById('reg-adm-name')?.value.trim() || 'Administrator';
+
+      if (!email || !email.includes('@')) {
+        this.showError('Please enter a valid administrator email address first.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-send-email-otp');
+      btn.disabled = true;
+      btn.innerHTML = 'Sending...';
+
+      try {
+        const res = await window.RexApi.sendRegistrationEmailOtp(email, adminName);
+        document.getElementById('email-otp-box').style.display = 'block';
+        const feedback = document.getElementById('email-otp-feedback');
+        feedback.innerHTML = `Verification code sent to ${email}. (Expires in 10 mins)`;
+        if (res.devCodeHint) {
+          feedback.innerHTML += ` &bull; <strong>Test Code: ${res.devCodeHint}</strong>`;
+          const codeInput = document.getElementById('reg-email-otp');
+          if (codeInput && !codeInput.value) codeInput.value = res.devCodeHint;
+        }
+        btn.innerHTML = 'Sent ✓';
+        this.startCooldown(btn, '✉️ Send Code');
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '✉️ Send Code';
+        this.showError(err.message || 'Failed to dispatch email verification code.');
+      }
+    },
+
+    async handleVerifyEmailOtp() {
+      this.clearError();
+      const email = document.getElementById('reg-adm-email')?.value.trim().toLowerCase();
+      const code = document.getElementById('reg-email-otp')?.value.trim();
+      if (!code || code.length !== 6) {
+        this.showError('Please enter the 6-digit verification code received on your email.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-verify-email-otp');
+      btn.disabled = true;
+      btn.innerHTML = 'Verifying...';
+
+      try {
+        await window.RexApi.verifyRegistrationEmailOtp(email, code);
+        document.getElementById('email-otp-box').style.display = 'none';
+        document.getElementById('email-verified-badge').style.display = 'block';
+        document.getElementById('reg-adm-email').readOnly = true;
+        document.getElementById('btn-send-email-otp').style.display = 'none';
+        this.emailVerified = true;
+        this.clearError();
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = 'Verify Code';
+        this.showError(err.message || 'Invalid or expired Email verification code.');
+      }
+    },
+
+    startCooldown(btn, defaultText) {
+      let countdown = 60;
+      const interval = setInterval(() => {
+        countdown--;
+        if (countdown > 0) {
+          btn.innerHTML = `${countdown}s`;
+        } else {
+          clearInterval(interval);
+          btn.disabled = false;
+          btn.innerHTML = defaultText;
+        }
+      }, 1000);
+    },
+
     async handleRegisterSchool(e) {
       e.preventDefault();
       this.clearError();
 
       const schoolName = document.getElementById('reg-sch-name')?.value.trim();
-      const schoolEmail = document.getElementById('reg-sch-email')?.value.trim();
-      const schoolPhone = document.getElementById('reg-sch-phone')?.value.trim();
       const cityState = document.getElementById('reg-sch-city')?.value.trim() || 'Bengaluru, Karnataka - 560001';
       const address = document.getElementById('reg-sch-address')?.value.trim() || 'Campus Road';
       const adminName = document.getElementById('reg-adm-name')?.value.trim();
@@ -667,8 +862,11 @@
       const pass = document.getElementById('reg-adm-pass')?.value.trim();
       const confirmPass = document.getElementById('reg-adm-confirm')?.value.trim();
 
+      const phoneOtp = document.getElementById('reg-phone-otp')?.value.trim();
+      const emailOtp = document.getElementById('reg-email-otp')?.value.trim();
+
       if (pass !== confirmPass) {
-        this.showError('Password and password confirmation do not match.');
+        this.showError('Password and confirm password do not match.');
         return;
       }
 
@@ -680,8 +878,8 @@
         const res = await window.RexApi.registerSchool({
           schoolName,
           displayName: schoolName,
-          schoolEmail,
-          schoolPhone,
+          schoolEmail: adminEmail,
+          schoolPhone: adminMobile,
           address,
           city: cityState.split(',')[0]?.trim() || 'Bengaluru',
           state: cityState.split(',')[1]?.split('-')[0]?.trim() || 'Karnataka',
@@ -690,16 +888,18 @@
           adminEmail,
           adminMobile,
           password: pass,
-          confirmPassword: confirmPass
+          confirmPassword: confirmPass,
+          phoneOtp,
+          emailOtp
         });
 
         this.hideLoginModal();
         this.showRegistrationSuccessModal(res);
       } catch (err) {
-        this.showError(err.message || 'School registration failed. Please check your details.');
+        this.showError(err.message || 'School registration failed. Please complete Phone & Email OTP verification.');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-rocket"></i> Activate 7-Day Free Trial & Register School';
+        btn.innerHTML = '<span>🎁</span> Start Your 7-Day Free Trial';
       }
     },
 
